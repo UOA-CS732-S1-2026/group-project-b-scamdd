@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { signIn, signUp } from '../lib/auth-client';
 import './AuthPage.css';
 
@@ -7,7 +7,9 @@ type Tab = 'signin' | 'signup';
 
 export default function AuthPage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>('signin');
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

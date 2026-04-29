@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import reactLogo from './assets/react.svg';
 import viteLogo from './assets/vite.svg';
 import heroImg from './assets/hero.png';
@@ -14,6 +14,20 @@ export default function App() {
         <Route path="/" element={<Home />} />
       </Routes>
     </BrowserRouter>
+  );
+}
+
+function AuthNav() {
+  const navigate = useNavigate();
+  return (
+    <div className="auth-nav">
+      <button type="button" className="auth-nav-btn" onClick={() => navigate('/auth?tab=signin')}>
+        Sign in
+      </button>
+      <button type="button" className="auth-nav-btn primary" onClick={() => navigate('/auth?tab=signup')}>
+        Sign up
+      </button>
+    </div>
   );
 }
 
@@ -37,6 +51,9 @@ function Home() {
         <button type="button" className="counter" onClick={() => setCount((count) => count + 1)}>
           Count is {count}
         </button>
+        <div className="auth-actions">
+          <AuthNav />
+        </div>
       </section>
 
       <div className="ticks"></div>
