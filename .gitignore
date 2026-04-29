@@ -4,8 +4,24 @@
 .DS_Store
 node_modules
 
+# Build output
+dist
+client/dist
+server/dist
+*.tsbuildinfo
+
 # Environment variables - Edit if necessary
 .env
 .env.*
 !.env.example
 !.env.test
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
