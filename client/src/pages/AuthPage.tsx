@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { signIn, signUp } from '../lib/auth-client';
+import { signIn, signUp, requestPasswordReset } from '../lib/auth-client';
 import './AuthPage.css';
 
 type Tab = 'signin' | 'signup';
+type Mode = 'auth' | 'forgot' | 'forgot-sent';
 
 export default function AuthPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
   const [tab, setTab] = useState<Tab>(initialTab);
+  const [mode, setMode] = useState<Mode>('auth');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,27 +23,81 @@ export default function AuthPage() {
     setError('');
     setLoading(true);
 
-    try {
-      if (tab === 'signup') {
-        await signUp.email({ name, email, password });
-      } else {
-        await signIn.email({ email, password });
-      }
-      navigate('/');
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
-    } finally {
+    if (tab === 'signup') {
+      const { error: authError } = await signUp.email({ name, email, password });
       setLoading(false);
+      if (authError) {
+        setError(authError.message || 'Something went wrong');
+        return;
+      }
+    } else {
+      const { error: authError } = await signIn.email({ email, password });
+      setLoading(false);
+      if (authError) {
+        setError(authError.message || 'Invalid email or password');
+        return;
+      }
     }
+    navigate('/');
   }
 
   async function handleGoogle() {
     setError('');
-    try {
-      await signIn.social({ provider: 'google', callbackURL: '/' });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+    await signIn.social({ provider: 'google', callbackURL: '/' });
+  }
+
+  async function handleForgot(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const { error: authError } = await requestPasswordReset({ email, redirectTo: '/auth/reset-password' });
+    setLoading(false);
+    if (authError) {
+      setError(authError.message || 'Something went wrong');
+      return;
     }
+    setMode('forgot-sent');
+  }
+
+  if (mode === 'forgot' || mode === 'forgot-sent') {
+    return (
+      <div className="auth-wrapper">
+        <div className="auth-card">
+          <h1 className="auth-title">Reset password</h1>
+          {mode === 'forgot-sent' ? (
+            <div className="auth-sent">
+              <p>If an account exists for <strong>{email}</strong>, a reset link has been sent.</p>
+              <p className="auth-sent-note">Check your inbox (or server console in dev mode).</p>
+              <button className="auth-btn-primary" onClick={() => { setMode('auth'); setError(''); }}>
+                Back to sign in
+              </button>
+            </div>
+          ) : (
+            <form className="auth-form" onSubmit={handleForgot}>
+              <p className="auth-hint">Enter your email and we'll send you a reset link.</p>
+              <div className="auth-field">
+                <label htmlFor="reset-email">Email</label>
+                <input
+                  id="reset-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
+              {error && <p className="auth-error">{error}</p>}
+              <button type="submit" className="auth-btn-primary" disabled={loading}>
+                {loading ? 'Sending…' : 'Send reset link'}
+              </button>
+              <button type="button" className="auth-link-btn" onClick={() => { setMode('auth'); setError(''); }}>
+                Back to sign in
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -94,7 +150,18 @@ export default function AuthPage() {
           </div>
 
           <div className="auth-field">
-            <label htmlFor="password">Password</label>
+            <div className="auth-field-header">
+              <label htmlFor="password">Password</label>
+              {tab === 'signin' && (
+                <button
+                  type="button"
+                  className="auth-forgot-link"
+                  onClick={() => { setMode('forgot'); setError(''); }}
+                >
+                  Forgot password?
+                </button>
+              )}
+            </div>
             <input
               id="password"
               type="password"
