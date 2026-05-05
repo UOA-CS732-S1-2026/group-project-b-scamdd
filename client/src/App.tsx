@@ -1,10 +1,39 @@
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import reactLogo from './assets/react.svg';
 import viteLogo from './assets/vite.svg';
 import heroImg from './assets/hero.png';
 import './App.css';
+import AuthPage from './pages/AuthPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
-function App() {
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/" element={<Home />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+function AuthNav() {
+  const navigate = useNavigate();
+  return (
+    <div className="auth-nav">
+      <button type="button" className="auth-nav-btn" onClick={() => navigate('/auth?tab=signin')}>
+        Sign in
+      </button>
+      <button type="button" className="auth-nav-btn primary" onClick={() => navigate('/auth?tab=signup')}>
+        Sign up
+      </button>
+    </div>
+  );
+}
+
+function Home() {
   const [count, setCount] = useState(0);
 
   return (
@@ -24,6 +53,9 @@ function App() {
         <button type="button" className="counter" onClick={() => setCount((count) => count + 1)}>
           Count is {count}
         </button>
+        <div className="auth-actions">
+          <AuthNav />
+        </div>
       </section>
 
       <div className="ticks"></div>
@@ -98,5 +130,3 @@ function App() {
     </>
   );
 }
-
-export default App;

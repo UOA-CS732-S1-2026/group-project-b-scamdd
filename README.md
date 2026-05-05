@@ -21,7 +21,8 @@ Please use good version control practices, such as feature branching, both to ma
 
 - **Frontend:** Vite + React + TypeScript
 - **Backend:** Express + TypeScript on Node.js
-- **Database:** MongoDB (via Mongoose)
+- **Database:** MongoDB Atlas (via Mongoose + Better Auth MongoDB adapter)
+- **Auth:** Better Auth (email/password + Google OAuth)
 - **Charts:** Recharts
 - **Package manager:** pnpm
 
@@ -30,7 +31,8 @@ Please use good version control practices, such as feature branching, both to ma
 ### Prerequisites
 - Node.js 24 (see `.nvmrc`)
 - pnpm (`corepack enable && corepack prepare pnpm@latest --activate`)
-- MongoDB running locally on `mongodb://localhost:27017` (or a MongoDB Atlas connection string)
+- A [MongoDB Atlas](https://cloud.mongodb.com) cluster (free M0 tier is fine)
+- A Google OAuth client ID/secret from [console.cloud.google.com](https://console.cloud.google.com) (optional for local dev)
 
 ### First-time setup
 
@@ -38,13 +40,29 @@ Please use good version control practices, such as feature branching, both to ma
 # Client
 cd client
 pnpm install
-cp .env.example .env
 
 # Server (in a second terminal)
 cd server
 pnpm install
-cp .env.example .env
+cp .env.example .env   # then fill in your values (see Environment variables below)
 ```
+
+### Environment variables
+
+Copy `server/.env.example` to `server/.env` and fill in:
+
+| Variable | Description |
+|---|---|
+| `MONGO_URI` | MongoDB Atlas connection string (include `/bscamdd` database name) |
+| `BETTER_AUTH_SECRET` | Random 32-byte hex string — generate with `openssl rand -hex 32` |
+| `BETTER_AUTH_URL` | URL the server is reachable at (default: `http://localhost:4000`) |
+| `CLIENT_URL` | URL the client is reachable at (default: `http://localhost:5173`) |
+| `GOOGLE_CLIENT_ID` | From Google Cloud Console → OAuth 2.0 credentials |
+| `GOOGLE_CLIENT_SECRET` | From Google Cloud Console → OAuth 2.0 credentials |
+
+> **Atlas setup:** In your Atlas cluster, go to **Network Access** and add your IP (or `0.0.0.0/0` for dev). Go to **Database Access** and create a user with read/write permissions.
+
+> **Google OAuth setup:** Register a Web Application in Google Cloud Console. Add `http://localhost:4000/api/auth/callback/google` as an authorised redirect URI.
 
 ### Running in development
 
@@ -59,6 +77,58 @@ pnpm dev
 ```
 
 The Vite dev server proxies `/api/*` to the Express server, so the client can call `fetch('/api/health')` directly.
+
+## Authentication
+
+Auth is handled by [Better Auth](https://better-auth.com) with a MongoDB adapter.
+
+### Supported methods
+- **Email / password** — sign up and sign in via `/auth`
+- **Google OAuth** — one-click sign in via Google
+
+### Auth routes (server)
+All auth endpoints are automatically mounted at `/api/auth/*` by Better Auth. Key ones:
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/auth/sign-up/email` | Create a new account |
+| `POST` | `/api/auth/sign-in/email` | Sign in with email + password |
+| `GET` | `/api/auth/sign-in/social?provider=google` | Initiate Google OAuth |
+| `GET` | `/api/auth/sign-out` | Sign out (clears session cookie) |
+| `GET` | `/api/auth/get-session` | Returns the current session |
+
+### Client usage
+
+```ts
+import { signIn, signUp, signOut, useSession } from './lib/auth-client';
+
+// Sign up
+await signUp.email({ name, email, password });
+
+// Sign in
+await signIn.email({ email, password });
+
+// Google OAuth
+await signIn.social({ provider: 'google', callbackURL: '/' });
+
+// Sign out
+await signOut();
+
+// Get session in a component
+const { data: session } = useSession();
+```
+
+### Protecting server routes
+
+```ts
+import { auth } from './auth';
+
+app.get('/api/protected', async (req, res) => {
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session) return res.status(401).json({ error: 'Unauthorized' });
+  res.json({ user: session.user });
+});
+```
 
 ### Building for production
 
