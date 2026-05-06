@@ -4,6 +4,7 @@ import { useSession, signOut } from './lib/auth-client';
 import AuthPage from './pages/AuthPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import Transactions from './pages/Transactions';
+import Goals from './pages/Goals';
 import ProfileSetup from './pages/ProfileSetup';
 import Profile from './pages/Profile';
 import { getMyProfile } from './api/profile';
@@ -28,6 +29,14 @@ export default function App() {
           element={
             <RequireProfile>
               <Transactions />
+            </RequireProfile>
+          }
+        />
+        <Route
+          path="/goals"
+          element={
+            <RequireProfile>
+              <Goals />
             </RequireProfile>
           }
         />
@@ -95,6 +104,9 @@ function AuthNav() {
       <div className="flex flex-wrap gap-3 justify-center">
         <button type="button" className={ghost} onClick={() => navigate('/transactions')}>
           Transactions
+        </button>
+        <button type="button" className={ghost} onClick={() => navigate('/goals')}>
+          Goals
         </button>
         <button type="button" className={ghost} onClick={() => navigate('/profile')}>
           Profile
