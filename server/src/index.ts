@@ -4,6 +4,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './auth';
+import transactionRoutes from './routes/transactions';
 
 const app = express();
 
@@ -20,6 +21,8 @@ app.use(express.json());
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
+
+app.use('/api/transactions', transactionRoutes);
 
 app.get('/favicon.ico', (_req, res) => res.status(204).end());
 

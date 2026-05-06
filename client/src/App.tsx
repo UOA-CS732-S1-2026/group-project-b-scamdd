@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { useSession, signOut } from './lib/auth-client';
 import reactLogo from './assets/react.svg';
 import viteLogo from './assets/vite.svg';
 import heroImg from './assets/hero.png';
 import './App.css';
 import AuthPage from './pages/AuthPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import Transactions from './pages/Transactions';
 
 export default function App() {
   return (
@@ -13,6 +15,7 @@ export default function App() {
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/transactions" element={<Transactions />} />
         <Route path="/" element={<Home />} />
       </Routes>
     </BrowserRouter>
@@ -21,6 +24,21 @@ export default function App() {
 
 function AuthNav() {
   const navigate = useNavigate();
+  const { data: session } = useSession();
+
+  if (session) {
+    return (
+      <div className="auth-nav">
+        <button type="button" className="auth-nav-btn" onClick={() => navigate('/transactions')}>
+          Transactions
+        </button>
+        <button type="button" className="auth-nav-btn primary" onClick={() => signOut()}>
+          Sign out
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="auth-nav">
       <button type="button" className="auth-nav-btn" onClick={() => navigate('/auth?tab=signin')}>
