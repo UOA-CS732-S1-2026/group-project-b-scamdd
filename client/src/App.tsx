@@ -6,6 +6,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import Transactions from './pages/Transactions';
 import Goals from './pages/Goals';
 import Budgets from './pages/Budgets';
+import Friends from './pages/Friends';
 import ProfileSetup from './pages/ProfileSetup';
 import Profile from './pages/Profile';
 import { getMyProfile } from './api/profile';
@@ -46,6 +47,14 @@ export default function App() {
           element={
             <RequireProfile>
               <Budgets />
+            </RequireProfile>
+          }
+        />
+        <Route
+          path="/friends"
+          element={
+            <RequireProfile>
+              <Friends />
             </RequireProfile>
           }
         />
@@ -119,6 +128,9 @@ function AuthNav() {
         </button>
         <button type="button" className={ghost} onClick={() => navigate('/budgets')}>
           Budgets
+        </button>
+        <button type="button" className={ghost} onClick={() => navigate('/friends')}>
+          Friends
         </button>
         <button type="button" className={ghost} onClick={() => navigate('/profile')}>
           Profile

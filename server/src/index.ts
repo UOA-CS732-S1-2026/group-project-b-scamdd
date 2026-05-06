@@ -8,6 +8,7 @@ import transactionRoutes from './routes/transactions';
 import profileRoutes from './routes/profile';
 import goalRoutes from './routes/goals';
 import budgetRoutes from './routes/budgets';
+import friendRoutes from './routes/friends';
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/budgets', budgetRoutes);
+app.use('/api/friends', friendRoutes);
 
 app.get('/favicon.ico', (_req, res) => res.status(204).end());
 
