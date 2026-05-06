@@ -1,0 +1,160 @@
+import { Router, Request, Response } from 'express';
+import { User } from '../models/User';
+import { requireAuth } from '../middleware/auth';
+
+const router = Router();
+
+const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+const ALLOWED_CURRENCIES = ['NZD', 'USD', 'AUD', 'EUR', 'GBP'];
+
+function publicProfile(u: {
+  _id: unknown;
+  username?: string | null;
+  displayName?: string | null;
+  bio?: string | null;
+}) {
+  return {
+    id: String(u._id),
+    username: u.username ?? null,
+    displayName: u.displayName ?? null,
+    bio: u.bio ?? null,
+  };
+}
+
+router.get('/me', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = await User.findById(req.user!._id).lean();
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+    res.json({
+      id: String(user._id),
+      email: user.email,
+      name: user.name ?? null,
+      username: user.username ?? null,
+      displayName: user.displayName ?? null,
+      bio: user.bio ?? null,
+      currency: user.currency ?? 'NZD',
+      profileComplete: Boolean(user.profileComplete),
+    });
+  } catch {
+    res.status(500).json({ message: 'Failed to load profile' });
+  }
+});
+
+router.patch('/me', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { username, displayName, bio, currency, profileComplete } = req.body ?? {};
+    const updates: Record<string, unknown> = {};
+
+    if (username !== undefined) {
+      const u = String(username).toLowerCase().trim();
+      if (!USERNAME_RE.test(u)) {
+        res.status(400).json({ message: 'Username must be 3–20 chars, lowercase letters, numbers, or underscore' });
+        return;
+      }
+      const existing = await User.findOne({ username: u, _id: { $ne: req.user!._id } }).lean();
+      if (existing) {
+        res.status(409).json({ message: 'Username is taken' });
+        return;
+      }
+      updates.username = u;
+    }
+
+    if (displayName !== undefined) {
+      const dn = String(displayName).trim();
+      if (dn.length < 1 || dn.length > 50) {
+        res.status(400).json({ message: 'Display name must be 1–50 chars' });
+        return;
+      }
+      updates.displayName = dn;
+    }
+
+    if (bio !== undefined) {
+      const b = String(bio).trim();
+      if (b.length > 200) {
+        res.status(400).json({ message: 'Bio must be 200 chars or fewer' });
+        return;
+      }
+      updates.bio = b;
+    }
+
+    if (currency !== undefined) {
+      const c = String(currency).toUpperCase();
+      if (!ALLOWED_CURRENCIES.includes(c)) {
+        res.status(400).json({ message: `Currency must be one of ${ALLOWED_CURRENCIES.join(', ')}` });
+        return;
+      }
+      updates.currency = c;
+    }
+
+    if (profileComplete !== undefined) {
+      updates.profileComplete = Boolean(profileComplete);
+    }
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ message: 'No fields to update' });
+      return;
+    }
+
+    const user = await User.findByIdAndUpdate(req.user!._id, updates, {
+      new: true,
+      runValidators: true,
+    }).lean();
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+    res.json({
+      id: String(user._id),
+      email: user.email,
+      name: user.name ?? null,
+      username: user.username ?? null,
+      displayName: user.displayName ?? null,
+      bio: user.bio ?? null,
+      currency: user.currency ?? 'NZD',
+      profileComplete: Boolean(user.profileComplete),
+    });
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
+      res.status(409).json({ message: 'Username is taken' });
+      return;
+    }
+    res.status(500).json({ message: 'Failed to update profile' });
+  }
+});
+
+router.get('/check-username', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const raw = String(req.query.u ?? '').toLowerCase().trim();
+    if (!USERNAME_RE.test(raw)) {
+      res.json({ available: false, reason: 'invalid' });
+      return;
+    }
+    const existing = await User.findOne({ username: raw, _id: { $ne: req.user!._id } }).lean();
+    res.json({ available: !existing });
+  } catch {
+    res.status(500).json({ message: 'Failed to check username' });
+  }
+});
+
+router.get('/by-username/:username', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const u = String(req.params.username).toLowerCase().trim();
+    if (!USERNAME_RE.test(u)) {
+      res.status(400).json({ message: 'Invalid username' });
+      return;
+    }
+    const user = await User.findOne({ username: u }).lean();
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+    res.json(publicProfile(user));
+  } catch {
+    res.status(500).json({ message: 'Failed to look up user' });
+  }
+});
+
+export default router;

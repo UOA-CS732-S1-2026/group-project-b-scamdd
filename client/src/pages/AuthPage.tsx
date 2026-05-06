@@ -1,10 +1,23 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { signIn, signUp, requestPasswordReset } from '../lib/auth-client';
-import './AuthPage.css';
 
 type Tab = 'signin' | 'signup';
 type Mode = 'auth' | 'forgot' | 'forgot-sent';
+
+const cardCls =
+  'w-full max-w-md bg-[var(--bg)] border border-[var(--border)] rounded-xl p-8 shadow-[var(--shadow)]';
+const wrapperCls = 'min-h-screen flex items-center justify-center p-6';
+const titleCls = 'text-2xl font-bold text-[var(--text-h)] text-center mb-6';
+const fieldWrapCls = 'flex flex-col gap-1.5';
+const labelCls = 'text-sm font-medium text-[var(--text-h)]';
+const inputCls =
+  'px-3 py-2.5 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-h)] text-sm transition-colors focus:outline-none focus:border-[var(--accent-border)] focus:ring-2 focus:ring-[var(--accent-bg)]';
+const primaryBtn =
+  'px-4 py-2.5 bg-[var(--accent)] text-white rounded-lg text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer';
+const linkBtn =
+  'bg-transparent border-0 text-[var(--text)] text-sm cursor-pointer underline underline-offset-2 py-1 hover:text-[var(--accent)]';
+const errorCls = 'text-sm text-red-500 m-0';
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -50,7 +63,10 @@ export default function AuthPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { error: authError } = await requestPasswordReset({ email, redirectTo: '/auth/reset-password' });
+    const { error: authError } = await requestPasswordReset({
+      email,
+      redirectTo: '/auth/reset-password',
+    });
     setLoading(false);
     if (authError) {
       setError(authError.message || 'Something went wrong');
@@ -61,36 +77,58 @@ export default function AuthPage() {
 
   if (mode === 'forgot' || mode === 'forgot-sent') {
     return (
-      <div className="auth-wrapper">
-        <div className="auth-card">
-          <h1 className="auth-title">Reset password</h1>
+      <div className={wrapperCls}>
+        <div className={cardCls}>
+          <h1 className={titleCls}>Reset password</h1>
           {mode === 'forgot-sent' ? (
-            <div className="auth-sent">
-              <p>If an account exists for <strong>{email}</strong>, a reset link has been sent.</p>
-              <p className="auth-sent-note">Check your inbox (or server console in dev mode).</p>
-              <button className="auth-btn-primary" onClick={() => { setMode('auth'); setError(''); }}>
+            <div className="flex flex-col gap-3 text-center">
+              <p className="text-sm text-[var(--text-h)]">
+                If an account exists for <strong>{email}</strong>, a reset link has been sent.
+              </p>
+              <p className="text-xs text-[var(--text)]">
+                Check your inbox (or server console in dev mode).
+              </p>
+              <button
+                className={primaryBtn}
+                onClick={() => {
+                  setMode('auth');
+                  setError('');
+                }}
+              >
                 Back to sign in
               </button>
             </div>
           ) : (
-            <form className="auth-form" onSubmit={handleForgot}>
-              <p className="auth-hint">Enter your email and we'll send you a reset link.</p>
-              <div className="auth-field">
-                <label htmlFor="reset-email">Email</label>
+            <form className="flex flex-col gap-4" onSubmit={handleForgot}>
+              <p className="text-sm text-[var(--text)] m-0">
+                Enter your email and we'll send you a reset link.
+              </p>
+              <div className={fieldWrapCls}>
+                <label htmlFor="reset-email" className={labelCls}>
+                  Email
+                </label>
                 <input
                   id="reset-email"
                   type="email"
+                  className={inputCls}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
                 />
               </div>
-              {error && <p className="auth-error">{error}</p>}
-              <button type="submit" className="auth-btn-primary" disabled={loading}>
+              {error && <p className={errorCls}>{error}</p>}
+              <button type="submit" className={primaryBtn} disabled={loading}>
                 {loading ? 'Sending…' : 'Send reset link'}
               </button>
-              <button type="button" className="auth-link-btn" onClick={() => { setMode('auth'); setError(''); }}>
+              <button
+                type="button"
+                className={linkBtn}
+                onClick={() => {
+                  setMode('auth');
+                  setError('');
+                }}
+              >
                 Back to sign in
               </button>
             </form>
@@ -100,35 +138,49 @@ export default function AuthPage() {
     );
   }
 
-  return (
-    <div className="auth-wrapper">
-      <div className="auth-card">
-        <h1 className="auth-title">Welcome</h1>
+  const tabBase =
+    'flex-1 px-4 py-2 bg-transparent border-0 cursor-pointer text-sm transition-colors';
+  const tabActive = `${tabBase} bg-[var(--accent-bg)] text-[var(--accent)] font-semibold`;
+  const tabInactive = `${tabBase} text-[var(--text)]`;
 
-        <div className="auth-tabs">
+  return (
+    <div className={wrapperCls}>
+      <div className={cardCls}>
+        <h1 className={titleCls}>Welcome</h1>
+
+        <div className="flex border border-[var(--border)] rounded-lg overflow-hidden mb-6">
           <button
             type="button"
-            className={`auth-tab ${tab === 'signin' ? 'active' : ''}`}
-            onClick={() => { setTab('signin'); setError(''); }}
+            className={tab === 'signin' ? tabActive : tabInactive}
+            onClick={() => {
+              setTab('signin');
+              setError('');
+            }}
           >
             Sign in
           </button>
           <button
             type="button"
-            className={`auth-tab ${tab === 'signup' ? 'active' : ''}`}
-            onClick={() => { setTab('signup'); setError(''); }}
+            className={tab === 'signup' ? tabActive : tabInactive}
+            onClick={() => {
+              setTab('signup');
+              setError('');
+            }}
           >
             Sign up
           </button>
         </div>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           {tab === 'signup' && (
-            <div className="auth-field">
-              <label htmlFor="name">Name</label>
+            <div className={fieldWrapCls}>
+              <label htmlFor="name" className={labelCls}>
+                Name
+              </label>
               <input
                 id="name"
                 type="text"
+                className={inputCls}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -137,11 +189,14 @@ export default function AuthPage() {
             </div>
           )}
 
-          <div className="auth-field">
-            <label htmlFor="email">Email</label>
+          <div className={fieldWrapCls}>
+            <label htmlFor="email" className={labelCls}>
+              Email
+            </label>
             <input
               id="email"
               type="email"
+              className={inputCls}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -149,14 +204,19 @@ export default function AuthPage() {
             />
           </div>
 
-          <div className="auth-field">
-            <div className="auth-field-header">
-              <label htmlFor="password">Password</label>
+          <div className={fieldWrapCls}>
+            <div className="flex justify-between items-baseline">
+              <label htmlFor="password" className={labelCls}>
+                Password
+              </label>
               {tab === 'signin' && (
                 <button
                   type="button"
-                  className="auth-forgot-link"
-                  onClick={() => { setMode('forgot'); setError(''); }}
+                  className="bg-transparent border-0 text-xs text-[var(--accent)] cursor-pointer p-0 underline underline-offset-2 hover:opacity-75"
+                  onClick={() => {
+                    setMode('forgot');
+                    setError('');
+                  }}
                 >
                   Forgot password?
                 </button>
@@ -165,6 +225,7 @@ export default function AuthPage() {
             <input
               id="password"
               type="password"
+              className={inputCls}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -173,16 +234,24 @@ export default function AuthPage() {
             />
           </div>
 
-          {error && <p className="auth-error">{error}</p>}
+          {error && <p className={errorCls}>{error}</p>}
 
-          <button type="submit" className="auth-btn-primary" disabled={loading}>
+          <button type="submit" className={primaryBtn} disabled={loading}>
             {loading ? 'Please wait…' : tab === 'signin' ? 'Sign in' : 'Create account'}
           </button>
         </form>
 
-        <div className="auth-divider"><span>or</span></div>
+        <div className="flex items-center gap-3 my-5 text-xs text-[var(--text)]">
+          <span className="flex-1 h-px bg-[var(--border)]" />
+          <span>or</span>
+          <span className="flex-1 h-px bg-[var(--border)]" />
+        </div>
 
-        <button type="button" className="auth-btn-google" onClick={handleGoogle}>
+        <button
+          type="button"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm font-medium text-[var(--text-h)] cursor-pointer transition-colors hover:bg-[var(--code-bg)]"
+          onClick={handleGoogle}
+        >
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
             <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
             <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>

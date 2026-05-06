@@ -42,4 +42,13 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     },
   },
+  user: {
+    additionalFields: {
+      username: { type: 'string', required: false, input: false },
+      displayName: { type: 'string', required: false, input: false },
+      bio: { type: 'string', required: false, input: false },
+      currency: { type: 'string', required: false, defaultValue: 'NZD', input: false },
+      profileComplete: { type: 'boolean', required: false, defaultValue: false, input: false },
+    },
+  },
 });
