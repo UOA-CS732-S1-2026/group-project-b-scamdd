@@ -1,8 +1,12 @@
+import { useEffect, useState, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { useSession, signOut } from './lib/auth-client';
 import AuthPage from './pages/AuthPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import Transactions from './pages/Transactions';
+import ProfileSetup from './pages/ProfileSetup';
+import Profile from './pages/Profile';
+import { getMyProfile } from './api/profile';
 
 export default function App() {
   return (
@@ -10,11 +14,71 @@ export default function App() {
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/transactions" element={<Transactions />} />
+        <Route path="/profile/setup" element={<ProfileSetup />} />
+        <Route
+          path="/profile"
+          element={
+            <RequireProfile>
+              <Profile />
+            </RequireProfile>
+          }
+        />
+        <Route
+          path="/transactions"
+          element={
+            <RequireProfile>
+              <Transactions />
+            </RequireProfile>
+          }
+        />
         <Route path="/" element={<Home />} />
       </Routes>
     </BrowserRouter>
   );
+}
+
+function RequireProfile({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
+  const { data: session, isPending } = useSession();
+  const [checking, setChecking] = useState(true);
+  const [ok, setOk] = useState(false);
+
+  useEffect(() => {
+    if (isPending) return;
+    if (!session) {
+      navigate('/auth');
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const me = await getMyProfile();
+        if (cancelled) return;
+        if (!me.profileComplete) {
+          navigate('/profile/setup');
+          return;
+        }
+        setOk(true);
+      } catch {
+        if (!cancelled) navigate('/auth');
+      } finally {
+        if (!cancelled) setChecking(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session, isPending, navigate]);
+
+  if (isPending || checking) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-[var(--text)]">
+        Loading…
+      </div>
+    );
+  }
+  if (!ok) return null;
+  return <>{children}</>;
 }
 
 function AuthNav() {
@@ -23,16 +87,17 @@ function AuthNav() {
 
   const baseBtn =
     'px-5 py-2 rounded-lg text-sm font-medium border transition-colors cursor-pointer';
-  const ghost =
-    `${baseBtn} border-[var(--border)] bg-[var(--bg)] text-[var(--text-h)] hover:bg-[var(--code-bg)]`;
-  const primary =
-    `${baseBtn} border-transparent bg-[var(--accent)] text-white hover:opacity-90`;
+  const ghost = `${baseBtn} border-[var(--border)] bg-[var(--bg)] text-[var(--text-h)] hover:bg-[var(--code-bg)]`;
+  const primary = `${baseBtn} border-transparent bg-[var(--accent)] text-white hover:opacity-90`;
 
   if (session) {
     return (
       <div className="flex flex-wrap gap-3 justify-center">
         <button type="button" className={ghost} onClick={() => navigate('/transactions')}>
           Transactions
+        </button>
+        <button type="button" className={ghost} onClick={() => navigate('/profile')}>
+          Profile
         </button>
         <button type="button" className={primary} onClick={() => signOut()}>
           Sign out

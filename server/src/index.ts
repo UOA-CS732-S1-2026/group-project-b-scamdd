@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './auth';
 import transactionRoutes from './routes/transactions';
+import profileRoutes from './routes/profile';
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/profile', profileRoutes);
 
 app.get('/favicon.ico', (_req, res) => res.status(204).end());
 
