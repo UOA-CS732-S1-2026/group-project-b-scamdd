@@ -66,6 +66,15 @@ Copy `server/.env.example` to `server/.env` and fill in:
 
 ### Running in development
 
+The fastest way is the root `Makefile`, which runs both servers together:
+
+```bash
+make install   # pnpm install in client and server
+make dev       # backend on :4000 and frontend on :5173
+```
+
+Or run them separately in two terminals:
+
 ```bash
 # Terminal 1 - backend on http://localhost:4000
 cd server
