@@ -5,6 +5,7 @@ import AuthPage from './pages/AuthPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import Transactions from './pages/Transactions';
 import Goals from './pages/Goals';
+import Budgets from './pages/Budgets';
 import ProfileSetup from './pages/ProfileSetup';
 import Profile from './pages/Profile';
 import { getMyProfile } from './api/profile';
@@ -37,6 +38,14 @@ export default function App() {
           element={
             <RequireProfile>
               <Goals />
+            </RequireProfile>
+          }
+        />
+        <Route
+          path="/budgets"
+          element={
+            <RequireProfile>
+              <Budgets />
             </RequireProfile>
           }
         />
@@ -107,6 +116,9 @@ function AuthNav() {
         </button>
         <button type="button" className={ghost} onClick={() => navigate('/goals')}>
           Goals
+        </button>
+        <button type="button" className={ghost} onClick={() => navigate('/budgets')}>
+          Budgets
         </button>
         <button type="button" className={ghost} onClick={() => navigate('/profile')}>
           Profile
