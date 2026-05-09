@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { signOut } from '../../lib/auth-client'
 import { colors } from '../../colours'
 import StatCard from './StatCard'
 import SpendingChart from './SpendingChart'
@@ -7,81 +9,33 @@ import RecentTransactions from './RecentTransactions'
 import BudgetProgress from './BudgetProgress'
 import './Dashboard.css'
 
-const MOCK_DATA = {
-  user: { name: 'Name', avatarInitial: 'A' },
-  budget: { total: 1800, spent: 1247, periodLabel: 'Monthly budget', daysLeft: 12 },
-  income: 2100,
-  moodAvg: 3.8,
-  categoryBreakdown: [
-    { label: 'Food',      amount: 412, color: colors.categories.food },
-    { label: 'Rent',      amount: 280, color: colors.categories.rent },
-    { label: 'Transport', amount: 253, color: colors.categories.transport },
-    { label: 'Other',     amount: 302, color: colors.categories.other },
-  ],
-  recentTransactions: [
-    {
-      id: '1',
-      name: 'Supermarket',
-      category: 'Food',
-      subcategory: 'groceries',
-      amount: -47.20,
-      mood: 3,
-      moodEmoji: '😐',
-      isEssential: true,
-      date: 'Today',
-      iconColor: colors.semantic.warningLight,
-      iconTextColor: colors.semantic.warningDark,
-    },
-    {
-      id: '2',
-      name: 'Coffee shop',
-      category: 'Cafés',
-      subcategory: 'non-essential',
-      amount: -5.50,
-      mood: 5,
-      moodEmoji: '😊',
-      isEssential: false,
-      date: 'Today',
-      iconColor: colors.semantic.purpleLight,
-      iconTextColor: colors.semantic.purpleDark,
-    },
-    {
-      id: '3',
-      name: 'Monthly salary',
-      category: 'Income',
-      subcategory: null,
-      amount: 1050,
-      mood: null,
-      moodEmoji: null,
-      isEssential: null,
-      date: 'Yesterday',
-      iconColor: colors.semantic.incomeLight,
-      iconTextColor: colors.semantic.incomeDark,
-    },
-    {
-      id: '4',
-      name: 'Online store',
-      category: 'Entertainment',
-      subcategory: 'non-essential',
-      amount: -89.00,
-      mood: 2,
-      moodEmoji: '🥲',
-      isEssential: false,
-      date: 'Yesterday',
-      iconColor: colors.semantic.expenseLight,
-      iconTextColor: colors.semantic.expenseDark,
-    },
-  ],
-  spendingCurve: [
-    0, 47, 52, 140, 145, 195, 250, 298, 303, 392, 400, 450, 490,
-    537, 600, 650, 689, 750, 800, 890, 950, 1010, 1100, 1150, 1200, 1230, 1247,
-  ],
+interface DashboardProps {
+  user: { name: string; avatarInitial: string };
+  budget: { total: number; spent: number; periodLabel: string; daysLeft: number };
+  income: number;
+  moodAvg: number;
+  categoryBreakdown: Array<{ label: string; amount: number; color: string }>;
+  recentTransactions: Array<{
+    id: string;
+    name: string;
+    category: string;
+    subcategory: string | null;
+    amount: number;
+    mood: number | null;
+    moodEmoji: string | null;
+    isEssential: boolean | null;
+    date: string;
+    iconColor: string;
+    iconTextColor: string;
+  }>;
+  spendingCurve: number[];
 }
 
-export default function Dashboard() {
+export default function Dashboard(props: DashboardProps) {
+  const navigate = useNavigate()
   const [isDark, setIsDark] = useState(false)
   const c = isDark ? colors.dark : colors.light
-  const { budget, income, moodAvg, categoryBreakdown, recentTransactions, spendingCurve, user } = MOCK_DATA
+  const { budget, income, moodAvg, categoryBreakdown, recentTransactions, spendingCurve, user } = props
 
   const remaining = budget.total - budget.spent
   const budgetPct = Math.min((budget.spent / budget.total) * 100, 100)
@@ -98,17 +52,27 @@ export default function Dashboard() {
         <div className="nav-left">
           <span className="nav-logo" style={{ color: c.textPrimary }}>Pocket</span>
           <div className="nav-links">
-            {['Dashboard', 'Transactions', 'Budgets', 'Insights'].map(link => (
-              <span
-                key={link}
+            {[
+              { label: 'Dashboard', path: '/dashboard' },
+              { label: 'Transactions', path: '/transactions' },
+              { label: 'Budgets', path: '/budgets' },
+              { label: 'Goals', path: '/goals' },
+            ].map(link => (
+              <button
+                key={link.path}
                 className="nav-link"
                 style={{
-                  color: link === 'Dashboard' ? c.textPrimary : c.textSecondary,
-                  fontWeight: link === 'Dashboard' ? 500 : 400,
+                  color: window.location.pathname === link.path ? c.textPrimary : c.textSecondary,
+                  fontWeight: window.location.pathname === link.path ? 500 : 400,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: 'transparent',
+                  font: 'inherit',
                 }}
+                onClick={() => navigate(link.path)}
               >
-                {link}
-              </span>
+                {link.label}
+              </button>
             ))}
           </div>
         </div>
@@ -121,15 +85,21 @@ export default function Dashboard() {
           >
             {isDark ? '☀️' : '🌙'}
           </button>
-          <div
+          <button
             className="avatar"
             style={{
               background: isDark ? colors.dark.rose : colors.light.yellow,
               color: c.textPrimary,
+              cursor: 'pointer',
+              border: 'none',
+              fontSize: '14px',
+              fontWeight: '600',
             }}
+            onClick={() => signOut().then(() => navigate('/auth'))}
+            title="Sign out"
           >
             {user.avatarInitial}
-          </div>
+          </button>
         </div>
       </nav>
 
@@ -149,6 +119,7 @@ export default function Dashboard() {
               color: c.textPrimary,
               border: `1px solid ${c.border}`,
             }}
+            onClick={() => navigate('/transactions')}
           >
             + Add transaction
           </button>

@@ -71,11 +71,11 @@ export default function RecentTransactions({ transactions, isDark }: RecentTrans
             </div>
           </div>
 
-          {/* Mood — only shown for non-essential expenses */}
+          {/* Mood - only shown for non-essential expenses */}
           <div style={{ fontSize: '13px', minWidth: '36px', textAlign: 'center', color: c.textSecondary }}>
             {t.moodEmoji && t.mood !== null
               ? <span title={`Mood: ${t.mood}/5`}>{t.moodEmoji} {t.mood}</span>
-              : <span style={{ opacity: 0.3 }}>—</span>
+              : <span style={{ opacity: 0.3 }}>-</span>
             }
           </div>
 
@@ -86,7 +86,7 @@ export default function RecentTransactions({ transactions, isDark }: RecentTrans
             color: isIncome(t) ? colors.semantic.income : c.textPrimary,
             flexShrink: 0,
           }}>
-            {isIncome(t) ? '+' : '−'}${Math.abs(t.amount).toFixed(2)}
+            {isIncome(t) ? '+' : '-'}${Math.abs(t.amount).toFixed(2)}
           </div>
         </div>
       ))}
