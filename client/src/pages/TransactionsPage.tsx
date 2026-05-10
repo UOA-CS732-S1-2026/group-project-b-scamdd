@@ -244,8 +244,8 @@ export default function Transactions() {
                           <span
                             className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                               t.essential
-                                ? 'bg-[var(--c-tint-green)] text-[var(--c-text)]'
-                                : 'bg-[var(--c-tint-yellow)] text-[var(--c-text)]'
+                                ? 'bg-[var(--c-tint-green)] text-[var(--c-tint-text)]'
+                                : 'bg-[var(--c-tint-yellow)] text-[var(--c-tint-text)]'
                             }`}
                           >
                             {t.essential ? 'Essential' : 'Non-essential'}
