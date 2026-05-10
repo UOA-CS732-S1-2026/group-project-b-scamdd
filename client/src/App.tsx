@@ -2,16 +2,16 @@ import { useEffect, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { useSession } from './lib/auth-client';
 import { useTheme } from './hooks/useTheme';
-import AuthPage from './pages/AuthPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import Dashboard2 from './pages/Dashboard2';
-import TransactionsPage from './pages/TransactionsPage';
-import GoalsPage from './pages/GoalsPage';
-import BudgetsPage from './pages/BudgetsPage';
-import FriendsPage from './pages/FriendsPage';
+import Auth from './pages/Auth';
+import ResetPassword from './pages/ResetPassword';
+import Dashboard from './pages/Dashboard';
+import Transactions from './pages/Transactions';
+import Goals from './pages/Goals';
+import Budgets from './pages/Budgets';
+import Friends from './pages/Friends';
 import ProfileSetup from './pages/ProfileSetup';
-import ProfilePage from './pages/ProfilePage';
-import GamesPage from './pages/GamesPage';
+import Profile from './pages/Profile';
+import Games from './pages/Games';
 import { getMyProfile } from './api/profile';
 import { useState } from 'react';
 
@@ -20,16 +20,16 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route path="/profile/setup" element={<ProfileSetup />} />
-        <Route path="/dashboard" element={<RequireProfile><Dashboard2 /></RequireProfile>} />
-        <Route path="/transactions" element={<RequireProfile><TransactionsPage /></RequireProfile>} />
-        <Route path="/goals" element={<RequireProfile><GoalsPage /></RequireProfile>} />
-        <Route path="/budgets" element={<RequireProfile><BudgetsPage /></RequireProfile>} />
-        <Route path="/friends" element={<RequireProfile><FriendsPage /></RequireProfile>} />
-        <Route path="/profile" element={<RequireProfile><ProfilePage /></RequireProfile>} />
-        <Route path="/games" element={<RequireProfile><GamesPage /></RequireProfile>} />
+        <Route path="/dashboard" element={<RequireProfile><Dashboard /></RequireProfile>} />
+        <Route path="/transactions" element={<RequireProfile><Transactions /></RequireProfile>} />
+        <Route path="/goals" element={<RequireProfile><Goals /></RequireProfile>} />
+        <Route path="/budgets" element={<RequireProfile><Budgets /></RequireProfile>} />
+        <Route path="/friends" element={<RequireProfile><Friends /></RequireProfile>} />
+        <Route path="/profile" element={<RequireProfile><Profile /></RequireProfile>} />
+        <Route path="/games" element={<RequireProfile><Games /></RequireProfile>} />
       </Routes>
     </BrowserRouter>
   );
@@ -43,7 +43,7 @@ function RequireProfile({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isPending) return;
-    if (!session) { navigate('/auth'); return; }
+    if (!session) { navigate('/'); return; }
     let cancelled = false;
     (async () => {
       try {

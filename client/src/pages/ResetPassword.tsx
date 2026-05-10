@@ -1,9 +1,9 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resetPassword } from '../lib/auth-client';
 import { useTheme } from '../hooks/useTheme';
 
-export default function ResetPasswordPage() {
+export default function ResetPassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isDark, toggle } = useTheme();

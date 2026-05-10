@@ -150,7 +150,7 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
           </div>
 
           <button
-            onClick={() => signOut().then(() => navigate('/auth'))}
+            onClick={() => signOut().then(() => navigate('/'))}
             className="px-3 py-1.5 rounded-lg border border-[var(--c-border)] text-sm font-medium transition-colors hover:opacity-80 text-[var(--c-text)]"
           >
             Log out

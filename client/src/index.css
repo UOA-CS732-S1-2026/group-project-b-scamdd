@@ -18,7 +18,7 @@
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  /* ── App design tokens — light mode ── */
+  /* ── App design tokens - light mode ── */
   --c-bg: #FEFEFE;
   --c-card: #ffffff;
   --c-surface: #f4f3ec;
@@ -37,7 +37,7 @@
   --c-nav-active: rgba(0,0,0,0.06);
   --c-avatar: #FFBDC2;
   --c-grid: rgba(0,0,0,0.06);
-  /* semantic — same in both modes */
+  /* semantic - same in both modes */
   --c-income: #1D9E75;
   --c-income-light: #E1F5EE;
   --c-income-dark: #085041;
@@ -76,7 +76,7 @@
   }
 }
 
-/* ── App design tokens — dark mode ── */
+/* ── App design tokens - dark mode ── */
 .dark {
   color-scheme: dark;
   --c-bg: #000C1C;

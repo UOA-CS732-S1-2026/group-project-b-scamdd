@@ -1,15 +1,22 @@
-import { useState } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { signIn, signUp, requestPasswordReset } from '../lib/auth-client';
+import { signIn, signUp, requestPasswordReset, useSession } from '../lib/auth-client';
 import { useTheme } from '../hooks/useTheme';
 
 type Tab = 'signin' | 'signup';
 type Mode = 'auth' | 'forgot' | 'forgot-sent';
 
-export default function AuthPage() {
+export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isDark, toggle } = useTheme();
+
+  const { data: session, isPending: sessionPending } = useSession();
+
+  // Navigate once the session is confirmed after sign-in / sign-up
+  useEffect(() => {
+    if (!sessionPending && session) navigate('/dashboard', { replace: true });
+  }, [session, sessionPending, navigate]);
 
   const initialTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -34,14 +41,12 @@ export default function AuthPage() {
     setLoading(true);
     if (tab === 'signup') {
       const { error: authError } = await signUp.email({ name, email, password });
-      setLoading(false);
-      if (authError) { setError(authError.message || 'Something went wrong'); return; }
+      if (authError) { setLoading(false); setError(authError.message || 'Something went wrong'); return; }
     } else {
       const { error: authError } = await signIn.email({ email, password });
-      setLoading(false);
-      if (authError) { setError(authError.message || 'Invalid email or password'); return; }
+      if (authError) { setLoading(false); setError(authError.message || 'Invalid email or password'); return; }
     }
-    navigate('/dashboard');
+    // On success: keep loading=true; the session useEffect will navigate when ready
   }
 
   async function handleGoogle() {

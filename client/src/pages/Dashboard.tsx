@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
 import { getTransactions } from '../api/transactions';
@@ -214,7 +214,7 @@ function fmtY(v: number): string {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-export default function DashboardPage() {
+export default function Dashboard() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
@@ -490,7 +490,7 @@ export default function DashboardPage() {
       .reduce((s, t) => s + (t.type === 'income' ? t.amount : -Math.abs(t.amount)), 0),
   );
 
-  // Net savings y-axis — must be defined before netSavingsPts uses nsCyFn
+  // Net savings y-axis - must be defined before netSavingsPts uses nsCyFn
   const nsYMax = Math.max(0, ...netSavingsFull, 1);
   const nsYMin = Math.min(0, ...netSavingsFull, -1);
   const nsAbsMax = Math.max(Math.abs(nsYMax), Math.abs(nsYMin));
@@ -1093,7 +1093,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Customise button — bottom centre */}
+        {/* Customise button - bottom centre */}
         <div className="flex justify-center mt-8">
           <button
             onClick={() => setShowCustomise(true)}

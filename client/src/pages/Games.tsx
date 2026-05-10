@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+﻿import { useState, useCallback, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { useSession } from '../lib/auth-client';
 import { useTheme } from '../hooks/useTheme';
@@ -13,7 +13,7 @@ interface Item {
 }
 
 const ITEMS: Item[] = [
-  // Supermarket — Grocery
+  // Supermarket - Grocery
   { name: 'Anchor Blue Cap Milk 2L (Countdown)',                     category: 'Supermarket', price: 3.99,  emoji: '🥛' },
   { name: 'Mainland Mild Cheddar Block 500g (New World)',            category: 'Supermarket', price: 9.49,  emoji: '🧀' },
   { name: "Vogel's Original Mixed Grain Bread 700g (Pak'nSave)",     category: 'Supermarket', price: 5.29,  emoji: '🍞' },
@@ -172,7 +172,7 @@ function Leaderboard({ game, entries, loading }: {
                 }`}
               >
                 <span className="text-sm w-6 text-center flex-shrink-0 font-bold text-[var(--c-text-2)]">
-                  {ranked ? (rank < 3 ? RANK_MEDALS[rank] : `#${rank + 1}`) : '—'}
+                  {ranked ? (rank < 3 ? RANK_MEDALS[rank] : `#${rank + 1}`) : '-'}
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-[var(--c-text)] truncate">
@@ -251,7 +251,7 @@ function PriceGuesser({ onScore }: { onScore: (score: number) => void }) {
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-lg font-bold text-[var(--c-text)]">Price Guesser</h2>
-            <p className="text-sm text-[var(--c-text-2)] mt-0.5">Guess the NZD price of everyday items — closer = more points.</p>
+            <p className="text-sm text-[var(--c-text-2)] mt-0.5">Guess the NZD price of everyday items - closer = more points.</p>
           </div>
           <div className="text-right">
             <div className="text-xs text-[var(--c-text-2)]">Best</div>
@@ -266,7 +266,7 @@ function PriceGuesser({ onScore }: { onScore: (score: number) => void }) {
               <div className="text-sm text-[var(--c-text-2)] mt-1">
                 {finalScore >= 400 ? '🎯 Excellent! You really know your prices.' :
                  finalScore >= 250 ? "👍 Pretty good! A bit more grocery shopping and you'll ace it." :
-                 '📉 Keep practising — prices can be tricky!'}
+                 '📉 Keep practising - prices can be tricky!'}
               </div>
             </div>
             <div className="divide-y divide-[var(--c-border)]">
@@ -406,7 +406,7 @@ function BudgetChallenge({ onScore }: { onScore: (score: number) => void }) {
           <div>
             <h2 className="text-lg font-bold text-[var(--c-text)]">Budget Challenge</h2>
             <p className="text-sm text-[var(--c-text-2)] mt-0.5">
-              Pick items to spend as close to the budget as possible — without going over.
+              Pick items to spend as close to the budget as possible - without going over.
             </p>
           </div>
           <div className="text-right">
@@ -432,7 +432,7 @@ function BudgetChallenge({ onScore }: { onScore: (score: number) => void }) {
               <div className="text-sm text-[var(--c-text-2)] mt-2">
                 {finalScore >= 90 ? '🏆 Nearly perfect budget management!' :
                  finalScore >= 70 ? '🎯 Great job staying close to the budget!' :
-                 over ? '⚠️ Going over budget costs double — stay under next time.' :
+                 over ? '⚠️ Going over budget costs double - stay under next time.' :
                  '💡 Try to get a bit closer to the limit for more points.'}
               </div>
             </div>
@@ -458,9 +458,9 @@ function BudgetChallenge({ onScore }: { onScore: (score: number) => void }) {
 
         <Btn onClick={startGame}>{state === 'done' ? 'Play again' : 'Start game'}</Btn>
         <div className="text-xs text-[var(--c-text-2)] flex flex-col gap-0.5">
-          <span>• Prices are hidden — use your knowledge!</span>
-          <span>• Under budget: −1 pt per 1% under</span>
-          <span>• Over budget: −2 pts per 1% over</span>
+          <span>• Prices are hidden - use your knowledge!</span>
+          <span>• Under budget: -1 pt per 1% under</span>
+          <span>• Over budget: -2 pts per 1% over</span>
         </div>
       </Card>
     );
@@ -480,7 +480,7 @@ function BudgetChallenge({ onScore }: { onScore: (score: number) => void }) {
         </div>
       </div>
 
-      <p className="text-xs text-[var(--c-text-2)] -mt-2">Prices are hidden — select items you think will get you closest to the budget without going over.</p>
+      <p className="text-xs text-[var(--c-text-2)] -mt-2">Prices are hidden - select items you think will get you closest to the budget without going over.</p>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {items.map((item, i) => {
@@ -515,7 +515,7 @@ function BudgetChallenge({ onScore }: { onScore: (score: number) => void }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 type GameTab = 'price' | 'budget';
 
-export default function GamesPage() {
+export default function Games() {
   const { data: session } = useSession();
   const userName = (session?.user as { username?: string } | undefined)?.username ?? session?.user?.name ?? '';
   const { isDark, toggle } = useTheme();
