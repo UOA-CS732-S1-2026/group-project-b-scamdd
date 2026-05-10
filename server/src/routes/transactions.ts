@@ -17,9 +17,13 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { title, amount, type, category, date, note, mood } = req.body;
-    if (!title || !type || !category || !date) {
-      res.status(400).json({ message: 'title, type, category, and date are required' });
+    const { title, amount, type, category, date, note, mood, essential, paymentMethod } = req.body;
+    if (!title || !type || !date) {
+      res.status(400).json({ message: 'title, type, and date are required' });
+      return;
+    }
+    if (type === 'expense' && !category) {
+      res.status(400).json({ message: 'category is required for expenses' });
       return;
     }
     if (!['income', 'expense'].includes(type)) {
@@ -39,6 +43,8 @@ router.post('/', async (req: Request, res: Response) => {
       date,
       note,
       mood,
+      essential,
+      paymentMethod,
     });
     res.status(201).json(transaction);
   } catch {
@@ -48,7 +54,7 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.patch('/:id', async (req: Request, res: Response) => {
   try {
-    const { title, amount, type, category, date, note, mood } = req.body;
+    const { title, amount, type, category, date, note, mood, essential, paymentMethod } = req.body;
     const updates: Record<string, unknown> = {};
     if (title !== undefined) updates.title = title;
     if (amount !== undefined) {
@@ -69,6 +75,8 @@ router.patch('/:id', async (req: Request, res: Response) => {
     if (date !== undefined) updates.date = date;
     if (note !== undefined) updates.note = note;
     if (mood !== undefined) updates.mood = mood;
+    if (essential !== undefined) updates.essential = essential;
+    if (paymentMethod !== undefined) updates.paymentMethod = paymentMethod;
 
     const transaction = await Transaction.findOneAndUpdate(
       { _id: req.params.id, userId: req.user!._id },

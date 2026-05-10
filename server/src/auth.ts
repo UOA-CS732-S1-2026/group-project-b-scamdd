@@ -31,7 +31,7 @@ export const auth = betterAuth({
                  <p>If you didn't request this, you can ignore this email.</p>`,
         });
       } else {
-        // No SMTP configured — log to console for local development
+        // No SMTP configured - log to console for local development
         console.log(`\n[Password Reset] Token for ${user.email}:\n${resetUrl}\n`);
       }
     },

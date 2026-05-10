@@ -51,7 +51,7 @@ router.patch('/me', requireAuth, async (req: Request, res: Response) => {
     if (username !== undefined) {
       const u = String(username).toLowerCase().trim();
       if (!USERNAME_RE.test(u)) {
-        res.status(400).json({ message: 'Username must be 3–20 chars, lowercase letters, numbers, or underscore' });
+        res.status(400).json({ message: 'Username must be 3-20 chars, lowercase letters, numbers, or underscore' });
         return;
       }
       const existing = await User.findOne({ username: u, _id: { $ne: req.user!._id } }).lean();
@@ -65,7 +65,7 @@ router.patch('/me', requireAuth, async (req: Request, res: Response) => {
     if (displayName !== undefined) {
       const dn = String(displayName).trim();
       if (dn.length < 1 || dn.length > 50) {
-        res.status(400).json({ message: 'Display name must be 1–50 chars' });
+        res.status(400).json({ message: 'Display name must be 1-50 chars' });
         return;
       }
       updates.displayName = dn;
