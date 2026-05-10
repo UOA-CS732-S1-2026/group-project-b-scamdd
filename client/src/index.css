@@ -46,7 +46,7 @@
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -76,6 +76,7 @@
 
 /* ── App design tokens — dark mode ── */
 .dark {
+  color-scheme: dark;
   --c-bg: #101211;
   --c-card: #1e1d15;
   --c-surface: #29281E;
@@ -95,6 +96,11 @@
 
 #root {
   min-height: 100svh;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.75;
 }
 
 body {
