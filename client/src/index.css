@@ -1,6 +1,8 @@
 @import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
 
 :root {
+  /* ── Legacy boilerplate tokens ── */
   --text: #6b6375;
   --text-h: #08060d;
   --bg: #fff;
@@ -15,6 +17,32 @@
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
+
+  /* ── App design tokens — light mode ── */
+  --c-bg: #FFF7ED;
+  --c-card: #ffffff;
+  --c-surface: #f4f3ec;
+  --c-accent: #C68BE1;
+  --c-tint-pink: #FFBDC2;
+  --c-tint-green: #C5FFD8;
+  --c-tint-yellow: #FDFBD4;
+  --c-tint-mood: #C68BE1;
+  --c-tint-mood-text: #ffffff;
+  --c-tint-mood-sub: rgba(255,255,255,0.75);
+  --c-text: #1a1a1a;
+  --c-text-2: #6b6b6b;
+  --c-border: rgba(0,0,0,0.08);
+  --c-nav-active: rgba(0,0,0,0.06);
+  --c-avatar: #FFBDC2;
+  --c-grid: rgba(0,0,0,0.06);
+  /* semantic — same in both modes */
+  --c-income: #1D9E75;
+  --c-income-light: #E1F5EE;
+  --c-income-dark: #085041;
+  --c-expense: #D85A30;
+  --c-expense-light: #FAECE7;
+  --c-expense-dark: #712B13;
+  --c-negative: #C0392B;
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
@@ -46,6 +74,25 @@
   }
 }
 
+/* ── App design tokens — dark mode ── */
+.dark {
+  --c-bg: #101211;
+  --c-card: #1e1d15;
+  --c-surface: #29281E;
+  --c-tint-pink: #383731;
+  --c-tint-green: #383731;
+  --c-tint-yellow: #383731;
+  --c-tint-mood: #383731;
+  --c-tint-mood-text: #E7D4BB;
+  --c-tint-mood-sub: #B09A7A;
+  --c-text: #E7D4BB;
+  --c-text-2: #B09A7A;
+  --c-border: rgba(255,255,255,0.07);
+  --c-nav-active: #383731;
+  --c-avatar: #48252F;
+  --c-grid: rgba(255,255,255,0.06);
+}
+
 #root {
   min-height: 100svh;
 }
@@ -54,11 +101,49 @@ body {
   margin: 0;
 }
 
-code {
+@layer base {
+  h1,
+  h2 {
+    font-family: var(--heading);
+    font-weight: 500;
+  }
+
+  h1 {
+    font-size: 56px;
+    letter-spacing: -1.68px;
+    margin: 32px 0;
+    @media (max-width: 1024px) {
+      font-size: 36px;
+      margin: 20px 0;
+    }
+  }
+  h2 {
+    font-size: 24px;
+    line-height: 118%;
+    letter-spacing: -0.24px;
+    margin: 0 0 8px;
+    @media (max-width: 1024px) {
+      font-size: 20px;
+    }
+  }
+}
+@layer base {
+  p {
+    margin: 0;
+  }
+}
+
+code,
+.counter {
   font-family: var(--mono);
-  font-size: 15px;
+  display: inline-flex;
   border-radius: 4px;
+  color: var(--text-h);
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
-  color: var(--text-h);
 }
