@@ -51,6 +51,17 @@ function IconBudgets() {
   );
 }
 
+function IconGames() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="4" width="13" height="8" rx="2" />
+      <path d="M5 8h2m-1-1v2" />
+      <circle cx="10" cy="7.5" r="0.5" fill="currentColor" stroke="none" />
+      <circle cx="11.5" cy="9" r="0.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 function IconProfile() {
   return (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -86,6 +97,7 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
     { label: 'Transactions', path: '/transactions', Icon: IconTransactions },
     { label: 'Budgets', path: '/budgets', Icon: IconBudgets },
     { label: 'Friends', path: '/friends', Icon: IconFriends },
+    { label: 'Games', path: '/games', Icon: IconGames },
     { label: 'Profile', path: '/profile', Icon: IconProfile },
   ];
 
