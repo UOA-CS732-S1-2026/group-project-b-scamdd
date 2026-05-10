@@ -953,10 +953,14 @@ export default function DashboardPage() {
                   className="w-7 h-7 flex items-center justify-center rounded-lg border border-[var(--c-border)] text-[var(--c-text-2)] hover:opacity-80 disabled:opacity-25 disabled:cursor-not-allowed text-base leading-none">›</button>
               </div>
             </div>
-            <button onClick={() => navigate('/transactions')}
-              className="flex flex-col items-center gap-1.5 px-6 py-2.5 rounded-3xl hover:opacity-80 transition-opacity bg-[var(--c-tint-green)]">
-              <span className="text-sm text-[var(--c-text)]">Bought something recently?</span>
-              <span className="bg-black text-white text-sm font-bold px-8 py-1.5 rounded-2xl w-full text-center">Log it</span>
+            <button
+              onClick={() => navigate('/transactions')}
+              className="flex flex-col items-center gap-1.5 px-6 py-2.5 rounded-3xl hover:opacity-80 transition-opacity bg-[var(--c-tint-green)]"
+            >
+              <span className="text-sm text-[var(--c-tint-text)]">Bought something recently?</span>
+              <span className="bg-black text-white text-sm font-bold px-8 py-1.5 rounded-2xl w-full text-center">
+                Log it
+              </span>
             </button>
           </div>
         </div>
@@ -965,27 +969,27 @@ export default function DashboardPage() {
         <div className="grid grid-cols-[2fr_3fr] gap-6 mb-6">
           <div className="grid grid-cols-2 gap-4">
             <div className={`${cardBase} bg-[var(--c-tint-pink)]`}>
-              <div className="text-sm font-semibold mb-1 text-[var(--c-text)]">Spent</div>
-              <div className="text-xs mb-4 text-[var(--c-text-2)]">{PERIOD_DISPLAY[viewPeriod]}</div>
-              <div className="text-2xl font-bold text-[var(--c-text)]">${totalSpent.toFixed(2)}</div>
+              <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Spent</div>
+              <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">{PERIOD_DISPLAY[viewPeriod]}</div>
+              <div className="text-2xl font-bold text-[var(--c-tint-text)]">${totalSpent.toFixed(2)}</div>
             </div>
             <div className={`${cardBase} bg-[var(--c-tint-green)]`}>
-              <div className="text-sm font-semibold mb-1 text-[var(--c-text)]">Remaining</div>
-              <div className="text-xs mb-4 text-[var(--c-text-2)]">Budget for {PERIOD_DISPLAY[viewPeriod].toLowerCase()}</div>
+              <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Remaining</div>
+              <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">Budget for {PERIOD_DISPLAY[viewPeriod].toLowerCase()}</div>
               {periodBudgetTotal === 0 ? (
                 <button onClick={() => navigate('/budgets')} className="text-sm font-semibold text-[var(--c-accent)] hover:opacity-70 transition-opacity text-left">
                   Create {PERIOD_DISPLAY[viewPeriod].toLowerCase()} budget →
                 </button>
               ) : (
-                <div className={`text-2xl font-bold ${periodBudgetTotal - totalSpent < 0 ? 'text-[var(--c-negative)]' : 'text-[var(--c-text)]'}`}>
+                <div className={`text-2xl font-bold ${periodBudgetTotal - totalSpent < 0 ? 'text-[var(--c-negative)]' : 'text-[var(--c-tint-text)]'}`}>
                   {periodBudgetTotal - totalSpent < 0 ? '-' : ''}${Math.abs(periodBudgetTotal - totalSpent).toFixed(2)}
                 </div>
               )}
             </div>
             <div className={`${cardBase} bg-[var(--c-tint-yellow)]`}>
-              <div className="text-sm font-semibold mb-1 text-[var(--c-text)]">Income</div>
-              <div className="text-xs mb-4 text-[var(--c-text-2)]">{PERIOD_DISPLAY[viewPeriod]}</div>
-              <div className="text-2xl font-bold text-[var(--c-text)]">${totalIncome.toFixed(2)}</div>
+              <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Income</div>
+              <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">{PERIOD_DISPLAY[viewPeriod]}</div>
+              <div className="text-2xl font-bold text-[var(--c-tint-text)]">${totalIncome.toFixed(2)}</div>
             </div>
             <div className={`${cardBase} bg-[var(--c-tint-mood)]`}>
               <div className="text-sm font-semibold mb-1 text-[var(--c-tint-mood-text)]">Mood avg</div>

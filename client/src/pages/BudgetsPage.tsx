@@ -200,23 +200,23 @@ export default function BudgetsPage() {
             {/* ── Summary strip ── */}
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="p-5 rounded-2xl bg-[var(--c-tint-pink)]">
-                <div className="text-xs text-[var(--c-text-2)] mb-1 uppercase tracking-wide font-medium">
+                <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">
                   {filter === 'all' ? 'Total allocated' : `${FILTER_LABELS[filter]} total`}
                 </div>
-                <div className="text-2xl font-bold text-[var(--c-text)]">${totalAllocated.toFixed(2)}</div>
+                <div className="text-2xl font-bold text-[var(--c-tint-text)]">${totalAllocated.toFixed(2)}</div>
               </div>
               <div className="p-5 rounded-2xl bg-[var(--c-tint-green)]">
-                <div className="text-xs text-[var(--c-text-2)] mb-1 uppercase tracking-wide font-medium">Spent so far</div>
-                <div className="text-2xl font-bold text-[var(--c-text)]">${totalSpent.toFixed(2)}</div>
+                <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">Spent so far</div>
+                <div className="text-2xl font-bold text-[var(--c-tint-text)]">${totalSpent.toFixed(2)}</div>
                 {totalAllocated > 0 && (
-                  <div className="text-xs text-[var(--c-text-2)] mt-1">
+                  <div className="text-xs text-[var(--c-tint-text-2)] mt-1">
                     {Math.round((totalSpent / totalAllocated) * 100)}% of budget used
                   </div>
                 )}
               </div>
               <div className="p-5 rounded-2xl bg-[var(--c-tint-yellow)]">
-                <div className="text-xs text-[var(--c-text-2)] mb-1 uppercase tracking-wide font-medium">Remaining</div>
-                <div className="text-2xl font-bold text-[var(--c-text)]">
+                <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">Remaining</div>
+                <div className="text-2xl font-bold text-[var(--c-tint-text)]">
                   ${Math.max(0, totalAllocated - totalSpent).toFixed(2)}
                 </div>
                 {overBudgetCount > 0 && (

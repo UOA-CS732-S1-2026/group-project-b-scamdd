@@ -7,6 +7,7 @@ import TransactionForm from '../components/TransactionForm';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useTheme } from '../hooks/useTheme';
 import type { Transaction } from '../types/transaction';
+import { CATEGORIES } from '../types/transaction';
 
 const MOOD_DISPLAY: Record<string, { label: string; color: string }> = {
   'regret':   { label: 'Regret',   color: '#F87171' },
@@ -41,6 +42,11 @@ export default function Transactions() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
+
+  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterFrom, setFilterFrom] = useState<string>('');
+  const [filterTo, setFilterTo] = useState<string>('');
 
   useEffect(() => {
     if (!isPending && !session) navigate('/auth');
@@ -80,6 +86,16 @@ export default function Transactions() {
     fetchTransactions();
   };
 
+  const filteredTransactions = transactions.filter((t) => {
+    if (filterType !== 'all' && t.type !== filterType) return false;
+    if (filterCategory !== 'all' && t.category !== filterCategory) return false;
+    if (filterFrom && new Date(t.date) < new Date(filterFrom)) return false;
+    if (filterTo && new Date(t.date) > new Date(filterTo + 'T23:59:59')) return false;
+    return true;
+  });
+
+  const hasActiveFilters = filterType !== 'all' || filterCategory !== 'all' || filterFrom !== '' || filterTo !== '';
+
   if (isPending || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--c-bg)] text-[var(--c-text)]">
@@ -93,7 +109,7 @@ export default function Transactions() {
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-6">
           <h1 className="text-4xl font-bold m-0 text-[var(--c-text)]">Transactions</h1>
           <button
             onClick={() => { setEditingTransaction(undefined); setShowForm(true); }}
@@ -103,9 +119,68 @@ export default function Transactions() {
           </button>
         </div>
 
-        {transactions.length === 0 ? (
+        {/* Filter bar */}
+        <div className="flex flex-wrap items-center gap-3 mb-6 p-4 rounded-2xl border border-[var(--c-border)] bg-[var(--c-card)]">
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value as 'all' | 'income' | 'expense')}
+            className="px-3 py-1.5 rounded-lg border border-[var(--c-border)] text-sm bg-[var(--c-bg)] text-[var(--c-text)] focus:outline-none focus:border-[var(--c-accent)] transition-colors cursor-pointer"
+          >
+            <option value="all">All types</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="px-3 py-1.5 rounded-lg border border-[var(--c-border)] text-sm bg-[var(--c-bg)] text-[var(--c-text)] focus:outline-none focus:border-[var(--c-accent)] transition-colors cursor-pointer capitalize"
+          >
+            <option value="all">All categories</option>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c} className="capitalize">{c}</option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-[var(--c-text-2)] flex-shrink-0">From</label>
+            <input
+              type="date"
+              value={filterFrom}
+              onChange={(e) => setFilterFrom(e.target.value)}
+              className="px-3 py-1.5 rounded-lg border border-[var(--c-border)] text-sm bg-[var(--c-bg)] text-[var(--c-text)] focus:outline-none focus:border-[var(--c-accent)] transition-colors"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-[var(--c-text-2)] flex-shrink-0">To</label>
+            <input
+              type="date"
+              value={filterTo}
+              onChange={(e) => setFilterTo(e.target.value)}
+              className="px-3 py-1.5 rounded-lg border border-[var(--c-border)] text-sm bg-[var(--c-bg)] text-[var(--c-text)] focus:outline-none focus:border-[var(--c-accent)] transition-colors"
+            />
+          </div>
+
+          {hasActiveFilters && (
+            <button
+              onClick={() => { setFilterType('all'); setFilterCategory('all'); setFilterFrom(''); setFilterTo(''); }}
+              className="px-3 py-1.5 rounded-lg text-sm text-[var(--c-text-2)] border border-[var(--c-border)] hover:opacity-80 transition-opacity"
+            >
+              Clear
+            </button>
+          )}
+
+          <span className="ml-auto text-xs text-[var(--c-text-2)]">
+            {filteredTransactions.length} of {transactions.length} transactions
+          </span>
+        </div>
+
+        {filteredTransactions.length === 0 ? (
           <div className="border border-[var(--c-border)] rounded-2xl p-12 text-center bg-[var(--c-card)]">
-            <p className="text-[var(--c-text-2)]">No transactions yet. Add one to get started.</p>
+            <p className="text-[var(--c-text-2)]">
+              {transactions.length === 0 ? 'No transactions yet. Add one to get started.' : 'No transactions match the current filters.'}
+            </p>
           </div>
         ) : (
           <div className="border border-[var(--c-border)] rounded-2xl overflow-hidden bg-[var(--c-card)]">
@@ -125,7 +200,7 @@ export default function Transactions() {
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.map((t) => (
+                  {filteredTransactions.map((t) => (
                     <tr
                       key={t._id}
                       className="border-b border-[var(--c-border)] last:border-b-0 hover:bg-[var(--c-surface)] transition-colors group"
@@ -169,8 +244,8 @@ export default function Transactions() {
                           <span
                             className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                               t.essential
-                                ? 'bg-[var(--c-tint-green)] text-[var(--c-text)]'
-                                : 'bg-[var(--c-tint-yellow)] text-[var(--c-text)]'
+                                ? 'bg-[var(--c-tint-green)] text-[var(--c-tint-text)]'
+                                : 'bg-[var(--c-tint-yellow)] text-[var(--c-tint-text)]'
                             }`}
                           >
                             {t.essential ? 'Essential' : 'Non-essential'}
