@@ -5,7 +5,9 @@
       "Bash(npx tsc *)",
       "Bash(pnpm seed *)",
       "Bash(pnpm tsx -e ' *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Bailey\\\\Projects\\\\group-project-b-scamdd\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)"
     ]
   }
 }
