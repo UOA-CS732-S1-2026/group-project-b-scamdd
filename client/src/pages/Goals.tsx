@@ -1,8 +1,9 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
-import { getGoals, createGoal, updateGoal, deleteGoal, contributeToGoal } from '../api/goals';
+import { getGoals, deleteGoal } from '../api/goals';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import GoalForm from '../components/GoalForm';
 import { useTheme } from '../hooks/useTheme';
 import type { Goal } from '../types/goal';
@@ -65,10 +66,10 @@ export default function Goals() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--c-bg)] text-[var(--c-text)]">
+    <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold m-0 text-[var(--c-text)]">Goals</h1>
           <button
@@ -151,6 +152,8 @@ export default function Goals() {
           />
         )}
       </main>
+
+      <Footer />
     </div>
   );
 }

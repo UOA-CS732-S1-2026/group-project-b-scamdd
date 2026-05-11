@@ -69,7 +69,7 @@ describe('RequireProfile (protected route guard)', () => {
 
   it('redirects to /profile/setup when the user is logged in but has not completed their profile', async () => {
     mockUseSession.mockReturnValue({
-      data: { user: { id: 'u1', email: 'a@b.com' }, session: {} },
+      data: { user: { id: 'u1', email: 'a@b.com' } as never, session: {} as never },
       isPending: false,
       isRefetching: false,
       error: null,
@@ -87,7 +87,7 @@ describe('RequireProfile (protected route guard)', () => {
 
   it('renders the protected content when the user is logged in with a complete profile', async () => {
     mockUseSession.mockReturnValue({
-      data: { user: { id: 'u1', email: 'a@b.com' }, session: {} },
+      data: { user: { id: 'u1', email: 'a@b.com' } as never, session: {} as never },
       isPending: false,
       isRefetching: false,
       error: null,

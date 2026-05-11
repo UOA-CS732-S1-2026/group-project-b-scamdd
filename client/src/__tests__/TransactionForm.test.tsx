@@ -82,7 +82,7 @@ describe('TransactionForm — Add Transaction', () => {
   // Successful submission
   // ---------------------------------------------------------------------------
   it('calls createTransaction with the entered values on valid submission', async () => {
-    vi.mocked(txApi.createTransaction).mockResolvedValue(undefined);
+    vi.mocked(txApi.createTransaction).mockResolvedValue(undefined as never);
 
     render(<TransactionForm onSuccess={noop} onCancel={noop} />);
     const user = userEvent.setup();

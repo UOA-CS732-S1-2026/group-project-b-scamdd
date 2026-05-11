@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
 import { getBudgets, deleteBudget } from '../api/budgets';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import Highlight from '../components/Highlight';
 import BudgetForm from '../components/BudgetForm';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useTheme } from '../hooks/useTheme';
@@ -10,14 +12,14 @@ import type { Budget, BudgetPeriod } from '../types/budget';
 import { PERIOD_LABELS } from '../types/budget';
 
 const CAT_COLORS: Record<string, string> = {
-  food:          '#534AB7',
-  rent:          '#1D9E75',
-  transport:     '#D85A30',
-  entertainment: '#EF9F27',
-  utilities:     '#3B82F6',
-  shopping:      '#EC4899',
-  health:        '#C68BE1',
-  other:         '#B6B6B6',
+  food:          '#FFBDC2',
+  rent:          '#FDFBD4',
+  transport:     '#C5FFD8',
+  entertainment: '#C68BE1',
+  utilities:     '#C5ECF9',
+  shopping:      '#CBCBCB',
+  health:        '#FFBDC2',
+  other:         '#CBCBCB',
 };
 
 const ALL_PERIODS: Array<BudgetPeriod | 'all'> = ['all', 'daily', 'weekly', 'monthly', 'yearly'];
@@ -170,27 +172,29 @@ export default function Budgets() {
   const overBudgetCount = filtered.filter((b) => b.spent > b.monthlyLimit).length;
 
   return (
-    <div className="min-h-screen bg-[var(--c-bg)] text-[var(--c-text)]">
+    <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
         {/* ── Header ── */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold m-0 text-[var(--c-text)]">Budgets</h1>
+          <h1 className="text-4xl font-bold m-0 text-[var(--c-text)]">
+            <Highlight className="px-3 py-1">Budgets</Highlight>
+          </h1>
           <button
             onClick={() => { setEditingBudget(undefined); setShowForm(true); }}
-            className="px-6 py-3 rounded-lg font-medium hover:opacity-80 transition-opacity bg-[var(--c-accent)] text-white"
+            className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity"
           >
-            + Add Budget
+            + Add a budget
           </button>
         </div>
 
         {budgets.length === 0 ? (
-          <div className="border border-[var(--c-border)] rounded-2xl p-16 text-center bg-[var(--c-card)]">
+          <div className="border border-[rgba(109,109,109,0.8)] rounded-3xl p-16 text-center bg-[var(--c-card)]">
             <p className="text-[var(--c-text-2)] mb-4">No budgets yet.</p>
             <button
               onClick={() => setShowForm(true)}
-              className="px-6 py-2 rounded-lg font-medium bg-[var(--c-accent)] text-white hover:opacity-80 transition-opacity"
+              className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity"
             >
               Create your first budget
             </button>
@@ -199,13 +203,13 @@ export default function Budgets() {
           <>
             {/* ── Summary strip ── */}
             <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="p-5 rounded-2xl bg-[var(--c-tint-pink)]">
+              <div className="p-5 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-pink)]">
                 <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">
                   {filter === 'all' ? 'Total allocated' : `${FILTER_LABELS[filter]} total`}
                 </div>
                 <div className="text-2xl font-bold text-[var(--c-tint-text)]">${totalAllocated.toFixed(2)}</div>
               </div>
-              <div className="p-5 rounded-2xl bg-[var(--c-tint-green)]">
+              <div className="p-5 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-green)]">
                 <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">Spent so far</div>
                 <div className="text-2xl font-bold text-[var(--c-tint-text)]">${totalSpent.toFixed(2)}</div>
                 {totalAllocated > 0 && (
@@ -214,7 +218,7 @@ export default function Budgets() {
                   </div>
                 )}
               </div>
-              <div className="p-5 rounded-2xl bg-[var(--c-tint-yellow)]">
+              <div className="p-5 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-yellow)]">
                 <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">Remaining</div>
                 <div className="text-2xl font-bold text-[var(--c-tint-text)]">
                   ${Math.max(0, totalAllocated - totalSpent).toFixed(2)}
@@ -236,15 +240,15 @@ export default function Budgets() {
                   <button
                     key={p}
                     onClick={() => setFilter(p)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors cursor-pointer ${
                       filter === p
-                        ? 'bg-[var(--c-accent)] text-white border-[var(--c-accent)]'
-                        : 'bg-transparent text-[var(--c-text-2)] border-[var(--c-border)] hover:border-[var(--c-accent)]'
+                        ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
+                        : 'bg-[var(--c-card)] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
                     }`}
                   >
                     {FILTER_LABELS[p]}
                     {count > 0 && (
-                      <span className={`ml-1.5 text-xs ${filter === p ? 'text-white/70' : 'text-[var(--c-text-2)]'}`}>
+                      <span className={`ml-1.5 text-xs ${filter === p ? 'text-[var(--c-text-2)]' : 'text-[var(--c-text-2)]'}`}>
                         {count}
                       </span>
                     )}
@@ -255,7 +259,7 @@ export default function Budgets() {
 
             {/* ── Budget cards ── */}
             {filtered.length === 0 ? (
-              <div className="border border-[var(--c-border)] rounded-2xl p-12 text-center bg-[var(--c-card)]">
+              <div className="border border-[rgba(109,109,109,0.8)] rounded-3xl p-12 text-center bg-[var(--c-card)]">
                 <p className="text-[var(--c-text-2)]">No {FILTER_LABELS[filter].toLowerCase()} budgets yet.</p>
               </div>
             ) : (
@@ -301,6 +305,8 @@ export default function Budgets() {
           onCancel={() => setConfirmDeleteId(null)}
         />
       )}
+
+      <Footer />
     </div>
   );
 }
@@ -321,15 +327,18 @@ function BudgetCard({ budget, period, spentPct, elapsed, pace, onEdit, onDelete 
   const paceMarkerPct = Math.min(elapsed * 100, 100);
 
   return (
-    <div className="border border-[var(--c-border)] rounded-2xl p-6 bg-[var(--c-card)]">
+    <div className="border border-[rgba(109,109,109,0.8)] rounded-3xl p-6 bg-[var(--c-card)]">
       {/* Card header */}
       <div className="flex items-start justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex-shrink-0" style={{ backgroundColor: catColor }} />
+          <div
+            className="w-10 h-10 rounded-full flex-shrink-0 border-[3px] border-white"
+            style={{ backgroundColor: catColor }}
+          />
           <div>
             <h3 className="font-semibold capitalize text-[var(--c-text)]">{budget.category}</h3>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xs px-2 py-0.5 rounded-full border border-[var(--c-border)] text-[var(--c-text-2)]">
+              <span className="text-xs px-2 py-0.5 rounded-full border border-[rgba(109,109,109,0.5)] text-[var(--c-text-2)]">
                 {PERIOD_LABELS[period]}
               </span>
               {budget.isPublic && (
@@ -341,13 +350,13 @@ function BudgetCard({ budget, period, spentPct, elapsed, pace, onEdit, onDelete 
         <div className="flex gap-3 flex-shrink-0">
           <button
             onClick={onEdit}
-            className="text-sm text-[var(--c-accent)] hover:opacity-60 transition-opacity"
+            className="text-sm text-[var(--c-text-2)] hover:text-[var(--c-text)] transition-colors cursor-pointer"
           >
             Edit
           </button>
           <button
             onClick={onDelete}
-            className="text-sm text-red-500 hover:opacity-60 transition-opacity"
+            className="text-sm text-[var(--c-expense)] hover:opacity-60 transition-opacity cursor-pointer"
           >
             Delete
           </button>

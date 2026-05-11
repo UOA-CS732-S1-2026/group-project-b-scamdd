@@ -18,8 +18,8 @@
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  /* ── App design tokens - light mode ── */
-  --c-bg: #FEFEFE;
+  /* ── App design tokens — light mode ── */
+  --c-bg: #FFF7ED;
   --c-card: #ffffff;
   --c-surface: #f4f3ec;
   --c-accent: #C68BE1;
@@ -37,7 +37,7 @@
   --c-nav-active: rgba(0,0,0,0.06);
   --c-avatar: #FFBDC2;
   --c-grid: rgba(0,0,0,0.06);
-  /* semantic - same in both modes */
+  /* semantic — same in both modes */
   --c-income: #1D9E75;
   --c-income-light: #E1F5EE;
   --c-income-dark: #085041;
@@ -76,12 +76,12 @@
   }
 }
 
-/* ── App design tokens - dark mode ── */
+/* ── App design tokens — dark mode ── */
 .dark {
   color-scheme: dark;
   --c-bg: #000C1C;
-  --c-card: #0A1729;
-  --c-surface: #142235;
+  --c-card: #000000;
+  --c-surface: #000000;
   --c-tint-pink: #FFBDC2;
   --c-tint-green: #C5FFD8;
   --c-tint-yellow: #FDFBD4;
@@ -90,12 +90,12 @@
   --c-tint-mood-sub: rgba(0,0,0,0.6);
   --c-tint-text: #1a1a1a;
   --c-tint-text-2: rgba(0,0,0,0.55);
-  --c-text: #F3F4F6;
-  --c-text-2: #9CA3AF;
-  --c-border: rgba(255,255,255,0.08);
+  --c-text: #FFFFFF;
+  --c-text-2: #B0B8C5;
+  --c-border: rgba(255,255,255,0.15);
   --c-nav-active: rgba(255,255,255,0.08);
   --c-avatar: #FFBDC2;
-  --c-grid: rgba(255,255,255,0.06);
+  --c-grid: rgba(255,255,255,0.1);
 }
 
 #root {
@@ -107,49 +107,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   opacity: 0.75;
 }
 
-/* Dual-thumb range slider (overlapping inputs share track) */
-.range-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  pointer-events: none;
-}
-.range-thumb::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 9999px;
-  background: var(--c-accent);
-  border: 2px solid var(--c-card);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
-  cursor: pointer;
-  pointer-events: auto;
-}
-.range-thumb::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 9999px;
-  background: var(--c-accent);
-  border: 2px solid var(--c-card);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
-  cursor: pointer;
-  pointer-events: auto;
-}
-.range-thumb::-webkit-slider-runnable-track {
-  background: transparent;
-  height: 18px;
-}
-.range-thumb::-moz-range-track {
-  background: transparent;
-  height: 18px;
-}
-
 body {
   margin: 0;
 }
 
 @layer base {
-  h1, h2 {
+  h1,
+  h2 {
     font-family: var(--heading);
     font-weight: 500;
   }
@@ -158,28 +122,23 @@ body {
     font-size: 56px;
     letter-spacing: -1.68px;
     margin: 32px 0;
-  }
-  @media (max-width: 1024px) {
-    h1 {
+    @media (max-width: 1024px) {
       font-size: 36px;
       margin: 20px 0;
     }
   }
-
   h2 {
     font-size: 24px;
     line-height: 118%;
     letter-spacing: -0.24px;
     margin: 0 0 8px;
-  }
-  @media (max-width: 1024px) {
-    h2 {
+    @media (max-width: 1024px) {
       font-size: 20px;
     }
   }
-}
-p {
-  margin: 0;
+  p {
+    margin: 0;
+  }
 }
 
 code,

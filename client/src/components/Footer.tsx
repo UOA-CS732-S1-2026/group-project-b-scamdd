@@ -1,15 +1,20 @@
-export default function Footer() {
-  const linkClass = 'text-sm text-[var(--c-text-2)] hover:text-[var(--c-text)] transition-colors';
-  const dotClass = 'w-1 h-1 rounded-full bg-[var(--c-text-2)] opacity-60';
+import { Link } from 'react-router-dom';
 
+export default function Footer() {
   return (
-    <footer className="border-t border-[var(--c-border)] mt-12">
-      <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-center gap-6">
-        <a href="/about" className={linkClass}>About</a>
-        <span className={dotClass} />
-        <a href="/feedback" className={linkClass}>Contact / Feedback</a>
-        <span className={dotClass} />
-        <a href="/privacy" className={linkClass}>Privacy &amp; Terms</a>
+    <footer className="mt-8 border-t border-[var(--c-border)]">
+      <div className="max-w-5xl mx-auto px-6 py-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-[var(--c-text-2)]">
+        <Link to="/about" className="hover:text-[var(--c-text)] transition-colors">
+          About
+        </Link>
+        <span aria-hidden>·</span>
+        <Link to="/contact" className="hover:text-[var(--c-text)] transition-colors">
+          Contact / Feedback
+        </Link>
+        <span aria-hidden>·</span>
+        <Link to="/privacy" className="hover:text-[var(--c-text)] transition-colors">
+          Privacy &amp; Terms
+        </Link>
       </div>
     </footer>
   );
