@@ -1,33 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
-import { checkUsername, getMyProfile, updateMyProfile } from '../api/profile';
+import { getMyProfile, updateMyProfile } from '../api/profile';
 import FeltWordmark from '../components/FeltWordmark';
 
 const CURRENCIES = ['NZD', 'USD', 'AUD', 'EUR', 'GBP'];
-const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 const inputCls =
   'px-4 py-2.5 border border-[var(--c-border)] rounded-xl bg-[var(--c-card)] text-[var(--c-text)] text-sm transition-colors focus:outline-none focus:border-[var(--c-text)] placeholder:text-[var(--c-text-2)]';
 const labelCls = 'text-sm font-medium text-[var(--c-text)]';
 const fieldCls = 'flex flex-col gap-1.5';
 
-type Availability = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
-
 export default function ProfileSetup() {
   const navigate = useNavigate();
   const { data: session, isPending } = useSession();
 
-  const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [currency, setCurrency] = useState('NZD');
-  const [availability, setAvailability] = useState<Availability>('idle');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  const debounceRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isPending && !session) navigate('/auth');
@@ -44,7 +37,6 @@ export default function ProfileSetup() {
         }
         if (me.displayName) setDisplayName(me.displayName);
         else if (me.name) setDisplayName(me.name);
-        if (me.username) setUsername(me.username);
         if (me.bio) setBio(me.bio);
         if (me.currency) setCurrency(me.currency);
       } catch {
@@ -55,41 +47,9 @@ export default function ProfileSetup() {
     })();
   }, [session, navigate]);
 
-  useEffect(() => {
-    if (!username) {
-      setAvailability('idle');
-      return;
-    }
-    if (!USERNAME_RE.test(username)) {
-      setAvailability('invalid');
-      return;
-    }
-    setAvailability('checking');
-    if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    debounceRef.current = window.setTimeout(async () => {
-      try {
-        const { available } = await checkUsername(username);
-        setAvailability(available ? 'available' : 'taken');
-      } catch {
-        setAvailability('idle');
-      }
-    }, 350);
-    return () => {
-      if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    };
-  }, [username]);
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (!USERNAME_RE.test(username)) {
-      setError('Username must be 3-20 chars: lowercase letters, numbers, or underscore.');
-      return;
-    }
-    if (availability === 'taken') {
-      setError('That username is taken.');
-      return;
-    }
     if (!displayName.trim()) {
       setError('Display name is required.');
       return;
@@ -97,7 +57,6 @@ export default function ProfileSetup() {
     setSubmitting(true);
     try {
       await updateMyProfile({
-        username,
         displayName: displayName.trim(),
         bio: bio.trim(),
         currency,
@@ -119,25 +78,6 @@ export default function ProfileSetup() {
     );
   }
 
-  const availabilityNote = (() => {
-    switch (availability) {
-      case 'checking':
-        return <span className="text-xs text-[var(--c-text-2)]">Checking…</span>;
-      case 'available':
-        return <span className="text-xs text-[var(--c-income)]">Available</span>;
-      case 'taken':
-        return <span className="text-xs text-[var(--c-expense)]">Taken</span>;
-      case 'invalid':
-        return (
-          <span className="text-xs text-[var(--c-text-2)]">
-            3-20 chars: lowercase, numbers, or underscore
-          </span>
-        );
-      default:
-        return null;
-    }
-  })();
-
   return (
     <div className="h-screen overflow-hidden bg-[var(--c-bg)] flex flex-col">
       <header className="z-40 backdrop-blur bg-[color-mix(in_srgb,var(--c-bg)_85%,transparent)] border-b border-[var(--c-border)]">
@@ -153,30 +93,9 @@ export default function ProfileSetup() {
           Finish setting up your profile
         </h1>
         <p className="text-sm text-[var(--c-text-2)] text-center mb-6">
-          Pick a username and a few basics so friends can find you.
+          Add a few basics so friends can find you.
         </p>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-          <div className={fieldCls}>
-            <div className="flex justify-between items-baseline">
-              <label htmlFor="username" className={labelCls}>
-                Username
-              </label>
-              {availabilityNote}
-            </div>
-            <input
-              id="username"
-              type="text"
-              className={inputCls}
-              value={username}
-              onChange={(e) => setUsername(e.target.value.toLowerCase())}
-              placeholder="atulbox"
-              autoComplete="username"
-              required
-              minLength={3}
-              maxLength={20}
-            />
-          </div>
-
           <div className={fieldCls}>
             <label htmlFor="display-name" className={labelCls}>
               Display name
@@ -187,7 +106,7 @@ export default function ProfileSetup() {
               className={inputCls}
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Atul Kodla"
+              placeholder="Your name"
               required
               maxLength={50}
             />
@@ -233,7 +152,7 @@ export default function ProfileSetup() {
           <button
             type="submit"
             className="px-5 py-2.5 rounded-[20px] bg-[var(--c-text)] text-[var(--c-bg)] border border-[var(--c-text)] text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            disabled={submitting || availability === 'checking' || availability === 'taken'}
+            disabled={submitting}
           >
             {submitting ? 'Saving…' : 'Continue'}
           </button>

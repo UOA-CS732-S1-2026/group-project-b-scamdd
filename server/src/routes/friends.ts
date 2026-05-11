@@ -310,6 +310,7 @@ router.get('/', async (req: Request, res: Response) => {
         username: u.username ?? null,
         displayName: u.displayName ?? null,
         bio: u.bio ?? null,
+        avatarColor: u.avatarColor ?? null,
         streak: streakFromDates(friendDateSets.get(id) ?? new Set()),
         goals: (goalsByUser.get(id) ?? []).map((g) => ({
           id: String(g._id),

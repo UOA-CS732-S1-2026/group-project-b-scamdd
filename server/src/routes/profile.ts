@@ -36,6 +36,9 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
       displayName: user.displayName ?? null,
       bio: user.bio ?? null,
       currency: user.currency ?? 'NZD',
+      phone: user.phone ?? null,
+      avatarColor: user.avatarColor ?? null,
+      avatarImage: user.avatarImage ?? null,
       profileComplete: Boolean(user.profileComplete),
     });
   } catch {
@@ -45,7 +48,7 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
 
 router.patch('/me', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { username, displayName, bio, currency, profileComplete } = req.body ?? {};
+    const { username, displayName, bio, currency, phone, profileComplete } = req.body ?? {};
     const updates: Record<string, unknown> = {};
 
     if (username !== undefined) {
@@ -89,6 +92,37 @@ router.patch('/me', requireAuth, async (req: Request, res: Response) => {
       updates.currency = c;
     }
 
+    if (phone !== undefined) {
+      const p = String(phone).trim();
+      if (p.length > 30) {
+        res.status(400).json({ message: 'Phone number must be 30 chars or fewer' });
+        return;
+      }
+      updates.phone = p;
+    }
+
+    if (req.body.avatarColor !== undefined) {
+      const ac = String(req.body.avatarColor).trim();
+      if (ac.length > 20) {
+        res.status(400).json({ message: 'Invalid avatar color' });
+        return;
+      }
+      updates.avatarColor = ac;
+    }
+
+    if (req.body.avatarImage !== undefined) {
+      const img = String(req.body.avatarImage);
+      if (img !== '' && !img.startsWith('data:image/')) {
+        res.status(400).json({ message: 'Invalid image format' });
+        return;
+      }
+      if (img.length > 1_500_000) {
+        res.status(400).json({ message: 'Image too large (max ~1 MB)' });
+        return;
+      }
+      updates.avatarImage = img === '' ? null : img;
+    }
+
     if (profileComplete !== undefined) {
       updates.profileComplete = Boolean(profileComplete);
     }
@@ -98,10 +132,11 @@ router.patch('/me', requireAuth, async (req: Request, res: Response) => {
       return;
     }
 
-    const user = await User.findByIdAndUpdate(req.user!._id, updates, {
-      new: true,
-      runValidators: true,
-    }).lean();
+    const user = await User.findByIdAndUpdate(
+      req.user!._id,
+      { $set: updates },
+      { returnDocument: 'after' },
+    ).lean();
     if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
@@ -114,6 +149,9 @@ router.patch('/me', requireAuth, async (req: Request, res: Response) => {
       displayName: user.displayName ?? null,
       bio: user.bio ?? null,
       currency: user.currency ?? 'NZD',
+      phone: user.phone ?? null,
+      avatarColor: user.avatarColor ?? null,
+      avatarImage: user.avatarImage ?? null,
       profileComplete: Boolean(user.profileComplete),
     });
   } catch (err: unknown) {

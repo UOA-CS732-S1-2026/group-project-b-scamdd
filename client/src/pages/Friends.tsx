@@ -15,6 +15,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Highlight from '../components/Highlight';
 import { useTheme } from '../hooks/useTheme';
+import { useProfileAvatar } from '../context/ProfileContext';
 import type { Friend, Requests, SearchResult } from '../types/friend';
 
 const AVATAR_PALETTE = ['#FFBDC2', '#FDFBD4', '#C5FFD8', '#C68BE1', '#C5ECF9', '#CBCBCB'];
@@ -92,6 +93,7 @@ export default function Friends() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
+  const { avatarColor: myAvatarColor, avatarImage: myAvatarImage } = useProfileAvatar();
 
   const [friends, setFriends] = useState<Friend[]>([]);
   const [requests, setRequests] = useState<Requests>({ incoming: [], outgoing: [] });
@@ -227,13 +229,14 @@ export default function Friends() {
         {/* Achievements + Streak board */}
         {(() => {
           const myName = profile?.displayName || profile?.name || 'You';
-          const myEntry = { id: 'me', name: myName, streak: myStreak, isMe: true, color: '#C68BE1' };
+          const myEntry = { id: 'me', name: myName, streak: myStreak, isMe: true, color: myAvatarColor, image: myAvatarImage };
           const friendEntries = friends.map((f, i) => ({
             id: f.id,
             name: f.displayName ?? f.username ?? 'Friend',
             streak: f.streak,
             isMe: false,
-            color: AVATAR_PALETTE[i % AVATAR_PALETTE.length],
+            color: f.avatarColor ?? AVATAR_PALETTE[i % AVATAR_PALETTE.length],
+            image: null as string | null,
           }));
           const everyone = [myEntry, ...friendEntries];
           const achievementsFeed = everyone.slice(0, 8);
@@ -252,10 +255,12 @@ export default function Friends() {
                     return (
                       <div key={e.id} className="flex items-center gap-3">
                         <div
-                          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0"
-                          style={{ backgroundColor: e.color }}
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
+                          style={{ backgroundColor: e.image ? 'transparent' : e.color }}
                         >
-                          {initials(e.name)}
+                          {e.image
+                            ? <img src={e.image} alt={e.name} className="w-full h-full object-cover" />
+                            : initials(e.name)}
                         </div>
                         <p className="text-sm text-[var(--c-text)] truncate flex-1 min-w-0">
                           <span className="font-semibold">{e.isMe ? 'You' : e.name}</span>{' '}
@@ -298,10 +303,12 @@ export default function Friends() {
                     <div key={e.id} className="flex items-center gap-3">
                       <span className="text-xs font-bold text-[var(--c-tint-text-2)] w-6">#{i + 1}</span>
                       <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-[3px] border-white text-[var(--c-tint-text)] flex-shrink-0"
-                        style={{ backgroundColor: e.color }}
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-[3px] border-white text-[var(--c-tint-text)] flex-shrink-0 overflow-hidden"
+                        style={{ backgroundColor: e.image ? 'transparent' : e.color }}
                       >
-                        {initials(e.name)}
+                        {e.image
+                          ? <img src={e.image} alt={e.name} className="w-full h-full object-cover" />
+                          : initials(e.name)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-[var(--c-tint-text)] truncate">

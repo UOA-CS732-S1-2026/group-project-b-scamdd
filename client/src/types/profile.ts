@@ -6,6 +6,9 @@ export interface Profile {
   displayName: string | null;
   bio: string | null;
   currency: string;
+  phone: string | null;
+  avatarColor: string | null;
+  avatarImage: string | null;
   profileComplete: boolean;
 }
 
@@ -21,5 +24,8 @@ export interface ProfileUpdate {
   displayName?: string;
   bio?: string;
   currency?: string;
+  phone?: string;
+  avatarColor?: string;
+  avatarImage?: string;
   profileComplete?: boolean;
 }

@@ -8,6 +8,7 @@ import Highlight from '../components/Highlight';
 import BudgetForm from '../components/BudgetForm';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useTheme } from '../hooks/useTheme';
+import { useCurrency } from '../context/CurrencyContext';
 import type { Budget, BudgetPeriod } from '../types/budget';
 import { PERIOD_LABELS } from '../types/budget';
 
@@ -108,6 +109,7 @@ export default function Budgets() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
+  const { fmt } = useCurrency();
 
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
@@ -207,11 +209,11 @@ export default function Budgets() {
                 <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">
                   {filter === 'all' ? 'Total allocated' : `${FILTER_LABELS[filter]} total`}
                 </div>
-                <div className="text-2xl font-bold text-[var(--c-tint-text)]">${totalAllocated.toFixed(2)}</div>
+                <div className="text-2xl font-bold text-[var(--c-tint-text)]">{fmt(totalAllocated)}</div>
               </div>
               <div className="p-5 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-green)]">
                 <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">Spent so far</div>
-                <div className="text-2xl font-bold text-[var(--c-tint-text)]">${totalSpent.toFixed(2)}</div>
+                <div className="text-2xl font-bold text-[var(--c-tint-text)]">{fmt(totalSpent)}</div>
                 {totalAllocated > 0 && (
                   <div className="text-xs text-[var(--c-tint-text-2)] mt-1">
                     {Math.round((totalSpent / totalAllocated) * 100)}% of budget used
@@ -221,7 +223,7 @@ export default function Budgets() {
               <div className="p-5 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-yellow)]">
                 <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">Remaining</div>
                 <div className="text-2xl font-bold text-[var(--c-tint-text)]">
-                  ${Math.max(0, totalAllocated - totalSpent).toFixed(2)}
+                  {fmt(Math.max(0, totalAllocated - totalSpent))}
                 </div>
                 {overBudgetCount > 0 && (
                   <div className="text-xs text-[var(--c-negative)] mt-1">
@@ -323,6 +325,7 @@ interface CardProps {
 
 function BudgetCard({ budget, period, spentPct, elapsed, pace, onEdit, onDelete }: CardProps) {
   const catColor = CAT_COLORS[budget.category] || '#B6B6B6';
+  const { fmt } = useCurrency();
   const barFillPct = Math.min(spentPct, 100);
   const paceMarkerPct = Math.min(elapsed * 100, 100);
 
@@ -366,10 +369,10 @@ function BudgetCard({ budget, period, spentPct, elapsed, pace, onEdit, onDelete 
       {/* Amount row */}
       <div className="flex justify-between items-baseline mb-2">
         <span className="text-2xl font-bold text-[var(--c-text)]">
-          ${budget.spent.toFixed(2)}
+          {fmt(budget.spent)}
         </span>
         <span className="text-sm text-[var(--c-text-2)]">
-          of ${budget.monthlyLimit.toFixed(2)}
+          of {fmt(budget.monthlyLimit)}
         </span>
       </div>
 

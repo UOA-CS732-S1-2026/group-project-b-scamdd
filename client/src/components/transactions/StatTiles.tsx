@@ -1,4 +1,5 @@
 import { MOOD_EMOJIS, MOOD_VALUES } from '../../lib/transactions';
+import { useCurrency } from '../../context/CurrencyContext';
 import type { Transaction } from '../../types/transaction';
 
 interface StatTilesProps {
@@ -24,6 +25,7 @@ export default function StatTiles({
     ? moodTxns.reduce((s, t) => s + MOOD_VALUES[t.mood!] * Math.abs(t.amount), 0) / moodTotal
     : 3;
   const moodEmoji = MOOD_EMOJIS[Math.min(Math.max(Math.floor(moodAvg) - 1, 0), 4)];
+  const { fmt } = useCurrency();
 
   const cardBase = 'p-5 rounded-3xl';
 
@@ -32,7 +34,7 @@ export default function StatTiles({
       <div className={`${cardBase} bg-[var(--c-tint-pink)]`}>
         <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Spent</div>
         <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">So far, this month</div>
-        <div className="text-2xl font-bold text-[var(--c-tint-text)]">${monthSpent.toFixed(2)}</div>
+        <div className="text-2xl font-bold text-[var(--c-tint-text)]">{fmt(monthSpent)}</div>
       </div>
       <div className={`${cardBase} bg-[var(--c-tint-green)]`}>
         <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Transactions</div>
@@ -42,7 +44,7 @@ export default function StatTiles({
       <div className={`${cardBase} bg-[var(--c-tint-yellow)]`}>
         <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Biggest hit</div>
         <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">This month</div>
-        <div className="text-2xl font-bold text-[var(--c-tint-text)]">${monthBiggest.toFixed(2)}</div>
+        <div className="text-2xl font-bold text-[var(--c-tint-text)]">{fmt(monthBiggest)}</div>
         {monthBiggestTxn && (
           <div className="text-xs mt-1 truncate text-[var(--c-tint-text-2)]">{monthBiggestTxn.title}</div>
         )}
