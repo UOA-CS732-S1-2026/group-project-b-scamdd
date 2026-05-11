@@ -8,7 +8,6 @@ export const CATEGORIES = [
   'utilities',
   'shopping',
   'health',
-  'other',
 ] as const;
 
 export interface Transaction {

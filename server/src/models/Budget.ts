@@ -27,6 +27,6 @@ const BudgetSchema = new Schema<IBudget>(
   { timestamps: true },
 );
 
-BudgetSchema.index({ userId: 1, category: 1 }, { unique: true });
+BudgetSchema.index({ userId: 1, category: 1, period: 1 }, { unique: true });
 
 export const Budget = mongoose.model<IBudget>('Budget', BudgetSchema);
