@@ -9,14 +9,14 @@ interface Props {
 }
 
 const inputClass =
-  'px-3 py-2.5 border border-[var(--c-border)] rounded-lg bg-[var(--c-bg)] text-[var(--c-text)] text-sm placeholder:text-[var(--c-text-2)] focus:outline-none focus:border-[var(--c-accent)] transition-colors w-full';
+  'px-4 py-2.5 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[#ffffff] text-[var(--c-text)] text-sm placeholder:text-[var(--c-text-2)] focus:outline-none focus:border-[var(--c-text)] transition-colors w-full';
 
-const MOODS: { key: string; label: string; color: string; textColor: string }[] = [
-  { key: 'regret',   label: 'Regret',    color: '#F87171', textColor: '#fff' },
-  { key: 'meh',      label: 'Meh',       color: '#FB923C', textColor: '#fff' },
-  { key: 'okay',     label: 'Okay',      color: '#FCD34D', textColor: '#1a1a1a' },
-  { key: 'glad',     label: 'Glad',      color: '#86EFAC', textColor: '#1a1a1a' },
-  { key: 'worth-it', label: 'Worth It',  color: '#C68BE1', textColor: '#fff' },
+const MOODS: { key: string; label: string; color: string }[] = [
+  { key: 'regret',   label: 'Regret',   color: '#FFBDC2' },
+  { key: 'meh',      label: 'Meh',      color: '#CBCBCB' },
+  { key: 'okay',     label: 'Okay',     color: '#FDFBD4' },
+  { key: 'glad',     label: 'Glad',     color: '#C5FFD8' },
+  { key: 'worth-it', label: 'Worth It', color: '#C68BE1' },
 ];
 
 const PAYMENT_METHODS = ['Cash', 'Debit', 'Credit', 'Bank Transfer', 'PayPal', 'Other'];
@@ -78,55 +78,37 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
     }
   }
 
-  const isNonEssential = form.essential === false;
+  const isExpense = form.type === 'expense';
+  const isNonEssential = isExpense && form.essential === false;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-md bg-[var(--c-card)] border border-[var(--c-border)] rounded-2xl shadow-xl flex flex-col max-h-[90vh]">
-        <div className="px-8 pt-8 pb-4 flex-shrink-0">
-          <h2 className="text-xl font-bold text-[var(--c-text)] text-center">
-            {transaction ? 'Edit Transaction' : 'Add Transaction'}
-          </h2>
+      <div className="w-full max-w-lg bg-[var(--c-card)] border border-[rgba(109,109,109,0.8)] rounded-3xl shadow-xl flex flex-col max-h-[92vh]">
+        <div className="px-7 pt-6 pb-3 flex justify-between items-start flex-shrink-0">
+          <div>
+            <h2 className="text-2xl font-bold text-[var(--c-text)]">
+              {transaction ? 'Edit transaction' : 'Log a transaction'}
+            </h2>
+            <p className="text-sm text-[var(--c-text-2)] mt-1">
+              How are you feeling about this one?
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            aria-label="Close"
+            className="text-2xl leading-none text-[var(--c-text-2)] hover:text-[var(--c-text)] cursor-pointer px-2"
+          >
+            ×
+          </button>
         </div>
 
-        <form className="flex flex-col gap-4 overflow-y-auto px-8 pb-8" onSubmit={handleSubmit}>
-          {/* Title */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[var(--c-text)]">Title</label>
-            <input
-              type="text"
-              required
-              value={form.title}
-              onChange={(e) => set('title', e.target.value)}
-              placeholder="e.g. Grocery run"
-              className={inputClass}
-            />
-          </div>
-
-          {/* Amount */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[var(--c-text)]">Amount</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--c-text-2)] pointer-events-none select-none">
-                $
-              </span>
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                required
-                value={form.amount || ''}
-                onChange={(e) => set('amount', e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                placeholder="0.00"
-                className={`${inputClass} pl-7`}
-              />
-            </div>
-          </div>
+        <form className="flex flex-col gap-5 overflow-y-auto px-7 pb-7" onSubmit={handleSubmit}>
 
           {/* Type */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[var(--c-text)]">Type</label>
-            <div className="flex border border-[var(--c-border)] rounded-lg overflow-hidden">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-[var(--c-text)]">Transaction type</label>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-[var(--c-surface)] rounded-2xl">
               {(['expense', 'income'] as TransactionType[]).map((t) => (
                 <button
                   key={t}
@@ -138,119 +120,146 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
                         : { ...f, type: t, essential: true }
                     )
                   }
-                  className={`flex-1 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
+                  className={`py-2 rounded-[16px] text-sm font-semibold transition-colors cursor-pointer ${
                     form.type === t
-                      ? t === 'expense'
-                        ? 'bg-[var(--c-expense-light)] text-[var(--c-expense-dark)] font-semibold'
-                        : 'bg-[var(--c-income-light)] text-[var(--c-income-dark)] font-semibold'
-                      : 'text-[var(--c-text-2)] hover:bg-[var(--c-surface)]'
+                      ? 'bg-[var(--c-accent)] text-[var(--c-text)]'
+                      : 'text-[var(--c-text-2)] hover:text-[var(--c-text)]'
                   }`}
                 >
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {t === 'expense' ? 'Expense' : 'Income'}
                 </button>
               ))}
             </div>
           </div>
 
-          {form.type === 'expense' && (
-            <>
-              {/* Essential / Non-essential */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-[var(--c-text)]">Purchase type</label>
-                <div className="flex border border-[var(--c-border)] rounded-lg overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => set('essential', true)}
-                    className={`flex-1 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
-                      form.essential === true
-                        ? 'bg-[var(--c-accent)] text-white font-semibold'
-                        : 'text-[var(--c-text-2)] hover:bg-[var(--c-surface)]'
-                    }`}
-                  >
-                    Essential
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => set('essential', false)}
-                    className={`flex-1 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
-                      form.essential === false
-                        ? 'bg-[var(--c-accent)] text-white font-semibold'
-                        : 'text-[var(--c-text-2)] hover:bg-[var(--c-surface)]'
-                    }`}
-                  >
-                    Non-essential
-                  </button>
-                </div>
-              </div>
+          {/* Amount */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-[var(--c-text)]">Amount</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-[var(--c-text-2)] pointer-events-none select-none">
+                $
+              </span>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                required
+                value={form.amount || ''}
+                onChange={(e) => set('amount', e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                placeholder="0.00"
+                className={`${inputClass} pl-9 text-lg font-semibold`}
+              />
+            </div>
+          </div>
 
-              {/* Mood (only for non-essential) */}
-              {isNonEssential && (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-[var(--c-text)]">
-                    How did you feel about it?
-                  </label>
-                  <div className="flex gap-2">
-                    {MOODS.map(({ key, label, color, textColor }) => {
-                      const selected = form.mood === key;
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => set('mood', selected ? undefined : key)}
-                          style={
-                            selected
-                              ? { backgroundColor: color, borderColor: color, color: textColor }
-                              : {}
-                          }
-                          className={`flex-1 py-2 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
-                            selected
-                              ? ''
-                              : 'text-[var(--c-text-2)] border-[var(--c-border)] hover:border-[var(--c-accent)]'
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </>
+          {/* Category (expense only) — pill grid */}
+          {isExpense && (
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-[var(--c-text)]">Category</label>
+              <div className="grid grid-cols-3 gap-2">
+                {CATEGORIES.map((c) => {
+                  const selected = form.category === c;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => set('category', c)}
+                      className={`py-2 px-3 rounded-2xl text-sm font-medium border transition-colors cursor-pointer capitalize ${
+                        selected
+                          ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
+                          : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-[var(--c-text-2)]">How would you categorise this purchase?</p>
+            </div>
           )}
 
-          {/* Category (expense only) */}
-          {form.type === 'expense' && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-[var(--c-text)]">Category</label>
-              <select
-                required
-                value={form.category}
-                onChange={(e) => set('category', e.target.value)}
-                className={inputClass}
-              >
-                <option value="">Select a category</option>
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c.charAt(0).toUpperCase() + c.slice(1)}
-                  </option>
-                ))}
-              </select>
+          {/* Title (description) */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-[var(--c-text)]">Description</label>
+            <input
+              type="text"
+              required
+              value={form.title}
+              onChange={(e) => set('title', e.target.value)}
+              placeholder="What did you buy?"
+              className={inputClass}
+            />
+          </div>
+
+          {/* Essential toggle (expense only) */}
+          {isExpense && (
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-[var(--c-text)]">Was this essential?</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => set('essential', true)}
+                  className={`py-2.5 rounded-2xl text-sm font-medium border transition-colors cursor-pointer ${
+                    form.essential === true
+                      ? 'bg-[var(--c-tint-green)] text-[var(--c-text)] border-[var(--c-text)]'
+                      : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+                  }`}
+                >
+                  Yes, essential
+                </button>
+                <button
+                  type="button"
+                  onClick={() => set('essential', false)}
+                  className={`py-2.5 rounded-2xl text-sm font-medium border transition-colors cursor-pointer ${
+                    form.essential === false
+                      ? 'bg-[var(--c-tint-pink)] text-[var(--c-text)] border-[var(--c-text)]'
+                      : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+                  }`}
+                >
+                  No, non-essential
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Mood (only when non-essential) */}
+          {isNonEssential && (
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-[var(--c-text)]">How did it make you feel?</label>
+              <div className="grid grid-cols-5 gap-2">
+                {MOODS.map(({ key, label, color }) => {
+                  const selected = form.mood === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => set('mood', selected ? undefined : key)}
+                      style={selected ? { backgroundColor: color, borderColor: 'var(--c-text)' } : {}}
+                      className={`py-2 rounded-2xl border text-xs font-medium transition-colors cursor-pointer ${
+                        selected
+                          ? 'text-[var(--c-text)]'
+                          : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
           {/* Payment method (expense only) */}
-          {form.type === 'expense' && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-[var(--c-text)]">
-                Payment method{' '}
-                <span className="font-normal text-[var(--c-text-2)]">(optional)</span>
-              </label>
+          {isExpense && (
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-[var(--c-text)]">Payment method</label>
               <select
                 value={form.paymentMethod ?? ''}
                 onChange={(e) => set('paymentMethod', e.target.value || undefined)}
                 className={inputClass}
               >
-                <option value="">Select a payment method</option>
+                <option value="">Select payment method</option>
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
@@ -259,8 +268,8 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
           )}
 
           {/* Date */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[var(--c-text)]">Date</label>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-[var(--c-text)]">Date</label>
             <input
               type="date"
               required
@@ -271,8 +280,8 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
           </div>
 
           {/* Note */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[var(--c-text)]">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-[var(--c-text)]">
               Note <span className="font-normal text-[var(--c-text-2)]">(optional)</span>
             </label>
             <textarea
@@ -284,24 +293,15 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
             />
           </div>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-[var(--c-expense)]">{error}</p>}
 
-          <div className="flex gap-3 mt-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="flex-1 py-2.5 border border-[var(--c-border)] rounded-lg text-sm font-medium text-[var(--c-text)] hover:opacity-80 transition-opacity cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 py-2.5 bg-[var(--c-accent)] text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-opacity cursor-pointer"
-            >
-              {loading ? 'Saving…' : transaction ? 'Save changes' : 'Add'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-2 py-3 rounded-[20px] bg-[var(--c-text)] text-[var(--c-bg)] border border-[var(--c-text)] text-sm font-semibold hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-opacity cursor-pointer"
+          >
+            {loading ? 'Saving…' : transaction ? 'Save changes' : 'Log transaction'}
+          </button>
         </form>
       </div>
     </div>
