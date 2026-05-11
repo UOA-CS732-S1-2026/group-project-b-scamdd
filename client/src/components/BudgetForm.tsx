@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CATEGORIES } from '../types/transaction';
+import { CATEGORIES, EMERGENCY_CATEGORY } from '../types/transaction';
 import type { Budget, BudgetInput, BudgetPeriod } from '../types/budget';
 import { PERIOD_LABELS } from '../types/budget';
 import { createBudget, updateBudget } from '../api/budgets';
@@ -37,9 +37,10 @@ export default function BudgetForm({ budget, existingCategories, onSuccess, onCa
     }
   }, [budget]);
 
+  const budgetableCategories = CATEGORIES.filter((c) => c !== EMERGENCY_CATEGORY);
   const availableCategories = budget
-    ? CATEGORIES
-    : CATEGORIES.filter((c) => !existingCategories.includes(c));
+    ? budgetableCategories
+    : budgetableCategories.filter((c) => !existingCategories.includes(c));
 
   function set<K extends keyof BudgetInput>(key: K, value: BudgetInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));

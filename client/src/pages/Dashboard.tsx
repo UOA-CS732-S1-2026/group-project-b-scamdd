@@ -340,13 +340,19 @@ export default function Dashboard() {
   const PLOT_W = SVG_W - PAD_L - PAD_R;
   const PLOT_H = SVG_H - PAD_T - PAD_B;
 
+  const nonEmergencyExpenses = expenses.filter(t => t.category !== 'emergency');
+
   let cumulativePoints: number[] = [];
+  let cumulativeNonEmerg: number[] = [];
   let xTicks: Array<{ idx: number; label: string }> = [];
   const N_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   if (viewPeriod === 'daily') {
     cumulativePoints = Array.from({ length: 24 }, (_, h) =>
       expenses.filter(t => new Date(t.date).getHours() <= h).reduce((s, t) => s + Math.abs(t.amount), 0),
+    );
+    cumulativeNonEmerg = Array.from({ length: 24 }, (_, h) =>
+      nonEmergencyExpenses.filter(t => new Date(t.date).getHours() <= h).reduce((s, t) => s + Math.abs(t.amount), 0),
     );
     xTicks = [0, 6, 12, 18, 23].map(h => ({
       idx: h, label: h === 0 ? '12am' : h === 12 ? '12pm' : h < 12 ? `${h}am` : `${h - 12}pm`,
@@ -356,11 +362,18 @@ export default function Dashboard() {
       expenses.filter(t => { const d = new Date(t.date).getDay(); return (d === 0 ? 6 : d - 1) <= i; })
               .reduce((s, t) => s + Math.abs(t.amount), 0),
     );
+    cumulativeNonEmerg = Array.from({ length: 7 }, (_, i) =>
+      nonEmergencyExpenses.filter(t => { const d = new Date(t.date).getDay(); return (d === 0 ? 6 : d - 1) <= i; })
+              .reduce((s, t) => s + Math.abs(t.amount), 0),
+    );
     xTicks = ['M','T','W','T','F','S','S'].map((l, i) => ({ idx: i, label: l }));
   } else if (viewPeriod === 'monthly') {
     const dim = new Date(pStart.getFullYear(), pStart.getMonth() + 1, 0).getDate();
     cumulativePoints = Array.from({ length: dim }, (_, i) =>
       expenses.filter(t => new Date(t.date).getDate() <= i + 1).reduce((s, t) => s + Math.abs(t.amount), 0),
+    );
+    cumulativeNonEmerg = Array.from({ length: dim }, (_, i) =>
+      nonEmergencyExpenses.filter(t => new Date(t.date).getDate() <= i + 1).reduce((s, t) => s + Math.abs(t.amount), 0),
     );
     xTicks = [1, 5, 10, 15, 20, 25, dim]
       .filter((d, i, a) => a.indexOf(d) === i && d <= dim)
@@ -369,11 +382,15 @@ export default function Dashboard() {
     cumulativePoints = Array.from({ length: 12 }, (_, m) =>
       expenses.filter(t => new Date(t.date).getMonth() <= m).reduce((s, t) => s + Math.abs(t.amount), 0),
     );
+    cumulativeNonEmerg = Array.from({ length: 12 }, (_, m) =>
+      nonEmergencyExpenses.filter(t => new Date(t.date).getMonth() <= m).reduce((s, t) => s + Math.abs(t.amount), 0),
+    );
     xTicks = N_MONTHS.map((l, i) => ({ idx: i, label: l }));
   }
 
   const N = cumulativePoints.length;
   const drawUpToIdx = isCurrent ? Math.min(currentPointIdx(viewPeriod), N - 1) : N - 1;
+  const hasEmergency = cumulativePoints.some((v, i) => v !== cumulativeNonEmerg[i]);
 
   const rawYMax = Math.max(...cumulativePoints, periodBudgetTotal, 10);
   const approxStep = rawYMax / 4;
@@ -388,9 +405,14 @@ export default function Dashboard() {
 
   const spendPts = cumulativePoints.slice(0, drawUpToIdx + 1)
     .map((v, i) => `${cxFn(i).toFixed(1)},${cyFn(v).toFixed(1)}`);
+  const spendPtsNonEmerg = cumulativeNonEmerg.slice(0, drawUpToIdx + 1)
+    .map((v, i) => `${cxFn(i).toFixed(1)},${cyFn(v).toFixed(1)}`);
   const budgetLineY = periodBudgetTotal > 0 ? cyFn(periodBudgetTotal) : null;
-  const areaD = spendPts.length > 0
+  const areaInclD = spendPts.length > 0
     ? `M ${cxFn(0).toFixed(1)},${chartBottom} L ${spendPts.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${chartBottom} Z`
+    : '';
+  const areaExclD = spendPtsNonEmerg.length > 0
+    ? `M ${cxFn(0).toFixed(1)},${chartBottom} L ${spendPtsNonEmerg.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${chartBottom} Z`
     : '';
 
   // ── Mood & category ───────────────────────────────────────────────────────────
@@ -1044,21 +1066,40 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 gap-4">
             <div className={`${cardBase} bg-[var(--c-tint-pink)]`}>
               <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Spent</div>
-              <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">{PERIOD_DISPLAY[viewPeriod]}</div>
-              <div className="text-2xl font-bold text-[var(--c-tint-text)]">${totalSpent.toFixed(2)}</div>
+              <div className="text-xs mb-3 text-[var(--c-tint-text-2)]">Excluding emergency</div>
+              <div className="text-2xl font-bold text-[var(--c-tint-text)]">
+                ${nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0).toFixed(2)}
+              </div>
+              {hasEmergency && (
+                <div className="text-[11px] mt-1 text-[var(--c-tint-text-2)]">
+                  ${totalSpent.toFixed(2)} (incl. emergency)
+                </div>
+              )}
             </div>
             <div className={`${cardBase} bg-[var(--c-tint-green)]`}>
               <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Remaining</div>
-              <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">Budget for {PERIOD_DISPLAY[viewPeriod].toLowerCase()}</div>
+              <div className="text-xs mb-3 text-[var(--c-tint-text-2)]">Budget for {PERIOD_DISPLAY[viewPeriod].toLowerCase()}</div>
               {periodBudgetTotal === 0 ? (
                 <button onClick={() => navigate('/budgets')} className="text-sm font-semibold text-[var(--c-accent)] hover:opacity-70 transition-opacity text-left">
                   Create {PERIOD_DISPLAY[viewPeriod].toLowerCase()} budget →
                 </button>
-              ) : (
-                <div className={`text-2xl font-bold ${periodBudgetTotal - totalSpent < 0 ? 'text-[var(--c-negative)]' : 'text-[var(--c-tint-text)]'}`}>
-                  {periodBudgetTotal - totalSpent < 0 ? '-' : ''}${Math.abs(periodBudgetTotal - totalSpent).toFixed(2)}
-                </div>
-              )}
+              ) : (() => {
+                const nonEmergSpent = nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0);
+                const remainNonEmerg = periodBudgetTotal - nonEmergSpent;
+                const remainIncl = periodBudgetTotal - totalSpent;
+                return (
+                  <>
+                    <div className={`text-2xl font-bold ${remainNonEmerg < 0 ? 'text-[var(--c-negative)]' : 'text-[var(--c-tint-text)]'}`}>
+                      {remainNonEmerg < 0 ? '-' : ''}${Math.abs(remainNonEmerg).toFixed(2)}
+                    </div>
+                    {hasEmergency && (
+                      <div className="text-[11px] mt-1 text-[var(--c-tint-text-2)]">
+                        {remainIncl < 0 ? '-' : ''}${Math.abs(remainIncl).toFixed(2)} (incl. emergency)
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             <div className={`${cardBase} bg-[var(--c-tint-yellow)]`}>
               <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Income</div>
@@ -1077,7 +1118,8 @@ export default function Dashboard() {
               <div>
                 <h3 className="font-semibold text-base mb-1 text-[var(--c-text)]">Cumulative spending</h3>
                 <div className="text-xs mb-1.5 text-[var(--c-text-2)]">
-                  {label} · ${totalSpent.toFixed(2)} spent
+                  {label} · ${nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0).toFixed(2)} spent
+                  {hasEmergency && ` · $${(totalSpent - nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0)).toFixed(2)} emergency`}
                   {periodBudgetTotal > 0 && ` · $${periodBudgetTotal.toFixed(2)} budget`}
                 </div>
                 <div className="flex items-center gap-4">
@@ -1091,10 +1133,18 @@ export default function Dashboard() {
                   )}
                   <span className="flex items-center gap-1.5">
                     <svg width="18" height="8" style={{ display: 'block' }}>
-                      <line x1="0" y1="4" x2="18" y2="4" stroke="var(--c-accent)" strokeWidth="2" />
+                      <line x1="0" y1="4" x2="18" y2="4" stroke="#C68BE1" strokeWidth="2" />
                     </svg>
-                    <span className="text-xs text-[var(--c-text-2)]">Spent</span>
+                    <span className="text-xs text-[var(--c-text-2)]">Spent (excl. emergency)</span>
                   </span>
+                  {hasEmergency && (
+                    <span className="flex items-center gap-1.5">
+                      <svg width="18" height="8" style={{ display: 'block' }}>
+                        <line x1="0" y1="4" x2="18" y2="4" stroke="#FDFBD4" strokeWidth="2" />
+                      </svg>
+                      <span className="text-xs text-[var(--c-text-2)]">Spent (incl. emergency)</span>
+                    </span>
+                  )}
                 </div>
               </div>
               <button onClick={() => navigate('/transactions')} className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-text)] hover:opacity-90 transition-opacity">
@@ -1121,22 +1171,14 @@ export default function Dashboard() {
                   </text>
                 </>
               )}
-              {areaD && <path d={areaD} fill="var(--c-accent)" opacity="0.18" />}
-              {spendPts.length > 1 && (
-                <polyline points={spendPts.join(' ')} fill="none" stroke="var(--c-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              {hasEmergency && areaInclD && <path d={areaInclD} fill="#FDFBD4" opacity="0.2" />}
+              {areaExclD && <path d={areaExclD} fill="#C68BE1" opacity="0.3" />}
+              {hasEmergency && spendPts.length > 1 && (
+                <polyline points={spendPts.join(' ')} fill="none" stroke="#FDFBD4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               )}
-              {spendPts.length > 0 && (() => {
-                const [lx, ly] = spendPts[spendPts.length - 1].split(',').map(Number);
-                const lbl = `$${totalSpent.toFixed(0)}`;
-                const bw = lbl.length * 7 + 12;
-                return (
-                  <>
-                    <rect x={lx - bw / 2} y={ly - 18} width={bw} height={13} rx="3" fill="var(--c-accent)" />
-                    <text x={lx} y={ly - 8} textAnchor="middle" fontSize="9" fill="white" fontWeight="600">{lbl}</text>
-                    <circle cx={lx} cy={ly} r="3" fill="var(--c-accent)" />
-                  </>
-                );
-              })()}
+              {spendPtsNonEmerg.length > 1 && (
+                <polyline points={spendPtsNonEmerg.join(' ')} fill="none" stroke="#C68BE1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              )}
               {xTicks.map(({ idx, label: xl }) => (
                 <text key={idx} x={cxFn(idx)} y={SVG_H - 3} textAnchor="middle" fontSize="9" fill="var(--c-text-2)">{xl}</text>
               ))}
