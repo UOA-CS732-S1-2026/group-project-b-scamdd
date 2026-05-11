@@ -35,7 +35,7 @@ export default function App() {
   );
 }
 
-function RequireProfile({ children }: { children: ReactNode }) {
+export function RequireProfile({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { data: session, isPending } = useSession();
   const [checking, setChecking] = useState(true);
