@@ -19,21 +19,21 @@ export default function ContactPage() {
         <div className="flex flex-wrap gap-3 text-sm text-[var(--c-text)] mb-10">
           <span
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#4B4B4B]"
-            style={{ background: '#ffffff' }}
+            style={{ background: 'var(--c-card)' }}
           >
             <IconMail />
             contact@felt.co.nz
           </span>
           <span
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#4B4B4B]"
-            style={{ background: '#ffffff' }}
+            style={{ background: 'var(--c-card)' }}
           >
             <IconPhone />
             0800 373 7550
           </span>
           <span
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#4B4B4B]"
-            style={{ background: '#ffffff' }}
+            style={{ background: 'var(--c-card)' }}
           >
             <IconAt />
             feltbusiness

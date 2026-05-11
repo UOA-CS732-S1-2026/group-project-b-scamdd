@@ -273,7 +273,7 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
                                 </button>
                                 <button
                                   onClick={() => handleBellRespond(r.id, 'reject')}
-                                  className="px-2 py-1 rounded-full border border-[rgba(109,109,109,0.5)] bg-[#ffffff] text-[10px] text-[var(--c-text-2)] hover:text-[var(--c-expense)] hover:border-[var(--c-expense)] transition-colors"
+                                  className="px-2 py-1 rounded-full border border-[rgba(109,109,109,0.5)] bg-[var(--c-card)] text-[10px] text-[var(--c-text-2)] hover:text-[var(--c-expense)] hover:border-[var(--c-expense)] transition-colors"
                                 >
                                   ✕
                                 </button>

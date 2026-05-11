@@ -8,7 +8,7 @@ const CURRENCIES = ['NZD', 'USD', 'AUD', 'EUR', 'GBP'];
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 const inputCls =
-  'px-4 py-2.5 border border-[var(--c-border)] rounded-xl bg-[#ffffff] text-[var(--c-text)] text-sm transition-colors focus:outline-none focus:border-[var(--c-text)] placeholder:text-[var(--c-text-2)]';
+  'px-4 py-2.5 border border-[var(--c-border)] rounded-xl bg-[var(--c-card)] text-[var(--c-text)] text-sm transition-colors focus:outline-none focus:border-[var(--c-text)] placeholder:text-[var(--c-text-2)]';
 const labelCls = 'text-sm font-medium text-[var(--c-text)]';
 const fieldCls = 'flex flex-col gap-1.5';
 

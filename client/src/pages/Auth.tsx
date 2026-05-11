@@ -27,7 +27,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
 
   const inputCls =
-    'w-full px-4 py-2.5 rounded-xl border border-[var(--c-border)] bg-[#ffffff] text-[var(--c-text)] text-sm transition-colors focus:outline-none focus:border-[var(--c-text)] placeholder:text-[var(--c-text-2)]';
+    'w-full px-4 py-2.5 rounded-xl border border-[var(--c-border)] bg-[var(--c-card)] text-[var(--c-text)] text-sm transition-colors focus:outline-none focus:border-[var(--c-text)] placeholder:text-[var(--c-text-2)]';
   const labelCls = 'text-sm font-medium text-[var(--c-text)]';
   const primaryBtn =
     'w-full px-5 py-2.5 rounded-[20px] bg-[var(--c-text)] text-[var(--c-bg)] border border-[var(--c-text)] text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';

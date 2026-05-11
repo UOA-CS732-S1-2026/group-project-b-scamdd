@@ -347,7 +347,7 @@ export default function Transactions() {
                   placeholder="$0"
                   value={filterAmountMin}
                   onChange={e => setFilterAmountMin(e.target.value)}
-                  className="w-full px-2 py-1.5 rounded-[12px] text-sm bg-[#ffffff] border border-[rgba(109,109,109,0.5)] focus:outline-none focus:border-[var(--c-text)]"
+                  className="w-full px-2 py-1.5 rounded-[12px] text-sm bg-[var(--c-card)] border border-[rgba(109,109,109,0.5)] focus:outline-none focus:border-[var(--c-text)]"
                 />
                 <span className="text-xs text-[var(--c-text-2)]">–</span>
                 <input
@@ -356,7 +356,7 @@ export default function Transactions() {
                   placeholder="$any"
                   value={filterAmountMax}
                   onChange={e => setFilterAmountMax(e.target.value)}
-                  className="w-full px-2 py-1.5 rounded-[12px] text-sm bg-[#ffffff] border border-[rgba(109,109,109,0.5)] focus:outline-none focus:border-[var(--c-text)]"
+                  className="w-full px-2 py-1.5 rounded-[12px] text-sm bg-[var(--c-card)] border border-[rgba(109,109,109,0.5)] focus:outline-none focus:border-[var(--c-text)]"
                 />
               </div>
             </FilterGroup>
@@ -379,7 +379,7 @@ export default function Transactions() {
                 setFilterMood('all'); setFilterAmountMin(''); setFilterAmountMax('');
                 setSortBy('recent'); setTimeRange('all');
               }}
-              className="mt-4 px-4 py-2 rounded-[20px] text-sm border border-[rgba(109,109,109,0.8)] bg-[#ffffff] text-[var(--c-text)] hover:opacity-80 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="mt-4 px-4 py-2 rounded-[20px] text-sm border border-[rgba(109,109,109,0.8)] bg-[var(--c-card)] text-[var(--c-text)] hover:opacity-80 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Clear all
             </button>
@@ -580,7 +580,7 @@ function FilterChip({
       className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
         active
           ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
-          : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+          : 'bg-[var(--c-card)] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
       }`}
     >
       {children}

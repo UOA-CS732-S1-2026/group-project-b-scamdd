@@ -243,7 +243,7 @@ export default function Budgets() {
                     className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors cursor-pointer ${
                       filter === p
                         ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
-                        : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+                        : 'bg-[var(--c-card)] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
                     }`}
                   >
                     {FILTER_LABELS[p]}

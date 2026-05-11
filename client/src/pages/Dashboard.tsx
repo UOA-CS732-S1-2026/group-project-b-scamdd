@@ -608,12 +608,12 @@ export default function Dashboard() {
         return (
           <div className={`${panelClass} !p-5`} style={{ background: '#FDFBD4' }}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-base text-[var(--c-text)]">Recent transactions</h3>
-              <button onClick={() => navigate('/transactions')} className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-text)] hover:opacity-90 transition-opacity">View more</button>
+              <h3 className="font-semibold text-base text-[var(--c-tint-text)]">Recent transactions</h3>
+              <button onClick={() => navigate('/transactions')} className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-tint-text)] hover:opacity-90 transition-opacity">View more</button>
             </div>
             <div className="flex-1 overflow-y-auto min-h-0">
               {recentAll.length === 0 ? (
-                <p className="text-sm text-center py-8 text-[var(--c-text-2)]">No transactions for this period.</p>
+                <p className="text-sm text-center py-8 text-[var(--c-tint-text-2)]">No transactions for this period.</p>
               ) : (
                 <div className="space-y-0.5">
                   {recentAll.map(t => (
@@ -625,13 +625,13 @@ export default function Dashboard() {
                           aria-hidden
                         />
                         <div className="min-w-0">
-                          <div className="text-sm font-medium text-[var(--c-text)] truncate">{t.title}</div>
+                          <div className="text-sm font-medium text-[var(--c-tint-text)] truncate">{t.title}</div>
                           {t.category && (
-                            <div className="text-xs text-[var(--c-text-2)]">{t.category}</div>
+                            <div className="text-xs text-[var(--c-tint-text-2)]">{t.category}</div>
                           )}
                         </div>
                       </div>
-                      <div className="text-sm font-semibold flex-shrink-0 ml-4 text-[var(--c-text-2)]">
+                      <div className="text-sm font-semibold flex-shrink-0 ml-4 text-[var(--c-tint-text-2)]">
                         {t.type === 'income' ? '+' : '−'}${Math.abs(t.amount).toFixed(2)}
                       </div>
                     </div>
@@ -646,7 +646,7 @@ export default function Dashboard() {
       case 'breakdown':
         return (
           <div className={panelClass} style={{ background: '#C5ECF9' }}>
-            <h3 className="font-semibold text-base text-[var(--c-text)] mb-5">How you've been spending your money</h3>
+            <h3 className="font-semibold text-base text-[var(--c-tint-text)] mb-5">How you've been spending your money</h3>
             <div className="flex flex-col gap-5">
               {breakdownRows.filter(r => r.label !== 'By category').map(({ label: rowLabel, slices }) => {
                 const total = slices.reduce((s, sl) => s + sl.value, 0);
@@ -654,11 +654,11 @@ export default function Dashboard() {
                 return (
                   <div key={rowLabel}>
                     {!isPair && (
-                      <div className="text-xs font-medium text-[var(--c-text-2)] mb-2">{rowLabel}</div>
+                      <div className="text-xs font-medium text-[var(--c-tint-text-2)] mb-2">{rowLabel}</div>
                     )}
                     {total === 0 ? (
-                      <div className="h-6 rounded-full bg-[var(--c-border)] flex items-center pl-3">
-                        <span className="text-xs text-[var(--c-text-2)]">No data</span>
+                      <div className="h-6 rounded-full bg-white/40 flex items-center pl-3">
+                        <span className="text-xs text-[var(--c-tint-text-2)]">No data</span>
                       </div>
                     ) : (
                       <>
@@ -677,7 +677,7 @@ export default function Dashboard() {
                             {slices.map((sl, i) => (
                               <span
                                 key={sl.label}
-                                className={`text-xs text-[var(--c-text-2)] capitalize ${i === slices.length - 1 ? 'text-right' : ''}`}
+                                className={`text-xs text-[var(--c-tint-text-2)] capitalize ${i === slices.length - 1 ? 'text-right' : ''}`}
                               >
                                 {sl.label}
                               </span>
@@ -688,7 +688,7 @@ export default function Dashboard() {
                             {slices.map(sl => (
                               <div key={sl.label} className="flex items-center gap-1.5">
                                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: sl.color }} />
-                                <span className="text-xs text-[var(--c-text-2)] capitalize">{sl.label}</span>
+                                <span className="text-xs text-[var(--c-tint-text-2)] capitalize">{sl.label}</span>
                               </div>
                             ))}
                           </div>
@@ -734,15 +734,15 @@ export default function Dashboard() {
         return (
           <div className={panelClass} style={{ background: '#FFD5D8' }}>
             <div className="flex justify-between items-center mb-1">
-              <h3 className="font-semibold text-base text-[var(--c-text)]">Friends</h3>
-              <button onClick={() => navigate('/friends')} className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-text)] hover:opacity-90 transition-opacity">View more</button>
+              <h3 className="font-semibold text-base text-[var(--c-tint-text)]">Friends</h3>
+              <button onClick={() => navigate('/friends')} className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-tint-text)] hover:opacity-90 transition-opacity">View more</button>
             </div>
-            <div className="text-xs mb-4 text-[var(--c-text-2)]">Streaks &amp; recent achievements</div>
+            <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">Streaks &amp; recent achievements</div>
 
             {friends.length === 0 ? (
               <div className="text-center py-4">
-                <p className="text-sm text-[var(--c-text-2)] mb-3">No friends yet.</p>
-                <button onClick={() => navigate('/friends')} className="px-4 py-2 rounded-[20px] text-sm font-medium bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity">
+                <p className="text-sm text-[var(--c-tint-text-2)] mb-3">No friends yet.</p>
+                <button onClick={() => navigate('/friends')} className="px-4 py-2 rounded-[20px] text-sm font-medium bg-[#1a1a1a] text-white hover:opacity-90 transition-opacity">
                   Add friends
                 </button>
               </div>
@@ -752,14 +752,14 @@ export default function Dashboard() {
                   {leaderboard.slice(0, 5).map((entry, idx) => (
                     <div
                       key={entry.id}
-                      className="w-14 flex-shrink-0 flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-xl border border-[rgba(109,109,109,0.4)] bg-[#ffffff]"
+                      className="w-14 flex-shrink-0 flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-xl border border-[rgba(109,109,109,0.4)] bg-white"
                     >
-                      <span className="text-[9px] font-bold text-[var(--c-text-2)] leading-tight">#{idx + 1}</span>
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-[var(--c-text)] border-2 border-white"
+                      <span className="text-[9px] font-bold text-[var(--c-tint-text-2)] leading-tight">#{idx + 1}</span>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-[var(--c-tint-text)] border-2 border-white"
                         style={{ backgroundColor: entry.isMe ? '#C68BE1' : entry.color }}>
                         {entry.isMe ? 'You' : getInitials(entry.name)}
                       </div>
-                      <span className="text-[11px] font-semibold text-[var(--c-text)] inline-flex items-center gap-0.5 leading-tight">
+                      <span className="text-[11px] font-semibold text-[var(--c-tint-text)] inline-flex items-center gap-0.5 leading-tight">
                         <span className="text-[#F97316]">{FireIcon}</span>
                         {entry.streak}d
                       </span>
@@ -772,13 +772,13 @@ export default function Dashboard() {
                     return (
                       <div
                         key={a.id}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-2xl border border-[rgba(109,109,109,0.4)] bg-[#ffffff]"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-2xl border border-[rgba(109,109,109,0.4)] bg-white"
                       >
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-text)] border-2 border-white flex-shrink-0"
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] border-2 border-white flex-shrink-0"
                           style={{ backgroundColor: a.color }}>
                           {a.initials}
                         </div>
-                        <div className="text-xs text-[var(--c-text)] truncate flex-1 min-w-0">
+                        <div className="text-xs text-[var(--c-tint-text)] truncate flex-1 min-w-0">
                           <span className="font-semibold">{a.name}</span> {a.message}
                         </div>
                         {a.isMe ? (
@@ -793,7 +793,7 @@ export default function Dashboard() {
                             })}
                             aria-label={liked ? 'Unlike' : 'Like'}
                             aria-pressed={liked}
-                            className={`flex-shrink-0 cursor-pointer hover:scale-110 transition-transform ${liked ? 'text-[#E11D48]' : 'text-[var(--c-text-2)]'}`}
+                            className={`flex-shrink-0 cursor-pointer hover:scale-110 transition-transform ${liked ? 'text-[#E11D48]' : 'text-[var(--c-tint-text-2)]'}`}
                           >
                             <HeartIcon filled={liked} />
                           </button>
@@ -1013,7 +1013,7 @@ export default function Dashboard() {
               <select
                 value={viewPeriod}
                 onChange={e => handlePeriodChange(e.target.value as DashPeriod)}
-                className="text-sm font-semibold bg-transparent text-[var(--c-text)] focus:outline-none cursor-pointer"
+                className="text-sm font-semibold bg-transparent text-[var(--c-tint-text)] focus:outline-none cursor-pointer"
               >
                 {(Object.keys(PERIOD_DISPLAY) as DashPeriod[]).map(p => (
                   <option key={p} value={p}>{PERIOD_DISPLAY[p]}</option>
@@ -1021,18 +1021,18 @@ export default function Dashboard() {
               </select>
               <div className="flex items-center gap-1.5">
                 <button onClick={() => setPeriodAnchor(shiftAnchor(viewPeriod, periodAnchor, -1))}
-                  className="w-6 h-6 flex items-center justify-center rounded-full bg-white/40 text-[var(--c-text)] hover:bg-white/70 text-base leading-none">‹</button>
-                <span className="text-sm font-medium text-[var(--c-text)] min-w-[140px] text-center">{label}</span>
+                  className="w-6 h-6 flex items-center justify-center rounded-full bg-white/40 text-[var(--c-tint-text)] hover:bg-white/70 text-base leading-none">‹</button>
+                <span className="text-sm font-medium text-[var(--c-tint-text)] min-w-[140px] text-center">{label}</span>
                 <button onClick={() => setPeriodAnchor(shiftAnchor(viewPeriod, periodAnchor, 1))} disabled={isCurrent}
-                  className="w-6 h-6 flex items-center justify-center rounded-full bg-white/40 text-[var(--c-text)] hover:bg-white/70 disabled:opacity-25 disabled:cursor-not-allowed text-base leading-none">›</button>
+                  className="w-6 h-6 flex items-center justify-center rounded-full bg-white/40 text-[var(--c-tint-text)] hover:bg-white/70 disabled:opacity-25 disabled:cursor-not-allowed text-base leading-none">›</button>
               </div>
             </div>
             <button
               onClick={() => navigate('/transactions')}
               className="flex flex-col justify-center items-center gap-2 px-6 py-3 rounded-2xl border border-[rgba(109,109,109,0.8)] hover:opacity-90 transition-opacity bg-[var(--c-tint-green)]"
             >
-              <span className="text-sm text-[var(--c-tint-text)]">Bought something recently?</span>
-              <span className="bg-[var(--c-text)] text-[var(--c-bg)] text-sm font-bold px-8 py-1.5 rounded-[20px] w-full text-center">
+              <span className="text-sm font-semibold text-[var(--c-tint-text)]">Bought something recently?</span>
+              <span className="bg-[#1a1a1a] text-white text-sm font-bold px-8 py-1.5 rounded-[20px] w-full text-center">
                 Log it
               </span>
             </button>

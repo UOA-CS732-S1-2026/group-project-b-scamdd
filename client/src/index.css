@@ -80,8 +80,8 @@
 .dark {
   color-scheme: dark;
   --c-bg: #000C1C;
-  --c-card: #0A1729;
-  --c-surface: #142235;
+  --c-card: #000000;
+  --c-surface: #000000;
   --c-tint-pink: #FFBDC2;
   --c-tint-green: #C5FFD8;
   --c-tint-yellow: #FDFBD4;
@@ -90,12 +90,12 @@
   --c-tint-mood-sub: rgba(0,0,0,0.6);
   --c-tint-text: #1a1a1a;
   --c-tint-text-2: rgba(0,0,0,0.55);
-  --c-text: #F3F4F6;
-  --c-text-2: #9CA3AF;
-  --c-border: rgba(255,255,255,0.08);
+  --c-text: #FFFFFF;
+  --c-text-2: #B0B8C5;
+  --c-border: rgba(255,255,255,0.15);
   --c-nav-active: rgba(255,255,255,0.08);
   --c-avatar: #FFBDC2;
-  --c-grid: rgba(255,255,255,0.06);
+  --c-grid: rgba(255,255,255,0.1);
 }
 
 #root {

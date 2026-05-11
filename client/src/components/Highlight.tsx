@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 
 const COLORS = {
-  accent: 'bg-[var(--c-accent)] text-[var(--c-text)]',
-  green: 'bg-[var(--c-tint-green)] text-[var(--c-text)]',
-  pink: 'bg-[var(--c-tint-pink)] text-[var(--c-text)]',
-  yellow: 'bg-[var(--c-tint-yellow)] text-[var(--c-text)]',
+  accent: 'bg-[var(--c-accent)] text-[var(--c-tint-text)]',
+  green: 'bg-[var(--c-tint-green)] text-[var(--c-tint-text)]',
+  pink: 'bg-[var(--c-tint-pink)] text-[var(--c-tint-text)]',
+  yellow: 'bg-[var(--c-tint-yellow)] text-[var(--c-tint-text)]',
 } as const;
 
 export default function Highlight({

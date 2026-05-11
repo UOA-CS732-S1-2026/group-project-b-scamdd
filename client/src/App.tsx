@@ -95,7 +95,7 @@ function HeroCtas() {
   const primary =
     'px-5 py-2 rounded-[20px] text-sm font-medium bg-[var(--c-text)] text-[var(--c-bg)] border border-[var(--c-text)] hover:opacity-90 cursor-pointer transition-opacity';
   const ghost =
-    'px-5 py-2 rounded-[20px] text-sm font-medium border border-[#8D8D8D] text-[var(--c-text)] bg-[#ffffff] hover:bg-[var(--c-nav-active)] cursor-pointer transition-colors';
+    'px-5 py-2 rounded-[20px] text-sm font-medium border border-[#8D8D8D] text-[var(--c-text)] bg-[var(--c-card)] hover:bg-[var(--c-nav-active)] cursor-pointer transition-colors';
 
   if (session) {
     return (

@@ -214,7 +214,7 @@ export default function Friends() {
             <button
               type="button"
               onClick={() => setShowFriendsModal(true)}
-              className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[#ffffff] text-[var(--c-text)] hover:bg-[var(--c-nav-active)] transition-colors cursor-pointer"
+              className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-card)] text-[var(--c-text)] hover:bg-[var(--c-nav-active)] transition-colors cursor-pointer"
             >
               Your friends
             </button>
@@ -292,23 +292,23 @@ export default function Friends() {
               </div>
 
               <div className="border border-[rgba(109,109,109,0.8)] rounded-3xl p-6 bg-[#C5FFD8]">
-                <h2 className="font-semibold text-[var(--c-text)] mb-4">Streak board</h2>
+                <h2 className="font-semibold text-[var(--c-tint-text)] mb-4">Streak board</h2>
                 <div className="flex flex-col gap-4">
                   {streakBoard.map((e, i) => (
                     <div key={e.id} className="flex items-center gap-3">
-                      <span className="text-xs font-bold text-[var(--c-text-2)] w-6">#{i + 1}</span>
+                      <span className="text-xs font-bold text-[var(--c-tint-text-2)] w-6">#{i + 1}</span>
                       <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0"
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-[3px] border-white text-[var(--c-tint-text)] flex-shrink-0"
                         style={{ backgroundColor: e.color }}
                       >
                         {initials(e.name)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[var(--c-text)] truncate">
+                        <p className="text-sm font-medium text-[var(--c-tint-text)] truncate">
                           {e.isMe ? 'You' : e.name}
                         </p>
                       </div>
-                      <span className="text-sm font-semibold text-[var(--c-text)] flex-shrink-0 inline-flex items-center gap-1">
+                      <span className="text-sm font-semibold text-[var(--c-tint-text)] flex-shrink-0 inline-flex items-center gap-1">
                         <span className="text-[#F97316]"><IconFire /></span>
                         {e.streak}d
                       </span>
@@ -354,7 +354,7 @@ export default function Friends() {
                   placeholder="Enter exact username"
                   autoComplete="new-password"
                   name="friend-search"
-                  className="flex-1 px-4 py-2 border border-[rgba(109,109,109,0.5)] rounded-2xl text-sm focus:outline-none focus:border-[var(--c-text)] bg-[#ffffff] text-[var(--c-text)] placeholder:text-[var(--c-text-2)] transition-colors"
+                  className="flex-1 px-4 py-2 border border-[rgba(109,109,109,0.5)] rounded-2xl text-sm focus:outline-none focus:border-[var(--c-text)] bg-[var(--c-card)] text-[var(--c-text)] placeholder:text-[var(--c-text-2)] transition-colors"
                 />
                 <button
                   type="submit"
@@ -366,7 +366,7 @@ export default function Friends() {
               </form>
               {searchError && <p className="mt-3 text-sm text-[var(--c-expense)]">{searchError}</p>}
               {searchResult && (
-                <div className="mt-4 flex items-center justify-between gap-3 p-4 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[#ffffff]">
+                <div className="mt-4 flex items-center justify-between gap-3 p-4 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[var(--c-card)]">
                   <div>
                     <p className="font-medium text-[var(--c-text)]">{searchResult.displayName ?? searchResult.username}</p>
                     <p className="text-sm text-[var(--c-text-2)]">@{searchResult.username}</p>
@@ -380,14 +380,14 @@ export default function Friends() {
                   <h3 className="text-xs font-semibold mb-3 text-[var(--c-text-2)] uppercase tracking-wide">Sent</h3>
                   <div className="flex flex-col gap-2">
                     {requests.outgoing.map((r) => (
-                      <div key={r.id} className="flex items-center justify-between gap-2 p-3 rounded-2xl border border-[rgba(109,109,109,0.5)] bg-[#ffffff]">
+                      <div key={r.id} className="flex items-center justify-between gap-2 p-3 rounded-2xl border border-[rgba(109,109,109,0.5)] bg-[var(--c-card)]">
                         <span className="text-sm text-[var(--c-text)] truncate">
                           {r.displayName ?? r.username}
                           <span className="text-[var(--c-text-2)]"> @{r.username}</span>
                         </span>
                         <button
                           onClick={() => handleCancel(r.id)}
-                          className="px-3 py-1 rounded-full border border-[rgba(109,109,109,0.5)] bg-[#ffffff] text-xs text-[var(--c-text-2)] hover:text-[var(--c-expense)] hover:border-[var(--c-expense)] transition-colors flex-shrink-0"
+                          className="px-3 py-1 rounded-full border border-[rgba(109,109,109,0.5)] bg-[var(--c-card)] text-xs text-[var(--c-text-2)] hover:text-[var(--c-expense)] hover:border-[var(--c-expense)] transition-colors flex-shrink-0"
                         >
                           Cancel
                         </button>
@@ -435,7 +435,7 @@ export default function Friends() {
                     return (
                       <div
                         key={friend.id}
-                        className="flex items-center gap-3 p-3 rounded-2xl border border-[rgba(109,109,109,0.5)] bg-[#ffffff]"
+                        className="flex items-center gap-3 p-3 rounded-2xl border border-[rgba(109,109,109,0.5)] bg-[var(--c-card)]"
                       >
                         <div
                           className="w-11 h-11 rounded-full flex items-center justify-center font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0"
@@ -449,7 +449,7 @@ export default function Friends() {
                         </div>
                         <button
                           onClick={() => handleUnfriend(friend.id, name)}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium border border-[rgba(109,109,109,0.5)] bg-[#ffffff] text-[var(--c-text-2)] hover:text-[var(--c-expense)] hover:border-[var(--c-expense)] transition-colors cursor-pointer flex-shrink-0"
+                          className="px-3 py-1.5 rounded-full text-xs font-medium border border-[rgba(109,109,109,0.5)] bg-[var(--c-card)] text-[var(--c-text-2)] hover:text-[var(--c-expense)] hover:border-[var(--c-expense)] transition-colors cursor-pointer flex-shrink-0"
                         >
                           Unfriend
                         </button>

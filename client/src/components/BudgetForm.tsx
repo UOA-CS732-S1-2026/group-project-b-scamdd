@@ -14,7 +14,7 @@ interface Props {
 const PERIODS: BudgetPeriod[] = ['daily', 'weekly', 'monthly', 'yearly'];
 
 const inputClass =
-  'px-4 py-2.5 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[#ffffff] text-[var(--c-text)] text-sm placeholder:text-[var(--c-text-2)] focus:outline-none focus:border-[var(--c-text)] transition-colors w-full';
+  'px-4 py-2.5 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[var(--c-card)] text-[var(--c-text)] text-sm placeholder:text-[var(--c-text-2)] focus:outline-none focus:border-[var(--c-text)] transition-colors w-full';
 
 export default function BudgetForm({ budget, existingCategories, onSuccess, onCancel }: Props) {
   const [form, setForm] = useState<BudgetInput>({
@@ -110,7 +110,7 @@ export default function BudgetForm({ budget, existingCategories, onSuccess, onCa
                     className={`py-2 px-3 rounded-2xl text-sm font-medium border transition-colors cursor-pointer capitalize disabled:opacity-40 disabled:cursor-not-allowed ${
                       selected
                         ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
-                        : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+                        : 'bg-[var(--c-card)] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
                     }`}
                   >
                     {c}
@@ -137,7 +137,7 @@ export default function BudgetForm({ budget, existingCategories, onSuccess, onCa
                   className={`py-2 rounded-2xl text-sm font-medium border transition-colors cursor-pointer ${
                     form.period === p
                       ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
-                      : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+                      : 'bg-[var(--c-card)] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
                   }`}
                 >
                   {PERIOD_LABELS[p]}

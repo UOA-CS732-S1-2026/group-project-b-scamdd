@@ -9,7 +9,7 @@ interface Props {
 }
 
 const inputClass =
-  'px-4 py-2.5 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[#ffffff] text-[var(--c-text)] text-sm placeholder:text-[var(--c-text-2)] focus:outline-none focus:border-[var(--c-text)] transition-colors w-full';
+  'px-4 py-2.5 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[var(--c-card)] text-[var(--c-text)] text-sm placeholder:text-[var(--c-text-2)] focus:outline-none focus:border-[var(--c-text)] transition-colors w-full';
 
 const MOODS: { key: string; label: string; emoji: string; color: string }[] = [
   { key: 'regret',   label: 'Regret',   emoji: '😞', color: '#FFBDC2' },
@@ -130,7 +130,7 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
                     className={`py-2.5 px-3 rounded-2xl text-sm font-medium border transition-colors cursor-pointer ${
                       selected
                         ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
-                        : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+                        : 'bg-[var(--c-card)] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
                     }`}
                   >
                     {t === 'expense' ? 'Expense' : 'Income'}
@@ -183,7 +183,7 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
                       className={`py-2 px-3 rounded-2xl text-sm font-medium border transition-colors cursor-pointer capitalize ${
                         selected
                           ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
-                          : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+                          : 'bg-[var(--c-card)] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
                       }`}
                     >
                       {c}
@@ -228,7 +228,7 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
                   className={`py-2.5 rounded-2xl text-sm font-medium border transition-colors cursor-pointer ${
                     form.essential === true
                       ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
-                      : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+                      : 'bg-[var(--c-card)] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
                   }`}
                 >
                   Yes, essential
@@ -239,7 +239,7 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
                   className={`py-2.5 rounded-2xl text-sm font-medium border transition-colors cursor-pointer ${
                     form.essential === false
                       ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
-                      : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+                      : 'bg-[var(--c-card)] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
                   }`}
                 >
                   No, non-essential
@@ -265,7 +265,7 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
                       className={`py-2.5 rounded-2xl border text-2xl transition-colors cursor-pointer ${
                         selected
                           ? 'bg-[var(--c-accent)] border-[var(--c-text)]'
-                          : 'bg-[#ffffff] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] grayscale hover:grayscale-0'
+                          : 'bg-[var(--c-card)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] grayscale hover:grayscale-0'
                       }`}
                     >
                       {emoji}
