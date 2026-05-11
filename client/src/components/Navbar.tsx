@@ -1,12 +1,19 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from '../lib/auth-client';
+import { getRequests, getFriends, respondToRequest } from '../api/friends';
 import FeltWordmark from './FeltWordmark';
+import type { Friend, Requests } from '../types/friend';
 
 interface NavbarProps {
   isDark: boolean;
   onThemeToggle: () => void;
   userName?: string;
 }
+
+const AVATAR_PALETTE = ['#FFBDC2', '#FDFBD4', '#C5FFD8', '#C68BE1', '#C5ECF9', '#CBCBCB'];
+const initials = (name: string) =>
+  name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
 
 function IconDashboard() {
   return (
@@ -89,9 +96,83 @@ function IconMoon() {
   );
 }
 
-export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps) {
+function IconBell() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7.5 1.5a3 3 0 0 0-3 3v2.5l-1.5 2.5h9L10.5 7V4.5a3 3 0 0 0-3-3z" />
+      <path d="M6 11.5a1.5 1.5 0 0 0 3 0" />
+    </svg>
+  );
+}
+
+export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [requests, setRequests] = useState<Requests>({ incoming: [], outgoing: [] });
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [seenIds, setSeenIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem('seen-notifications-v1');
+      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+    } catch { return new Set(); }
+  });
+  const [newAtOpen, setNewAtOpen] = useState<Set<string>>(new Set());
+  const bellWrapRef = useRef<HTMLDivElement>(null);
+
+  const refreshNotifications = () => {
+    getRequests().then(setRequests).catch(() => {});
+    getFriends().then(setFriends).catch(() => {});
+  };
+
+  useEffect(() => {
+    refreshNotifications();
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!bellOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (bellWrapRef.current && !bellWrapRef.current.contains(e.target as Node)) setBellOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [bellOpen]);
+
+  const handleBellRespond = async (id: string, action: 'accept' | 'reject') => {
+    try {
+      await respondToRequest(id, action);
+      refreshNotifications();
+    } catch { /* ignore */ }
+  };
+
+  const notifications: Array<{ id: string; kind: 'request' | 'like'; data: any }> = [
+    ...requests.incoming.map((r) => ({ id: `req-${r.id}`, kind: 'request' as const, data: r })),
+    ...friends.slice(0, 3).map((f) => ({ id: `like-${f.id}`, kind: 'like' as const, data: f })),
+  ];
+  const unseenCount = notifications.filter((n) => !seenIds.has(n.id)).length;
+
+  const openBell = () => {
+    setBellOpen((wasOpen) => {
+      const willOpen = !wasOpen;
+      if (willOpen) {
+        const newOnes = new Set(notifications.filter((n) => !seenIds.has(n.id)).map((n) => n.id));
+        setNewAtOpen(newOnes);
+        const next = new Set(seenIds);
+        notifications.forEach((n) => next.add(n.id));
+        setSeenIds(next);
+        try { localStorage.setItem('seen-notifications-v1', JSON.stringify([...next])); } catch { /* ignore */ }
+      } else {
+        setNewAtOpen(new Set());
+      }
+      return willOpen;
+    });
+  };
+
+  const goToNotification = () => {
+    setBellOpen(false);
+    navigate('/friends');
+  };
 
   const navLinks = [
     { label: 'Dashboard', path: '/dashboard', Icon: IconDashboard },
@@ -140,6 +221,101 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
         </div>
 
         <div className="flex items-center gap-2">
+          <div ref={bellWrapRef} className="relative">
+            <button
+              type="button"
+              onClick={openBell}
+              aria-label="Notifications"
+              aria-expanded={bellOpen}
+              className={`${iconBtn} relative`}
+            >
+              <IconBell />
+              {unseenCount > 0 && (
+                <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-[var(--c-accent)] text-[var(--c-text)] border border-[var(--c-text)]">
+                  {unseenCount}
+                </span>
+              )}
+            </button>
+            {bellOpen && (
+              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-card)] shadow-xl z-50 overflow-hidden">
+                <div className="absolute -top-1.5 right-3 w-3 h-3 rotate-45 bg-[var(--c-card)] border-l border-t border-[rgba(109,109,109,0.8)]" aria-hidden />
+                <div className="px-4 py-3 border-b border-[var(--c-border)]">
+                  <p className="text-sm font-semibold text-[var(--c-text)]">Notifications</p>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <p className="text-sm text-[var(--c-text-2)] text-center py-6">No notifications yet.</p>
+                  ) : (
+                    <ul className="flex flex-col">
+                      {notifications.map((n) => {
+                        const wasNew = newAtOpen.has(n.id);
+                        if (n.kind === 'request') {
+                          const r = n.data;
+                          return (
+                            <li
+                              key={n.id}
+                              className={`px-4 py-3 border-b border-[var(--c-border)] last:border-b-0 flex items-center gap-3 cursor-pointer hover:bg-[var(--c-nav-active)] ${wasNew ? 'bg-[var(--c-tint-yellow)]' : ''}`}
+                              onClick={goToNotification}
+                            >
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0 bg-[#C68BE1]">
+                                {initials(r.displayName ?? r.username ?? '?')}
+                              </div>
+                              <p className="text-xs text-[var(--c-text)] flex-1 min-w-0 truncate">
+                                <span className="font-semibold">{r.displayName ?? r.username}</span>{' '}
+                                <span className="text-[var(--c-text-2)]">sent you a friend request</span>
+                              </p>
+                              <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={() => handleBellRespond(r.id, 'accept')}
+                                  className="px-2 py-1 rounded-full text-[10px] font-semibold bg-[var(--c-accent)] text-[var(--c-text)] border border-[var(--c-text)] hover:opacity-90 transition-opacity"
+                                >
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={() => handleBellRespond(r.id, 'reject')}
+                                  className="px-2 py-1 rounded-full border border-[rgba(109,109,109,0.5)] bg-[#ffffff] text-[10px] text-[var(--c-text-2)] hover:text-[var(--c-expense)] hover:border-[var(--c-expense)] transition-colors"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </li>
+                          );
+                        }
+                        const f = n.data;
+                        const name = f.displayName ?? f.username ?? 'Friend';
+                        const idx = friends.indexOf(f);
+                        const color = AVATAR_PALETTE[idx % AVATAR_PALETTE.length];
+                        return (
+                          <li
+                            key={n.id}
+                            className={`px-4 py-3 border-b border-[var(--c-border)] last:border-b-0 flex items-center gap-3 cursor-pointer hover:bg-[var(--c-nav-active)] ${wasNew ? 'bg-[var(--c-tint-yellow)]' : ''}`}
+                            onClick={goToNotification}
+                          >
+                            <div
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0"
+                              style={{ backgroundColor: color }}
+                            >
+                              {initials(name)}
+                            </div>
+                            <p className="text-xs text-[var(--c-text)] flex-1 min-w-0 truncate">
+                              <span className="font-semibold">{name}</span>{' '}
+                              <span className="text-[var(--c-text-2)]">liked your achievement</span>
+                            </p>
+                            <span className="flex-shrink-0 text-[#E11D48]">
+                              <svg width="14" height="14" viewBox="0 0 15 15" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                <path d="M7.5 13s-5-3.1-5-6.6A2.7 2.7 0 0 1 7.5 4.6a2.7 2.7 0 0 1 5 1.8C12.5 9.9 7.5 13 7.5 13z" />
+                              </svg>
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={onThemeToggle}
             className={iconBtn}
