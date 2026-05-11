@@ -16,6 +16,9 @@ server/dist
 !.env.example
 !.env.test
 
+# Test artefacts
+.test-mongo-uri
+
 # Logs
 *.log
 npm-debug.log*

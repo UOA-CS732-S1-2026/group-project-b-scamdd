@@ -139,6 +139,47 @@ app.get('/api/protected', async (req, res) => {
 });
 ```
 
+### Running tests
+
+Tests use [Vitest](https://vitest.dev/) and require no external services — the server tests spin up an in-memory MongoDB via `mongodb-memory-server` automatically.
+
+> **First run only:** `mongodb-memory-server` downloads a MongoDB binary (~77 MB) the first time it runs. Subsequent runs use the cached binary and are much faster.
+
+#### Server tests (API integration tests)
+
+```bash
+cd server
+pnpm test          # run once
+pnpm test:watch    # re-run on file changes
+```
+
+Covers:
+- `POST /api/auth/sign-up/email` — success, duplicate email, missing fields
+- `POST /api/auth/sign-in/email` — success, wrong password, unknown email
+- `GET /api/transactions` — only returns the signed-in user's own data, 401 without token
+- `POST /api/transactions` — creates correctly, rejects invalid data, 401 without token
+- `DELETE /api/transactions/:id` — deletes correctly, 404 for non-owner, 401 without token
+
+#### Client tests (component tests)
+
+```bash
+cd client
+pnpm test          # run once
+pnpm test:watch    # re-run on file changes
+```
+
+#### Run all tests from the project root
+
+```bash
+make test
+```
+
+Or without Make:
+
+```bash
+(cd server && pnpm test) && (cd client && pnpm test)
+```
+
 ### Building for production
 
 ```bash
