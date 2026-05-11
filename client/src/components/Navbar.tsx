@@ -247,7 +247,7 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
                     <p className="text-sm text-[var(--c-text-2)] text-center py-6">No notifications yet.</p>
                   ) : (
                     <ul className="flex flex-col">
-                      {notifications.map((n) => {
+                      {notifications.slice(0, 3).map((n) => {
                         const wasNew = newAtOpen.has(n.id);
                         if (n.kind === 'request') {
                           const r = n.data;
@@ -312,6 +312,13 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
                     </ul>
                   )}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => { setBellOpen(false); navigate('/profile'); }}
+                  className="w-full px-4 py-2.5 text-xs font-semibold text-[var(--c-text-2)] hover:text-[var(--c-text)] hover:bg-[var(--c-nav-active)] border-t border-[var(--c-border)] transition-colors cursor-pointer"
+                >
+                  See all notifications →
+                </button>
               </div>
             )}
           </div>
