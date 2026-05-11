@@ -10,7 +10,6 @@ import {
   unfriend,
 } from '../api/friends';
 import { getMyProfile } from '../api/profile';
-import { getTransactions } from '../api/transactions';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Highlight from '../components/Highlight';
@@ -70,23 +69,6 @@ function IconFire() {
   );
 }
 
-function computeStreak(dates: string[]): number {
-  if (dates.length === 0) return 0;
-  const dayKey = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const set = new Set(dates.map((d) => dayKey(new Date(d))));
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const cur = new Date(today);
-  if (!set.has(dayKey(cur))) cur.setDate(cur.getDate() - 1);
-  let n = 0;
-  while (set.has(dayKey(cur))) {
-    n++;
-    cur.setDate(cur.getDate() - 1);
-    if (n > 3650) break;
-  }
-  return n;
-}
 
 export default function Friends() {
   const { data: session, isPending } = useSession();
@@ -134,9 +116,11 @@ export default function Friends() {
   useEffect(() => {
     if (session) {
       load();
-      getMyProfile().then(setProfile).catch(console.error);
-      getTransactions()
-        .then((txns) => setMyStreak(computeStreak(txns.map((t) => t.date))))
+      getMyProfile()
+        .then((p) => {
+          setProfile(p);
+          setMyStreak(p.streak ?? 0);
+        })
         .catch(console.error);
     }
   }, [session, load]);

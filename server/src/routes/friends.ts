@@ -5,31 +5,13 @@ import { Goal } from '../models/Goal';
 import { Budget } from '../models/Budget';
 import { Transaction } from '../models/Transaction';
 import { requireAuth } from '../middleware/auth';
+import { computeBudgetStreak } from '../lib/streaks';
 
 const router = Router();
 
 router.use(requireAuth);
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
-
-function dayKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function streakFromDates(dateSet: Set<string>): number {
-  if (dateSet.size === 0) return 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const cur = new Date(today);
-  if (!dateSet.has(dayKey(cur))) cur.setDate(cur.getDate() - 1);
-  let n = 0;
-  while (dateSet.has(dayKey(cur))) {
-    n++;
-    cur.setDate(cur.getDate() - 1);
-    if (n > 3650) break;
-  }
-  return n;
-}
 
 function currentMonthRange() {
   const now = new Date();
@@ -262,22 +244,11 @@ router.get('/', async (req: Request, res: Response) => {
       return;
     }
 
-    const [friends, goals, budgets, friendTxnDates] = await Promise.all([
+    const [friends, goals, budgets] = await Promise.all([
       User.find({ _id: { $in: friendIds } }).lean(),
       Goal.find({ userId: { $in: friendIds }, isPublic: true }).lean(),
       Budget.find({ userId: { $in: friendIds }, isPublic: true }).lean(),
-      Transaction.aggregate([
-        { $match: { userId: { $in: friendIds } } },
-        { $group: { _id: { userId: '$userId', date: { $dateToString: { format: '%Y-%m-%d', date: '$date' } } } } },
-      ]),
     ]);
-
-    const friendDateSets = new Map<string, Set<string>>();
-    for (const row of friendTxnDates) {
-      const uid = row._id.userId;
-      if (!friendDateSets.has(uid)) friendDateSets.set(uid, new Set());
-      friendDateSets.get(uid)!.add(row._id.date);
-    }
 
     const goalsByUser = new Map<string, typeof goals>();
     for (const g of goals) {
@@ -297,6 +268,11 @@ router.get('/', async (req: Request, res: Response) => {
     );
     const spentByUser = new Map(spentMaps);
 
+    const streakEntries = await Promise.all(
+      friendIds.map(async (id) => [id, await computeBudgetStreak(id)] as const),
+    );
+    const streakByUser = new Map(streakEntries);
+
     const result = friends.map((u) => {
       const id = String(u._id);
       const friendshipRow = accepted.find(
@@ -310,7 +286,7 @@ router.get('/', async (req: Request, res: Response) => {
         username: u.username ?? null,
         displayName: u.displayName ?? null,
         bio: u.bio ?? null,
-        streak: streakFromDates(friendDateSets.get(id) ?? new Set()),
+        streak: streakByUser.get(id) ?? 0,
         goals: (goalsByUser.get(id) ?? []).map((g) => ({
           id: String(g._id),
           name: g.name,

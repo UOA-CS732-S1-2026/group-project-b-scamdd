@@ -7,6 +7,7 @@ export interface Profile {
   bio: string | null;
   currency: string;
   profileComplete: boolean;
+  streak?: number;
 }
 
 export interface PublicProfile {

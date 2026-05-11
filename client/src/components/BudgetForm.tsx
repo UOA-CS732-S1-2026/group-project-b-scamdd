@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CATEGORIES, EMERGENCY_CATEGORY } from '../types/transaction';
+import { CATEGORIES, EMERGENCY_CATEGORY, OVERALL_CATEGORY } from '../types/transaction';
 import type { Budget, BudgetInput, BudgetPeriod } from '../types/budget';
 import { PERIOD_LABELS } from '../types/budget';
 import { createBudget, updateBudget } from '../api/budgets';
@@ -96,9 +96,21 @@ export default function BudgetForm({ budget, existingCategories, onSuccess, onCa
         </div>
 
         <form className="flex flex-col gap-5 overflow-y-auto px-7 pb-7" onSubmit={handleSubmit}>
-          {/* Category — pill grid */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-[var(--c-text)]">Category</label>
+            <button
+              type="button"
+              disabled={Boolean(budget) && form.category !== OVERALL_CATEGORY}
+              onClick={() => set('category', OVERALL_CATEGORY)}
+              className={`text-left px-4 py-3 rounded-2xl border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                form.category === OVERALL_CATEGORY
+                  ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
+                  : 'bg-[var(--c-card)] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+              }`}
+            >
+              <div className="text-sm font-semibold">Overall</div>
+              <div className="text-xs opacity-80">Caps total spending across all categories</div>
+            </button>
             <div className="grid grid-cols-3 gap-2">
               {availableCategories.map((c) => {
                 const selected = form.category === c;
