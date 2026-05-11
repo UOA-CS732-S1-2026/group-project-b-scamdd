@@ -112,33 +112,31 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
   return (
     <nav className="sticky top-0 z-40 backdrop-blur bg-[color-mix(in_srgb,var(--c-bg)_85%,transparent)] border-b border-[var(--c-border)]">
       <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between min-h-[32px]">
-        <div className="flex items-center gap-6">
-          <Link
-            to="/dashboard"
-            className="flex items-center cursor-pointer hover:opacity-75 transition-opacity"
-          >
-            <FeltWordmark size="md" />
-          </Link>
+        <Link
+          to="/dashboard"
+          className="flex items-center cursor-pointer hover:opacity-75 transition-opacity"
+        >
+          <FeltWordmark size="md" />
+        </Link>
 
-          <div className="flex items-center gap-1">
-            {navLinks.map(({ label, path, Icon }) => {
-              const active = isActive(path);
-              return (
-                <button
-                  key={path}
-                  onClick={() => navigate(path)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[20px] text-sm font-medium transition-colors cursor-pointer ${
-                    active
-                      ? 'text-[var(--c-text)] bg-[var(--c-nav-active)]'
-                      : 'text-[var(--c-text-2)] hover:text-[var(--c-text)] hover:bg-[var(--c-nav-active)]'
-                  }`}
-                >
-                  <Icon />
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+        <div className="flex items-center gap-1">
+          {navLinks.map(({ label, path, Icon }) => {
+            const active = isActive(path);
+            return (
+              <button
+                key={path}
+                onClick={() => navigate(path)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[20px] text-sm font-medium transition-colors cursor-pointer ${
+                  active
+                    ? 'text-[var(--c-text)] bg-[var(--c-nav-active)]'
+                    : 'text-[var(--c-text-2)] hover:text-[var(--c-text)] hover:bg-[var(--c-nav-active)]'
+                }`}
+              >
+                <Icon />
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex items-center gap-2">
@@ -149,10 +147,6 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
           >
             {isDark ? <IconSun /> : <IconMoon />}
           </button>
-
-          <div className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm select-none bg-[var(--c-avatar)] text-[var(--c-text)]">
-            {(userName || 'U')[0].toUpperCase()}
-          </div>
 
           <button
             onClick={() => signOut().then(() => navigate('/'))}
