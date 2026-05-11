@@ -8,6 +8,7 @@ import goalRoutes from './routes/goals';
 import budgetRoutes from './routes/budgets';
 import friendRoutes from './routes/friends';
 import gameRoutes from './routes/games';
+import achievementRoutes from './routes/achievements';
 
 export const app = express();
 
@@ -33,5 +34,6 @@ app.use('/api/goals', goalRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/games', gameRoutes);
+app.use('/api/achievements', achievementRoutes);
 
 app.get('/favicon.ico', (_req, res) => res.status(204).end());

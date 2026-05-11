@@ -5,6 +5,8 @@ import { getTransactions } from '../api/transactions';
 import { getBudgets } from '../api/budgets';
 import { getMyProfile } from '../api/profile';
 import { getFriends } from '../api/friends';
+import { getMyAchievements, type Achievement } from '../api/achievements';
+import { achievementMessage } from '../lib/achievementMeta';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Highlight from '../components/Highlight';
@@ -191,6 +193,7 @@ export default function Dashboard() {
   const [rawBudgets, setRawBudgets] = useState<Budget[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [myAchievements, setMyAchievements] = useState<Achievement[]>([]);
   const [likedAchievements, setLikedAchievements] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem('liked-achievements-v1');
@@ -212,16 +215,18 @@ export default function Dashboard() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [transactions, budgets, prof, friendList] = await Promise.all([
+      const [transactions, budgets, prof, friendList, ach] = await Promise.all([
         getTransactions(),
         getBudgets(),
         getMyProfile(),
         getFriends().catch(() => [] as Friend[]),
+        getMyAchievements().catch(() => [] as Achievement[]),
       ]);
       setAllTransactions(transactions);
       setRawBudgets(budgets);
       setProfile(prof);
       setFriends(friendList);
+      setMyAchievements(ach);
     } finally {
       setLoading(false);
     }
@@ -704,22 +709,37 @@ export default function Dashboard() {
 
       // ── Friends (streaks + achievements) ──
       case 'leaderboard': {
-        const SAMPLE_MSGS = [
-          'Stayed under budget for two months!',
-          'Hit 100 logged transactions!',
-          'No regret tags in 2 weeks!',
-          'Stayed under budget for ten weeks!',
-          'Income increased by 10%!',
-          'Completed their budget this week!',
-        ];
-        const achievementSamples = leaderboard.slice(0, 3).map((e, i) => ({
-          id: e.id,
-          color: e.isMe ? '#C68BE1' : e.color,
-          initials: getInitials(e.name),
-          name: e.isMe ? 'You' : e.name,
-          isMe: e.isMe,
-          message: e.isMe ? 'You just hit a new streak high!' : SAMPLE_MSGS[i % SAMPLE_MSGS.length],
-        }));
+        type AchRow = { id: string; color: string; initials: string; name: string; isMe: boolean; message: string; earnedAt: string };
+        const achRows: AchRow[] = [];
+        for (const a of myAchievements) {
+          const meName = profile?.displayName || profile?.name || 'You';
+          achRows.push({
+            id: `me-${a.key}`,
+            color: '#C68BE1',
+            initials: getInitials(meName),
+            name: 'You',
+            isMe: true,
+            message: achievementMessage(a.key, true),
+            earnedAt: a.earnedAt,
+          });
+        }
+        for (let i = 0; i < friends.length; i++) {
+          const f = friends[i];
+          const fname = f.displayName ?? f.username ?? 'Friend';
+          for (const a of f.achievements ?? []) {
+            achRows.push({
+              id: `${f.id}-${a.key}`,
+              color: AVATAR_PALETTE[i % AVATAR_PALETTE.length],
+              initials: getInitials(fname),
+              name: fname,
+              isMe: false,
+              message: achievementMessage(a.key, false),
+              earnedAt: a.earnedAt,
+            });
+          }
+        }
+        achRows.sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime());
+        const achievementSamples = achRows.slice(0, 3);
         const FireIcon = (
           <svg width="14" height="14" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M7.5 13.5c2.6 0 4.5-1.9 4.5-4.2 0-1.6-.9-2.7-2-3.6-.4 1.1-1.3 1.6-2 1.6 0-1.6-.6-3.7-2.8-6 0 4.2-2.7 5.3-2.7 8.4 0 2.3 1.9 3.8 5 3.8z" />
@@ -779,7 +799,7 @@ export default function Dashboard() {
                           {a.initials}
                         </div>
                         <div className="text-xs text-[var(--c-tint-text)] truncate flex-1 min-w-0">
-                          <span className="font-semibold">{a.name}</span> {a.message}
+                          {a.isMe ? a.message : (<><span className="font-semibold">{a.name}</span> {a.message}</>)}
                         </div>
                         {a.isMe ? (
                           <span className="flex-shrink-0 text-[#E11D48]"><HeartIcon filled /></span>

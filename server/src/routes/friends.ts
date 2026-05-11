@@ -6,6 +6,7 @@ import { Budget } from '../models/Budget';
 import { Transaction } from '../models/Transaction';
 import { requireAuth } from '../middleware/auth';
 import { computeBudgetStreak } from '../lib/streaks';
+import { listAchievements } from '../lib/achievements';
 
 const router = Router();
 
@@ -273,6 +274,11 @@ router.get('/', async (req: Request, res: Response) => {
     );
     const streakByUser = new Map(streakEntries);
 
+    const achievementEntries = await Promise.all(
+      friendIds.map(async (id) => [id, await listAchievements(id)] as const),
+    );
+    const achievementsByUser = new Map(achievementEntries);
+
     const result = friends.map((u) => {
       const id = String(u._id);
       const friendshipRow = accepted.find(
@@ -287,6 +293,7 @@ router.get('/', async (req: Request, res: Response) => {
         displayName: u.displayName ?? null,
         bio: u.bio ?? null,
         streak: streakByUser.get(id) ?? 0,
+        achievements: achievementsByUser.get(id) ?? [],
         goals: (goalsByUser.get(id) ?? []).map((g) => ({
           id: String(g._id),
           name: g.name,
