@@ -385,7 +385,7 @@ export default function Dashboard() {
     .map((v, i) => `${cxFn(i).toFixed(1)},${cyFn(v).toFixed(1)}`);
   const spendPtsNonEmerg = cumulativeNonEmerg.slice(0, drawUpToIdx + 1)
     .map((v, i) => `${cxFn(i).toFixed(1)},${cyFn(v).toFixed(1)}`);
-  const budgetLineY = periodBudgetTotal > 0 ? cyFn(periodBudgetTotal) : null;
+  const budgetLineY = overallBudget ? cyFn(overallBudget.monthlyLimit) : null;
   const areaInclD = spendPts.length > 0
     ? `M ${cxFn(0).toFixed(1)},${chartBottom} L ${spendPts.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${chartBottom} Z`
     : '';
@@ -1063,33 +1063,23 @@ export default function Dashboard() {
                     Create {PERIOD_DISPLAY[viewPeriod].toLowerCase()} budget →
                   </button>
                 </>
-              ) : overallBudget ? (() => {
-                const nonEmergSpent = nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0);
-                const remain = overallBudget.monthlyLimit - nonEmergSpent;
-                return (
-                  <>
-                    <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Remaining</div>
-                    <div className="text-xs mb-3 text-[var(--c-tint-text-2)]">Overall · {PERIOD_DISPLAY[viewPeriod].toLowerCase()}</div>
-                    <div className={`text-2xl font-bold ${remain < 0 ? 'text-[var(--c-negative)]' : 'text-[var(--c-tint-text)]'}`}>
-                      {remain < 0 ? '-' : ''}${Math.abs(remain).toFixed(2)}
-                    </div>
-                  </>
-                );
-              })() : (() => {
-                const tightest = categoryBudgets
-                  .map(b => {
-                    const spent = nonEmergencyExpenses
-                      .filter(t => t.category === b.category)
-                      .reduce((s, t) => s + Math.abs(t.amount), 0);
-                    return { b, spent, remaining: b.monthlyLimit - spent };
-                  })
-                  .sort((a, b) => a.remaining - b.remaining)[0];
-                if (!tightest) return null;
+              ) : (() => {
+                const nonEmergSpentTotal = nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0);
+                const ranked = periodBudgets.map(b => {
+                  const spent = b.category === 'overall'
+                    ? nonEmergSpentTotal
+                    : nonEmergencyExpenses.filter(t => t.category === b.category).reduce((s, t) => s + Math.abs(t.amount), 0);
+                  const remaining = b.monthlyLimit - spent;
+                  const pct = b.monthlyLimit > 0 ? remaining / b.monthlyLimit : 0;
+                  return { b, spent, remaining, pct };
+                }).sort((a, b) => a.pct - b.pct);
+                const tightest = ranked[0];
+                const isOverall = tightest.b.category === 'overall';
                 return (
                   <>
                     <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Remaining</div>
                     <div className="text-xs mb-3 text-[var(--c-tint-text-2)] capitalize">
-                      Tightest · {tightest.b.category}
+                      {isOverall ? `Overall · ${PERIOD_DISPLAY[viewPeriod].toLowerCase()}` : `Tightest · ${tightest.b.category}`}
                     </div>
                     <div className={`text-2xl font-bold ${tightest.remaining < 0 ? 'text-[var(--c-negative)]' : 'text-[var(--c-tint-text)]'}`}>
                       {tightest.remaining < 0 ? '-' : ''}${Math.abs(tightest.remaining).toFixed(2)}
@@ -1117,15 +1107,15 @@ export default function Dashboard() {
                 <div className="text-xs mb-1.5 text-[var(--c-text-2)]">
                   {label} · ${nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0).toFixed(2)} spent
                   {hasEmergency && ` · $${(totalSpent - nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0)).toFixed(2)} emergency`}
-                  {periodBudgetTotal > 0 && ` · $${periodBudgetTotal.toFixed(2)} budget`}
+                  {overallBudget && ` · $${overallBudget.monthlyLimit.toFixed(2)} overall budget`}
                 </div>
                 <div className="flex items-center gap-4">
-                  {periodBudgetTotal > 0 && (
+                  {overallBudget && (
                     <span className="flex items-center gap-1.5">
                       <svg width="18" height="8" style={{ display: 'block' }}>
                         <line x1="0" y1="4" x2="18" y2="4" stroke="var(--c-text-2)" strokeDasharray="4 3" strokeWidth="1.5" />
                       </svg>
-                      <span className="text-xs text-[var(--c-text-2)]">Budget</span>
+                      <span className="text-xs text-[var(--c-text-2)]">Overall budget</span>
                     </span>
                   )}
                   <span className="flex items-center gap-1.5">
@@ -1160,11 +1150,11 @@ export default function Dashboard() {
                   </g>
                 );
               })}
-              {budgetLineY !== null && (
+              {budgetLineY !== null && overallBudget && (
                 <>
                   <line x1={PAD_L} y1={budgetLineY} x2={PAD_L + PLOT_W} y2={budgetLineY} stroke="var(--c-text-2)" strokeWidth="1.5" strokeDasharray="5 4" />
                   <text x={PAD_L + PLOT_W - 3} y={budgetLineY - 3} textAnchor="end" fontSize="9" fill="var(--c-text-2)">
-                    Budget: ${periodBudgetTotal.toFixed(0)}
+                    Overall: ${overallBudget.monthlyLimit.toFixed(0)}
                   </text>
                 </>
               )}
