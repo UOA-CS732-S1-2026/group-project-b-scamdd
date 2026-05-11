@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from '../lib/auth-client';
 import { getRequests, getFriends, respondToRequest } from '../api/friends';
+import { getReceivedCheers, markCheersSeen, type ReceivedCheer } from '../api/cheers';
+import { achievementMessage } from '../lib/achievementMeta';
 import FeltWordmark from './FeltWordmark';
 import type { Friend, Requests } from '../types/friend';
 
@@ -111,19 +113,15 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
 
   const [requests, setRequests] = useState<Requests>({ incoming: [], outgoing: [] });
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [cheers, setCheers] = useState<ReceivedCheer[]>([]);
   const [bellOpen, setBellOpen] = useState(false);
-  const [seenIds, setSeenIds] = useState<Set<string>>(() => {
-    try {
-      const raw = localStorage.getItem('seen-notifications-v1');
-      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
-    } catch { return new Set(); }
-  });
   const [newAtOpen, setNewAtOpen] = useState<Set<string>>(new Set());
   const bellWrapRef = useRef<HTMLDivElement>(null);
 
   const refreshNotifications = () => {
     getRequests().then(setRequests).catch(() => {});
     getFriends().then(setFriends).catch(() => {});
+    getReceivedCheers().then(setCheers).catch(() => {});
   };
 
   useEffect(() => {
@@ -146,22 +144,21 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
     } catch { /* ignore */ }
   };
 
-  const notifications: Array<{ id: string; kind: 'request' | 'like'; data: any }> = [
-    ...requests.incoming.map((r) => ({ id: `req-${r.id}`, kind: 'request' as const, data: r })),
-    ...friends.slice(0, 3).map((f) => ({ id: `like-${f.id}`, kind: 'like' as const, data: f })),
+  const notifications: Array<{ id: string; kind: 'request' | 'like'; isNew: boolean; data: any }> = [
+    ...requests.incoming.map((r) => ({ id: `req-${r.id}`, kind: 'request' as const, isNew: true, data: r })),
+    ...cheers.map((c) => ({ id: `cheer-${c.id}`, kind: 'like' as const, isNew: !c.seen, data: c })),
   ];
-  const unseenCount = notifications.filter((n) => !seenIds.has(n.id)).length;
+  const unseenCount = notifications.filter((n) => n.isNew).length;
 
   const openBell = () => {
     setBellOpen((wasOpen) => {
       const willOpen = !wasOpen;
       if (willOpen) {
-        const newOnes = new Set(notifications.filter((n) => !seenIds.has(n.id)).map((n) => n.id));
+        const newOnes = new Set(notifications.filter((n) => n.isNew).map((n) => n.id));
         setNewAtOpen(newOnes);
-        const next = new Set(seenIds);
-        notifications.forEach((n) => next.add(n.id));
-        setSeenIds(next);
-        try { localStorage.setItem('seen-notifications-v1', JSON.stringify([...next])); } catch { /* ignore */ }
+        markCheersSeen().then(() => {
+          setCheers((prev) => prev.map((c) => ({ ...c, seen: true })));
+        }).catch(() => {});
       } else {
         setNewAtOpen(new Set());
       }
@@ -281,10 +278,11 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
                             </li>
                           );
                         }
-                        const f = n.data;
-                        const name = f.displayName ?? f.username ?? 'Friend';
-                        const idx = friends.indexOf(f);
-                        const color = AVATAR_PALETTE[idx % AVATAR_PALETTE.length];
+                        const c = n.data as ReceivedCheer;
+                        const name = c.fromDisplayName ?? c.fromUsername ?? 'Friend';
+                        const idx = friends.findIndex((fr) => fr.id === c.fromId);
+                        const color = AVATAR_PALETTE[(idx < 0 ? 0 : idx) % AVATAR_PALETTE.length];
+                        const achMsg = achievementMessage(c.achievementKey, true).toLowerCase();
                         return (
                           <li
                             key={n.id}
@@ -299,7 +297,7 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
                             </div>
                             <p className="text-xs text-[var(--c-text)] flex-1 min-w-0 truncate">
                               <span className="font-semibold">{name}</span>{' '}
-                              <span className="text-[var(--c-text-2)]">liked your achievement</span>
+                              <span className="text-[var(--c-text-2)]">liked: {achMsg}</span>
                             </p>
                             <span className="flex-shrink-0 text-[#E11D48]">
                               <svg width="14" height="14" viewBox="0 0 15 15" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

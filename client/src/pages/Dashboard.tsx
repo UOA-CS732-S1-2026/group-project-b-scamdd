@@ -6,6 +6,7 @@ import { getBudgets } from '../api/budgets';
 import { getMyProfile } from '../api/profile';
 import { getFriends } from '../api/friends';
 import { getMyAchievements, type Achievement } from '../api/achievements';
+import { cheer as apiCheer, uncheer as apiUncheer, getSentCheers } from '../api/cheers';
 import { achievementMessage } from '../lib/achievementMeta';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -194,14 +195,33 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [myAchievements, setMyAchievements] = useState<Achievement[]>([]);
-  const [likedAchievements, setLikedAchievements] = useState<Set<string>>(() => {
-    try {
-      const raw = localStorage.getItem('liked-achievements-v1');
-      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
-    } catch { return new Set(); }
-  });
+  const [likedAchievements, setLikedAchievements] = useState<Set<string>>(new Set());
+
   useEffect(() => {
-    try { localStorage.setItem('liked-achievements-v1', JSON.stringify([...likedAchievements])); } catch { /* ignore */ }
+    if (!session) return;
+    getSentCheers()
+      .then(list => setLikedAchievements(new Set(list.map(c => `${c.toUserId}|${c.achievementKey}`))))
+      .catch(() => {});
+  }, [session]);
+
+  const toggleCheer = useCallback(async (toUserId: string, key: string) => {
+    const id = `${toUserId}|${key}`;
+    const wasLiked = likedAchievements.has(id);
+    setLikedAchievements(s => {
+      const next = new Set(s);
+      if (wasLiked) next.delete(id); else next.add(id);
+      return next;
+    });
+    try {
+      if (wasLiked) await apiUncheer(toUserId, key);
+      else await apiCheer(toUserId, key);
+    } catch {
+      setLikedAchievements(s => {
+        const next = new Set(s);
+        if (wasLiked) next.add(id); else next.delete(id);
+        return next;
+      });
+    }
   }, [likedAchievements]);
   const [loading, setLoading] = useState(true);
   const [viewPeriod, setViewPeriod] = useState<DashPeriod>('monthly');
@@ -709,12 +729,14 @@ export default function Dashboard() {
 
       // ── Friends (streaks + achievements) ──
       case 'leaderboard': {
-        type AchRow = { id: string; color: string; initials: string; name: string; isMe: boolean; message: string; earnedAt: string };
+        type AchRow = { id: string; key: string; toUserId: string; color: string; initials: string; name: string; isMe: boolean; message: string; earnedAt: string };
         const achRows: AchRow[] = [];
         for (const a of myAchievements) {
           const meName = profile?.displayName || profile?.name || 'You';
           achRows.push({
             id: `me-${a.key}`,
+            key: a.key,
+            toUserId: profile?.id ?? '',
             color: '#C68BE1',
             initials: getInitials(meName),
             name: 'You',
@@ -729,6 +751,8 @@ export default function Dashboard() {
           for (const a of f.achievements ?? []) {
             achRows.push({
               id: `${f.id}-${a.key}`,
+              key: a.key,
+              toUserId: f.id,
               color: AVATAR_PALETTE[i % AVATAR_PALETTE.length],
               initials: getInitials(fname),
               name: fname,
@@ -788,7 +812,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   {achievementSamples.map(a => {
-                    const liked = likedAchievements.has(a.id);
+                    const liked = likedAchievements.has(`${a.toUserId}|${a.key}`);
                     return (
                       <div
                         key={a.id}
@@ -806,11 +830,7 @@ export default function Dashboard() {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => setLikedAchievements(s => {
-                              const next = new Set(s);
-                              if (next.has(a.id)) next.delete(a.id); else next.add(a.id);
-                              return next;
-                            })}
+                            onClick={() => toggleCheer(a.toUserId, a.key)}
                             aria-label={liked ? 'Unlike' : 'Like'}
                             aria-pressed={liked}
                             className={`flex-shrink-0 cursor-pointer hover:scale-110 transition-transform ${liked ? 'text-[#E11D48]' : 'text-[var(--c-tint-text-2)]'}`}
