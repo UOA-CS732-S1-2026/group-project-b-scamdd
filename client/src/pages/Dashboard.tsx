@@ -103,9 +103,9 @@ function currentPointIdx(period: DashPeriod): number {
 const PANEL_DEFS = [
   { id: 'mood'               as const, title: 'Spend by mood',       desc: 'Non-essential spending broken down by mood rating',            width: 5, height: 4,  defaultOn: true  },
   { id: 'category'           as const, title: 'Where it goes',       desc: 'Expense breakdown by category with donut chart',               width: 5, height: 4,  defaultOn: true  },
-  { id: 'transactions'       as const, title: 'Recent transactions', desc: 'Scrollable list of all transactions in the period',            width: 4, height: 8,  defaultOn: true  },
+  { id: 'transactions'       as const, title: 'Recent transactions', desc: 'Scrollable list of all transactions in the period',            width: 4, height: 9,  defaultOn: true  },
   { id: 'breakdown'          as const, title: 'Spending breakdown',  desc: 'Proportional bars across 5 spending dimensions',               width: 6, height: 4,  defaultOn: true  },
-  { id: 'leaderboard'        as const, title: 'Friends',             desc: 'Streaks & recent achievements from friends',                   width: 6, height: 4,  defaultOn: true  },
+  { id: 'leaderboard'        as const, title: 'Friends',             desc: 'Streaks & recent achievements from friends',                   width: 6, height: 5,  defaultOn: true  },
   { id: 'net-savings'        as const, title: 'Net savings',         desc: 'Cumulative income minus expenses over the period',             width: 5, height: 4,  defaultOn: false },
   { id: 'daily-spending'     as const, title: 'Period spending',     desc: 'Spending per time segment as individual bars (not cumulative)', width: 5, height: 3,  defaultOn: false },
   { id: 'top-categories'     as const, title: 'Top categories',      desc: 'Ranked horizontal bars of spending per category',             width: 5, height: 5,  defaultOn: false },
@@ -117,7 +117,7 @@ type PanelId = typeof PANEL_DEFS[number]['id'];
 type PanelConfig = { id: PanelId; visible: boolean; width?: number; height?: number };
 
 const DEFAULT_CONFIG: PanelConfig[] = PANEL_DEFS.map(p => ({ id: p.id, visible: p.defaultOn }));
-const LS_KEY = 'dashboard-panels-v10';
+const LS_KEY = 'dashboard-panels-v13';
 
 function loadPanelConfig(): PanelConfig[] {
   try {
@@ -216,6 +216,15 @@ export default function Dashboard() {
   const [rawBudgets, setRawBudgets] = useState<Budget[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [likedAchievements, setLikedAchievements] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem('liked-achievements-v1');
+      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+    } catch { return new Set(); }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('liked-achievements-v1', JSON.stringify([...likedAchievements])); } catch { /* ignore */ }
+  }, [likedAchievements]);
   const [loading, setLoading] = useState(true);
   const [viewPeriod, setViewPeriod] = useState<DashPeriod>('monthly');
   const [periodAnchor, setPeriodAnchor] = useState<Date>(new Date());
@@ -695,20 +704,33 @@ export default function Dashboard() {
 
       // ── Friends (streaks + achievements) ──
       case 'leaderboard': {
-        const achievementSamples = leaderboard.filter(e => !e.isMe).slice(0, 6).map((e, i) => ({
+        const SAMPLE_MSGS = [
+          'Stayed under budget for two months!',
+          'Hit 100 logged transactions!',
+          'No regret tags in 2 weeks!',
+          'Stayed under budget for ten weeks!',
+          'Income increased by 10%!',
+          'Completed their budget this week!',
+        ];
+        const achievementSamples = leaderboard.slice(0, 3).map((e, i) => ({
           id: e.id,
-          color: e.color,
+          color: e.isMe ? '#C68BE1' : e.color,
           initials: getInitials(e.name),
-          name: e.name,
-          message: [
-            'Stayed under budget for two months!',
-            'Hit 100 logged transactions!',
-            'No regret tags in 2 weeks!',
-            'Stayed under budget for ten weeks!',
-            'Income increased by 10%!',
-            'Completed their budget this week!',
-          ][i % 6],
+          name: e.isMe ? 'You' : e.name,
+          isMe: e.isMe,
+          message: e.isMe ? 'You just hit a new streak high!' : SAMPLE_MSGS[i % SAMPLE_MSGS.length],
         }));
+        const FireIcon = (
+          <svg width="14" height="14" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M7.5 13.5c2.6 0 4.5-1.9 4.5-4.2 0-1.6-.9-2.7-2-3.6-.4 1.1-1.3 1.6-2 1.6 0-1.6-.6-3.7-2.8-6 0 4.2-2.7 5.3-2.7 8.4 0 2.3 1.9 3.8 5 3.8z" />
+            <path d="M7.5 11c1 0 1.8-.7 1.8-1.7 0-1.1-1-1.5-1.5-3-.4 1-1.2 1.4-2 1.4 0 1.4.7 3.3 1.7 3.3z" />
+          </svg>
+        );
+        const HeartIcon = ({ filled = false }: { filled?: boolean }) => (
+          <svg width="14" height="14" viewBox="0 0 15 15" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M7.5 13s-5-3.1-5-6.6A2.7 2.7 0 0 1 7.5 4.6a2.7 2.7 0 0 1 5 1.8C12.5 9.9 7.5 13 7.5 13z" />
+          </svg>
+        );
         return (
           <div className={panelClass} style={{ background: '#FFD5D8' }}>
             <div className="flex justify-between items-center mb-1">
@@ -726,30 +748,59 @@ export default function Dashboard() {
               </div>
             ) : (
               <>
-                <div className="flex justify-around items-end mb-5">
+                <div className="flex justify-around items-stretch gap-2 mb-3">
                   {leaderboard.slice(0, 5).map((entry, idx) => (
-                    <div key={entry.id} className="flex flex-col items-center gap-1 min-w-0">
-                      <span className="text-[10px] font-bold text-[var(--c-text-2)]">#{idx + 1}</span>
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold text-[var(--c-text)] border-[3px] border-white"
-                        style={{ backgroundColor: entry.color }}>
-                        {getInitials(entry.name)}
+                    <div
+                      key={entry.id}
+                      className="w-14 flex-shrink-0 flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-xl border border-[rgba(109,109,109,0.4)] bg-[#ffffff]"
+                    >
+                      <span className="text-[9px] font-bold text-[var(--c-text-2)] leading-tight">#{idx + 1}</span>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-[var(--c-text)] border-2 border-white"
+                        style={{ backgroundColor: entry.isMe ? '#C68BE1' : entry.color }}>
+                        {entry.isMe ? 'You' : getInitials(entry.name)}
                       </div>
-                      <span className="text-xs font-semibold text-[var(--c-text)]">{entry.streak}d</span>
+                      <span className="text-[11px] font-semibold text-[var(--c-text)] inline-flex items-center gap-0.5 leading-tight">
+                        <span className="text-[#F97316]">{FireIcon}</span>
+                        {entry.streak}d
+                      </span>
                     </div>
                   ))}
                 </div>
-                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2">
-                  {achievementSamples.map(a => (
-                    <div key={a.id} className="flex items-center gap-3 py-1">
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-text)] border-2 border-white flex-shrink-0"
-                        style={{ backgroundColor: a.color }}>
-                        {a.initials}
+                <div className="flex flex-col gap-1.5">
+                  {achievementSamples.map(a => {
+                    const liked = likedAchievements.has(a.id);
+                    return (
+                      <div
+                        key={a.id}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-2xl border border-[rgba(109,109,109,0.4)] bg-[#ffffff]"
+                      >
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-text)] border-2 border-white flex-shrink-0"
+                          style={{ backgroundColor: a.color }}>
+                          {a.initials}
+                        </div>
+                        <div className="text-xs text-[var(--c-text)] truncate flex-1 min-w-0">
+                          <span className="font-semibold">{a.name}</span> {a.message}
+                        </div>
+                        {a.isMe ? (
+                          <span className="flex-shrink-0 text-[#E11D48]"><HeartIcon filled /></span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setLikedAchievements(s => {
+                              const next = new Set(s);
+                              if (next.has(a.id)) next.delete(a.id); else next.add(a.id);
+                              return next;
+                            })}
+                            aria-label={liked ? 'Unlike' : 'Like'}
+                            aria-pressed={liked}
+                            className={`flex-shrink-0 cursor-pointer hover:scale-110 transition-transform ${liked ? 'text-[#E11D48]' : 'text-[var(--c-text-2)]'}`}
+                          >
+                            <HeartIcon filled={liked} />
+                          </button>
+                        )}
                       </div>
-                      <div className="text-xs text-[var(--c-text)] truncate">
-                        <span className="font-semibold">{a.name}</span> {a.message}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}

@@ -46,9 +46,8 @@ function MoodDot({ mood }: { mood: string }) {
   const m = MOOD_DISPLAY[mood];
   if (!m) return null;
   return (
-    <span className="flex items-center gap-1.5 text-xs text-[var(--c-text-2)]">
-      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: m.color }} />
-      {m.label}
+    <span className="text-base" title={m.label} aria-label={m.label}>
+      {m.emoji}
     </span>
   );
 }
