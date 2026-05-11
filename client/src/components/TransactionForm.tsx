@@ -11,12 +11,12 @@ interface Props {
 const inputClass =
   'px-4 py-2.5 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[#ffffff] text-[var(--c-text)] text-sm placeholder:text-[var(--c-text-2)] focus:outline-none focus:border-[var(--c-text)] transition-colors w-full';
 
-const MOODS: { key: string; label: string; color: string }[] = [
-  { key: 'regret',   label: 'Regret',   color: '#FFBDC2' },
-  { key: 'meh',      label: 'Meh',      color: '#CBCBCB' },
-  { key: 'okay',     label: 'Okay',     color: '#FDFBD4' },
-  { key: 'glad',     label: 'Glad',     color: '#C5FFD8' },
-  { key: 'worth-it', label: 'Worth It', color: '#C68BE1' },
+const MOODS: { key: string; label: string; emoji: string; color: string }[] = [
+  { key: 'regret',   label: 'Regret',   emoji: '😞', color: '#FFBDC2' },
+  { key: 'meh',      label: 'Meh',      emoji: '😐', color: '#CBCBCB' },
+  { key: 'okay',     label: 'Okay',     emoji: '🙂', color: '#FDFBD4' },
+  { key: 'glad',     label: 'Glad',     emoji: '😊', color: '#C5FFD8' },
+  { key: 'worth-it', label: 'Worth It', emoji: '🤩', color: '#C68BE1' },
 ];
 
 const PAYMENT_METHODS = ['Cash', 'Debit', 'Credit', 'Bank Transfer', 'PayPal', 'Other'];
@@ -35,6 +35,7 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isOtherCategory, setIsOtherCategory] = useState(false);
 
   useEffect(() => {
     if (transaction) {
@@ -49,6 +50,10 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
         mood: transaction.mood,
         paymentMethod: transaction.paymentMethod,
       });
+      const cat = transaction.category;
+      if (cat && !(CATEGORIES as readonly string[]).includes(cat)) {
+        setIsOtherCategory(true);
+      }
     }
   }, [transaction]);
 
@@ -108,27 +113,30 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
           {/* Type */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-[var(--c-text)]">Transaction type</label>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-[var(--c-surface)] rounded-2xl">
-              {(['expense', 'income'] as TransactionType[]).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() =>
-                    setForm((f) =>
-                      t === 'income'
-                        ? { ...f, type: t, category: '', essential: undefined, mood: undefined, paymentMethod: undefined }
-                        : { ...f, type: t, essential: true }
-                    )
-                  }
-                  className={`py-2 rounded-[16px] text-sm font-semibold transition-colors cursor-pointer ${
-                    form.type === t
-                      ? 'bg-[var(--c-accent)] text-[var(--c-text)]'
-                      : 'text-[var(--c-text-2)] hover:text-[var(--c-text)]'
-                  }`}
-                >
-                  {t === 'expense' ? 'Expense' : 'Income'}
-                </button>
-              ))}
+            <div className="grid grid-cols-2 gap-2">
+              {(['expense', 'income'] as TransactionType[]).map((t) => {
+                const selected = form.type === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() =>
+                      setForm((f) =>
+                        t === 'income'
+                          ? { ...f, type: t, category: '', essential: undefined, mood: undefined, paymentMethod: undefined }
+                          : { ...f, type: t, essential: true }
+                      )
+                    }
+                    className={`py-2.5 px-3 rounded-2xl text-sm font-medium border transition-colors cursor-pointer ${
+                      selected
+                        ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
+                        : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+                    }`}
+                  >
+                    {t === 'expense' ? 'Expense' : 'Income'}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -158,12 +166,20 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
               <label className="text-sm font-semibold text-[var(--c-text)]">Category</label>
               <div className="grid grid-cols-3 gap-2">
                 {CATEGORIES.map((c) => {
-                  const selected = form.category === c;
+                  const selected = c === 'other' ? isOtherCategory : (!isOtherCategory && form.category === c);
                   return (
                     <button
                       key={c}
                       type="button"
-                      onClick={() => set('category', c)}
+                      onClick={() => {
+                        if (c === 'other') {
+                          setIsOtherCategory(true);
+                          set('category', '');
+                        } else {
+                          setIsOtherCategory(false);
+                          set('category', c);
+                        }
+                      }}
                       className={`py-2 px-3 rounded-2xl text-sm font-medium border transition-colors cursor-pointer capitalize ${
                         selected
                           ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
@@ -175,7 +191,16 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
                   );
                 })}
               </div>
-              <p className="text-xs text-[var(--c-text-2)]">How would you categorise this purchase?</p>
+              {isOtherCategory && (
+                <input
+                  type="text"
+                  required
+                  value={form.category ?? ''}
+                  onChange={(e) => set('category', e.target.value)}
+                  placeholder="How would you categorise this purchase?"
+                  className={inputClass}
+                />
+              )}
             </div>
           )}
 
@@ -187,7 +212,7 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
               required
               value={form.title}
               onChange={(e) => set('title', e.target.value)}
-              placeholder="What did you buy?"
+              placeholder={isExpense ? 'What did you buy?' : 'Where did the money come from?'}
               className={inputClass}
             />
           </div>
@@ -202,7 +227,7 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
                   onClick={() => set('essential', true)}
                   className={`py-2.5 rounded-2xl text-sm font-medium border transition-colors cursor-pointer ${
                     form.essential === true
-                      ? 'bg-[var(--c-tint-green)] text-[var(--c-text)] border-[var(--c-text)]'
+                      ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
                       : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
                   }`}
                 >
@@ -213,7 +238,7 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
                   onClick={() => set('essential', false)}
                   className={`py-2.5 rounded-2xl text-sm font-medium border transition-colors cursor-pointer ${
                     form.essential === false
-                      ? 'bg-[var(--c-tint-pink)] text-[var(--c-text)] border-[var(--c-text)]'
+                      ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
                       : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
                   }`}
                 >
@@ -228,21 +253,22 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-[var(--c-text)]">How did it make you feel?</label>
               <div className="grid grid-cols-5 gap-2">
-                {MOODS.map(({ key, label, color }) => {
+                {MOODS.map(({ key, label, emoji }) => {
                   const selected = form.mood === key;
                   return (
                     <button
                       key={key}
                       type="button"
+                      title={label}
+                      aria-label={label}
                       onClick={() => set('mood', selected ? undefined : key)}
-                      style={selected ? { backgroundColor: color, borderColor: 'var(--c-text)' } : {}}
-                      className={`py-2 rounded-2xl border text-xs font-medium transition-colors cursor-pointer ${
+                      className={`py-2.5 rounded-2xl border text-2xl transition-colors cursor-pointer ${
                         selected
-                          ? 'text-[var(--c-text)]'
-                          : 'bg-[#ffffff] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
+                          ? 'bg-[var(--c-accent)] border-[var(--c-text)]'
+                          : 'bg-[#ffffff] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] grayscale hover:grayscale-0'
                       }`}
                     >
-                      {label}
+                      {emoji}
                     </button>
                   );
                 })}

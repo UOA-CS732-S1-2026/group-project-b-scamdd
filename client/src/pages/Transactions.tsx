@@ -11,12 +11,12 @@ import { useTheme } from '../hooks/useTheme';
 import type { Transaction } from '../types/transaction';
 import { CATEGORIES } from '../types/transaction';
 
-const MOOD_DISPLAY: Record<string, { label: string; color: string; value: number }> = {
-  'regret':   { label: 'Regret',   color: '#FFBDC2', value: 1 },
-  'meh':      { label: 'Meh',      color: '#CBCBCB', value: 2 },
-  'okay':     { label: 'Okay',     color: '#FDFBD4', value: 3 },
-  'glad':     { label: 'Glad',     color: '#C5FFD8', value: 4 },
-  'worth-it': { label: 'Worth It', color: '#C68BE1', value: 5 },
+const MOOD_DISPLAY: Record<string, { label: string; emoji: string; color: string; value: number }> = {
+  'regret':   { label: 'Regret',   emoji: '😞', color: '#FFBDC2', value: 1 },
+  'meh':      { label: 'Meh',      emoji: '😐', color: '#CBCBCB', value: 2 },
+  'okay':     { label: 'Okay',     emoji: '🙂', color: '#FDFBD4', value: 3 },
+  'glad':     { label: 'Glad',     emoji: '😊', color: '#C5FFD8', value: 4 },
+  'worth-it': { label: 'Worth It', emoji: '🤩', color: '#C68BE1', value: 5 },
 };
 
 type SortOption = 'recent' | 'largest' | 'smallest' | 'happiest' | 'regretful';
@@ -326,7 +326,7 @@ export default function Transactions() {
               <FilterChip active={filterMood === 'all'} onClick={() => setFilterMood('all')}>All</FilterChip>
               {Object.entries(MOOD_DISPLAY).map(([key, m]) => (
                 <FilterChip key={key} active={filterMood === key} onClick={() => setFilterMood(key)}>
-                  {m.label}
+                  <span title={m.label} aria-label={m.label} className="text-base">{m.emoji}</span>
                 </FilterChip>
               ))}
             </FilterGroup>
