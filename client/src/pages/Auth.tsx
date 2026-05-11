@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { signIn, signUp, requestPasswordReset, useSession } from '../lib/auth-client';
-import { useTheme } from '../hooks/useTheme';
+import FeltWordmark from '../components/FeltWordmark';
 
 type Tab = 'signin' | 'signup';
 type Mode = 'auth' | 'forgot' | 'forgot-sent';
@@ -9,7 +9,6 @@ type Mode = 'auth' | 'forgot' | 'forgot-sent';
 export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isDark, toggle } = useTheme();
 
   const { data: session, isPending: sessionPending } = useSession();
 
@@ -28,12 +27,12 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
 
   const inputCls =
-    'w-full px-4 py-2.5 rounded-xl border border-[var(--c-border)] bg-[var(--c-bg)] text-[var(--c-text)] text-sm transition-colors focus:outline-none focus:border-[var(--c-accent)] placeholder:text-[var(--c-text-2)]';
+    'w-full px-4 py-2.5 rounded-xl border border-[var(--c-border)] bg-[#ffffff] text-[var(--c-text)] text-sm transition-colors focus:outline-none focus:border-[var(--c-text)] placeholder:text-[var(--c-text-2)]';
   const labelCls = 'text-sm font-medium text-[var(--c-text)]';
   const primaryBtn =
-    'w-full px-4 py-2.5 rounded-xl bg-[var(--c-accent)] text-white text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
+    'w-full px-5 py-2.5 rounded-[20px] bg-[var(--c-text)] text-[var(--c-bg)] border border-[var(--c-text)] text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
   const linkBtn =
-    'bg-transparent border-0 text-[var(--c-text-2)] text-sm cursor-pointer hover:text-[var(--c-accent)] transition-colors p-0';
+    'bg-transparent border-0 text-[var(--c-text-2)] text-sm cursor-pointer hover:text-[var(--c-text)] transition-colors p-0';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -65,37 +64,17 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--c-bg)] flex flex-col">
-      {/* Minimal header */}
-      <header className="flex items-center justify-between px-8 py-5">
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 font-bold text-lg text-[var(--c-text)] hover:opacity-75 transition-opacity"
-        >
-          <span className="w-4 h-4 rounded-full bg-[var(--c-accent)] flex-shrink-0" />
-          felt
-        </button>
-        <button
-          onClick={toggle}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--c-border)] text-[var(--c-text-2)] hover:opacity-70 transition-opacity"
-          aria-label="Toggle theme"
-        >
-          {isDark ? (
-            <svg width="14" height="14" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <circle cx="7.5" cy="7.5" r="2.5" />
-              <path d="M7.5 1v1.5M7.5 12.5V14M1 7.5h1.5M12.5 7.5H14M2.93 2.93l1.06 1.06M11.01 11.01l1.06 1.06M2.93 12.07l1.06-1.06M11.01 3.99l1.06-1.06" />
-            </svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <path d="M12.5 10A6 6 0 0 1 5 2.5a6 6 0 1 0 7.5 7.5z" />
-            </svg>
-          )}
-        </button>
+    <div className="h-screen overflow-hidden bg-[var(--c-bg)] flex flex-col">
+      <header className="z-40 backdrop-blur bg-[color-mix(in_srgb,var(--c-bg)_85%,transparent)] border-b border-[var(--c-border)]">
+        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between min-h-[32px]">
+          <Link to="/" className="flex items-center cursor-pointer hover:opacity-75 transition-opacity">
+            <FeltWordmark size="md" />
+          </Link>
+        </div>
       </header>
 
-      {/* Card */}
-      <div className="flex-1 flex items-center justify-center px-6 pb-12">
-        <div className="w-full max-w-sm bg-[var(--c-card)] border border-[var(--c-border)] rounded-3xl p-8 shadow-sm">
+      <div className="flex-1 min-h-0 flex items-start justify-center px-6 pt-6 pb-4">
+        <div className="w-full max-w-md max-h-full overflow-y-auto bg-[var(--c-card)] border border-[var(--c-border)] rounded-3xl pt-4 px-7 pb-6 shadow-sm">
 
           {/* Forgot password flow */}
           {(mode === 'forgot' || mode === 'forgot-sent') && (
@@ -137,12 +116,12 @@ export default function Auth() {
               <h1 className="text-xl font-bold text-[var(--c-text)] mb-0.5">
                 {tab === 'signin' ? 'Welcome back' : 'Create account'}
               </h1>
-              <p className="text-sm text-[var(--c-text-2)] mb-6">
+              <p className="text-sm text-[var(--c-text-2)] mb-4">
                 {tab === 'signin' ? 'Sign in to your felt account.' : 'Start tracking your money with felt.'}
               </p>
 
               {/* Tab switcher */}
-              <div className="flex gap-1 bg-[var(--c-surface)] p-1 rounded-xl mb-6">
+              <div className="flex gap-1 bg-[var(--c-surface)] p-1 rounded-xl mb-4">
                 {(['signin', 'signup'] as Tab[]).map(t => (
                   <button
                     key={t}
@@ -159,22 +138,20 @@ export default function Auth() {
                 ))}
               </div>
 
-              <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+              <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
                 {tab === 'signup' && (
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-1">
                     <label htmlFor="name" className={labelCls}>Name</label>
                     <input id="name" type="text" className={inputCls} value={name}
                       onChange={e => setName(e.target.value)} required autoComplete="name" placeholder="Your name" />
                   </div>
                 )}
-
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1">
                   <label htmlFor="email" className={labelCls}>Email</label>
                   <input id="email" type="email" className={inputCls} value={email}
                     onChange={e => setEmail(e.target.value)} required autoComplete="email" placeholder="you@example.com" />
                 </div>
-
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1">
                   <div className="flex justify-between items-baseline">
                     <label htmlFor="password" className={labelCls}>Password</label>
                     {tab === 'signin' && (
@@ -197,7 +174,7 @@ export default function Auth() {
                 </button>
               </form>
 
-              <div className="flex items-center gap-3 my-5 text-xs text-[var(--c-text-2)]">
+              <div className="flex items-center gap-3 my-3 text-xs text-[var(--c-text-2)]">
                 <span className="flex-1 h-px bg-[var(--c-border)]" />
                 <span>or</span>
                 <span className="flex-1 h-px bg-[var(--c-border)]" />

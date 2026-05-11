@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
 import { checkUsername, getMyProfile, updateMyProfile } from '../api/profile';
+import FeltWordmark from '../components/FeltWordmark';
 
 const CURRENCIES = ['NZD', 'USD', 'AUD', 'EUR', 'GBP'];
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 const inputCls =
-  'px-3 py-2.5 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-h)] text-sm transition-colors focus:outline-none focus:border-[var(--accent-border)] focus:ring-2 focus:ring-[var(--accent-bg)]';
-const labelCls = 'text-sm font-medium text-[var(--text-h)]';
+  'px-4 py-2.5 border border-[var(--c-border)] rounded-xl bg-[#ffffff] text-[var(--c-text)] text-sm transition-colors focus:outline-none focus:border-[var(--c-text)] placeholder:text-[var(--c-text-2)]';
+const labelCls = 'text-sm font-medium text-[var(--c-text)]';
 const fieldCls = 'flex flex-col gap-1.5';
 
 type Availability = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
@@ -112,7 +113,7 @@ export default function ProfileSetup() {
 
   if (isPending || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-[var(--text)]">
+      <div className="flex items-center justify-center min-h-screen bg-[var(--c-bg)] text-[var(--c-text-2)] text-sm">
         Loading…
       </div>
     );
@@ -121,14 +122,14 @@ export default function ProfileSetup() {
   const availabilityNote = (() => {
     switch (availability) {
       case 'checking':
-        return <span className="text-xs text-[var(--text)]">Checking…</span>;
+        return <span className="text-xs text-[var(--c-text-2)]">Checking…</span>;
       case 'available':
-        return <span className="text-xs text-green-600">Available</span>;
+        return <span className="text-xs text-[var(--c-income)]">Available</span>;
       case 'taken':
-        return <span className="text-xs text-red-500">Taken</span>;
+        return <span className="text-xs text-[var(--c-expense)]">Taken</span>;
       case 'invalid':
         return (
-          <span className="text-xs text-[var(--text)]">
+          <span className="text-xs text-[var(--c-text-2)]">
             3-20 chars: lowercase, numbers, or underscore
           </span>
         );
@@ -138,12 +139,20 @@ export default function ProfileSetup() {
   })();
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-md bg-[var(--bg)] border border-[var(--border)] rounded-xl p-8 shadow-[var(--shadow)]">
-        <h1 className="text-2xl font-bold text-[var(--text-h)] text-center mb-1">
+    <div className="h-screen overflow-hidden bg-[var(--c-bg)] flex flex-col">
+      <header className="z-40 backdrop-blur bg-[color-mix(in_srgb,var(--c-bg)_85%,transparent)] border-b border-[var(--c-border)]">
+        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between min-h-[32px]">
+          <Link to="/" className="flex items-center cursor-pointer hover:opacity-75 transition-opacity">
+            <FeltWordmark size="md" />
+          </Link>
+        </div>
+      </header>
+      <div className="flex-1 min-h-0 flex items-start justify-center px-6 pt-6 pb-4">
+        <div className="w-full max-w-md max-h-full overflow-y-auto bg-[var(--c-card)] border border-[var(--c-border)] rounded-3xl pt-4 px-7 pb-6 shadow-sm">
+        <h1 className="text-2xl font-bold text-[var(--c-text)] text-center mb-1">
           Finish setting up your profile
         </h1>
-        <p className="text-sm text-[var(--text)] text-center mb-6">
+        <p className="text-sm text-[var(--c-text-2)] text-center mb-6">
           Pick a username and a few basics so friends can find you.
         </p>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -186,7 +195,7 @@ export default function ProfileSetup() {
 
           <div className={fieldCls}>
             <label htmlFor="bio" className={labelCls}>
-              Bio <span className="text-[var(--text)] font-normal">(optional)</span>
+              Bio <span className="text-[var(--c-text-2)] font-normal">(optional)</span>
             </label>
             <textarea
               id="bio"
@@ -219,16 +228,17 @@ export default function ProfileSetup() {
 
           {/* TODO: avatar upload */}
 
-          {error && <p className="text-sm text-red-500 m-0">{error}</p>}
+          {error && <p className="text-sm text-[var(--c-expense)] m-0">{error}</p>}
 
           <button
             type="submit"
-            className="px-4 py-2.5 bg-[var(--accent)] text-white rounded-lg text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            className="px-5 py-2.5 rounded-[20px] bg-[var(--c-text)] text-[var(--c-bg)] border border-[var(--c-text)] text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             disabled={submitting || availability === 'checking' || availability === 'taken'}
           >
             {submitting ? 'Saving…' : 'Continue'}
           </button>
         </form>
+        </div>
       </div>
     </div>
   );
