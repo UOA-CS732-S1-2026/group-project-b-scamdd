@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
 import { getMyProfile } from '../api/profile';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { useTheme } from '../hooks/useTheme';
 
 interface ProfileData {
@@ -60,10 +61,10 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--c-bg)] text-[var(--c-text)]">
+    <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile.name ?? undefined} />
 
-      <main className="max-w-2xl mx-auto px-6 py-8">
+      <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-8">
         <h1 className="text-4xl font-bold text-[var(--c-text)]" style={{ margin: '0 0 2rem' }}>Profile</h1>
 
         <div className="border border-[var(--c-border)] rounded-2xl p-8 bg-[var(--c-card)]">
@@ -138,6 +139,8 @@ export default function Profile() {
           )}
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

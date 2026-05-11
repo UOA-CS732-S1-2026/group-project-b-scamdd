@@ -6,6 +6,7 @@ import { getBudgets } from '../api/budgets';
 import { getMyProfile } from '../api/profile';
 import { getFriends } from '../api/friends';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { useTheme } from '../hooks/useTheme';
 import type { Transaction } from '../types/transaction';
 import type { Budget } from '../types/budget';
@@ -920,10 +921,10 @@ export default function Dashboard() {
 
   // ── JSX ───────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[var(--c-bg)] text-[var(--c-text)]">
+    <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
 
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -1104,6 +1105,8 @@ export default function Dashboard() {
         </div>
 
       </main>
+
+      <Footer />
 
       {/* ── Customise modal ── */}
       {showCustomise && (

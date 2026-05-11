@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
 import { getTransactions, deleteTransaction } from '../api/transactions';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import TransactionForm from '../components/TransactionForm';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useTheme } from '../hooks/useTheme';
@@ -105,10 +106,10 @@ export default function Transactions() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--c-bg)] text-[var(--c-text)]">
+    <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-4xl font-bold m-0 text-[var(--c-text)]">Transactions</h1>
           <button
@@ -317,6 +318,8 @@ export default function Transactions() {
           />
         )}
       </main>
+
+      <Footer />
     </div>
   );
 }

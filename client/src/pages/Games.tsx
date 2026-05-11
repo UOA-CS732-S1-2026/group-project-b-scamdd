@@ -1,5 +1,6 @@
 ﻿import { useState, useCallback, useEffect } from 'react';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { useSession } from '../lib/auth-client';
 import { useTheme } from '../hooks/useTheme';
 import { submitScore, getLeaderboard, type LeaderboardEntry } from '../api/games';
@@ -549,9 +550,9 @@ export default function Games() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--c-bg)]">
+    <div className="min-h-screen flex flex-col bg-[var(--c-bg)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={userName} />
-      <main className="max-w-3xl mx-auto px-6 py-8 flex flex-col gap-6">
+      <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-8 flex flex-col gap-6">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold text-[var(--c-text)]">Games</h1>
           <p className="text-sm text-[var(--c-text-2)]">Test your money knowledge with quick mini-games.</p>
@@ -580,6 +581,8 @@ export default function Games() {
 
         <Leaderboard game={tab} entries={leaderboard} loading={lbLoading} />
       </main>
+
+      <Footer />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
 } from '../api/friends';
 import { getMyProfile } from '../api/profile';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { useTheme } from '../hooks/useTheme';
 import type { Friend, Requests, SearchResult } from '../types/friend';
 
@@ -114,10 +115,10 @@ export default function Friends() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--c-bg)] text-[var(--c-text)]">
+    <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
         <h1 className="text-4xl font-bold text-[var(--c-text)] mb-8" style={{ margin: '0 0 2rem' }}>Friends</h1>
 
         {/* Search */}
@@ -286,6 +287,8 @@ export default function Friends() {
           )}
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

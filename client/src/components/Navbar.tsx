@@ -1,5 +1,6 @@
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from '../lib/auth-client';
+import FeltWordmark from './FeltWordmark';
 
 interface NavbarProps {
   isDark: boolean;
@@ -103,17 +104,21 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
 
   const isActive = (path: string) => location.pathname === path;
 
+  const ghostBtn =
+    'px-4 py-1.5 rounded-[20px] text-sm font-medium text-[var(--c-text)] bg-transparent hover:bg-[var(--c-nav-active)] transition-colors cursor-pointer';
+  const iconBtn =
+    'w-8 h-8 flex items-center justify-center rounded-[20px] text-[var(--c-text-2)] hover:bg-[var(--c-nav-active)] hover:text-[var(--c-text)] transition-colors cursor-pointer';
+
   return (
-    <nav className="sticky top-0 z-50 bg-[var(--c-bg)] border-b border-[var(--c-border)]">
-      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+    <nav className="sticky top-0 z-40 backdrop-blur bg-[color-mix(in_srgb,var(--c-bg)_85%,transparent)] border-b border-[var(--c-border)]">
+      <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between min-h-[32px]">
         <div className="flex items-center gap-6">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2 font-bold text-lg transition-opacity hover:opacity-80 text-[var(--c-text)]"
+          <Link
+            to="/dashboard"
+            className="flex items-center cursor-pointer hover:opacity-75 transition-opacity"
           >
-            <span className="w-5 h-5 rounded-full flex-shrink-0 bg-[var(--c-accent)]" />
-            <span>felt</span>
-          </button>
+            <FeltWordmark size="md" />
+          </Link>
 
           <div className="flex items-center gap-1">
             {navLinks.map(({ label, path, Icon }) => {
@@ -122,10 +127,10 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
                 <button
                   key={path}
                   onClick={() => navigate(path)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all hover:opacity-80 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[20px] text-sm font-medium transition-colors cursor-pointer ${
                     active
-                      ? 'text-[var(--c-text)] bg-[var(--c-nav-active)] border-[var(--c-border)]'
-                      : 'text-[var(--c-text-2)] bg-transparent border-transparent'
+                      ? 'text-[var(--c-text)] bg-[var(--c-nav-active)]'
+                      : 'text-[var(--c-text-2)] hover:text-[var(--c-text)] hover:bg-[var(--c-nav-active)]'
                   }`}
                 >
                   <Icon />
@@ -136,10 +141,10 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={onThemeToggle}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--c-border)] text-[var(--c-text-2)] transition-colors hover:opacity-80"
+            className={iconBtn}
             aria-label="Toggle theme"
           >
             {isDark ? <IconSun /> : <IconMoon />}
@@ -151,7 +156,7 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
 
           <button
             onClick={() => signOut().then(() => navigate('/'))}
-            className="px-3 py-1.5 rounded-lg border border-[var(--c-border)] text-sm font-medium transition-colors hover:opacity-80 text-[var(--c-text)]"
+            className={ghostBtn}
           >
             Log out
           </button>
