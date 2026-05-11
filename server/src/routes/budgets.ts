@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { Budget, type BudgetPeriod } from '../models/Budget';
 import { Transaction } from '../models/Transaction';
 import { requireAuth } from '../middleware/auth';
+import { checkAndAwardAchievements } from '../lib/achievements';
 
 const router = Router();
 router.use(requireAuth);
@@ -110,6 +111,7 @@ router.post('/', async (req: Request, res: Response) => {
       isPublic: Boolean(isPublic),
     });
     res.status(201).json(budget);
+    checkAndAwardAchievements(req.user!._id).catch(() => { /* ignore */ });
   } catch (err: unknown) {
     if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
       res.status(409).json({ message: 'A budget for that category already exists' });

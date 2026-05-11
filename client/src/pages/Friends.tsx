@@ -10,24 +10,15 @@ import {
   unfriend,
 } from '../api/friends';
 import { getMyProfile } from '../api/profile';
+import { getMyAchievements, type Achievement } from '../api/achievements';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Highlight from '../components/Highlight';
 import { useTheme } from '../hooks/useTheme';
+import { achievementMessage } from '../lib/achievementMeta';
 import type { Friend, Requests, SearchResult } from '../types/friend';
 
 const AVATAR_PALETTE = ['#FFBDC2', '#FDFBD4', '#C5FFD8', '#C68BE1', '#C5ECF9', '#CBCBCB'];
-
-const SAMPLE_ACHIEVEMENTS = [
-  'Stayed under budget for two months!',
-  'Hit 100 logged transactions!',
-  'No regret tags in 2 weeks!',
-  'Stayed under budget for ten weeks!',
-  'Income increased by 10%!',
-  'Completed their budget this week!',
-  'Completed their budget last month!',
-  'Spent 47% less on entertainment last week!',
-];
 
 const initials = (name: string) =>
   name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
@@ -80,6 +71,7 @@ export default function Friends() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [myStreak, setMyStreak] = useState(0);
+  const [myAchievements, setMyAchievements] = useState<Achievement[]>([]);
 
   const [query, setQuery] = useState('');
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
@@ -122,6 +114,7 @@ export default function Friends() {
           setMyStreak(p.streak ?? 0);
         })
         .catch(console.error);
+      getMyAchievements().then(setMyAchievements).catch(console.error);
     }
   }, [session, load]);
 
@@ -220,7 +213,30 @@ export default function Friends() {
             color: AVATAR_PALETTE[i % AVATAR_PALETTE.length],
           }));
           const everyone = [myEntry, ...friendEntries];
-          const achievementsFeed = everyone.slice(0, 8);
+
+          type Row = { id: string; key: string; name: string; isMe: boolean; color: string; earnedAt: string; message: string };
+          const feedRows: Row[] = [];
+          for (const a of myAchievements) {
+            feedRows.push({
+              id: `me-${a.key}`, key: a.key, name: myName, isMe: true,
+              color: '#C68BE1', earnedAt: a.earnedAt,
+              message: achievementMessage(a.key, true),
+            });
+          }
+          for (let i = 0; i < friends.length; i++) {
+            const f = friends[i];
+            const fname = f.displayName ?? f.username ?? 'Friend';
+            for (const a of f.achievements ?? []) {
+              feedRows.push({
+                id: `${f.id}-${a.key}`, key: a.key, name: fname, isMe: false,
+                color: AVATAR_PALETTE[i % AVATAR_PALETTE.length], earnedAt: a.earnedAt,
+                message: achievementMessage(a.key, false),
+              });
+            }
+          }
+          feedRows.sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime());
+          const achievementsFeed = feedRows.slice(0, 8);
+
           const streakBoard = [...everyone].sort((a, b) => b.streak - a.streak).slice(0, 5);
           return (
             <div className="grid md:grid-cols-[2fr_1fr] gap-6 mb-8">
@@ -228,10 +244,12 @@ export default function Friends() {
                 <h2 className="font-semibold text-[var(--c-text)] mb-1">Recent achievements</h2>
                 <p className="text-xs text-[var(--c-text-2)] mb-4">Cheer a friend on!</p>
                 <div className="flex flex-col gap-3">
-                  {achievementsFeed.map((e, i) => {
-                    const message = e.isMe
-                      ? 'You just hit a new streak high!'
-                      : SAMPLE_ACHIEVEMENTS[i % SAMPLE_ACHIEVEMENTS.length];
+                  {achievementsFeed.length === 0 && (
+                    <p className="text-sm text-[var(--c-text-2)] py-4 text-center">
+                      No achievements yet — log a transaction or set a budget to unlock one.
+                    </p>
+                  )}
+                  {achievementsFeed.map((e) => {
                     const liked = likedAchievements.has(e.id);
                     return (
                       <div key={e.id} className="flex items-center gap-3">
@@ -242,8 +260,14 @@ export default function Friends() {
                           {initials(e.name)}
                         </div>
                         <p className="text-sm text-[var(--c-text)] truncate flex-1 min-w-0">
-                          <span className="font-semibold">{e.isMe ? 'You' : e.name}</span>{' '}
-                          <span className="text-[var(--c-text-2)]">{message}</span>
+                          {e.isMe ? (
+                            <span className="text-[var(--c-text)]">{e.message}</span>
+                          ) : (
+                            <>
+                              <span className="font-semibold">{e.name}</span>{' '}
+                              <span className="text-[var(--c-text-2)]">{e.message}</span>
+                            </>
+                          )}
                         </p>
                         {e.isMe ? (
                           <button

@@ -43,6 +43,11 @@ export interface FriendBudget {
   spent: number;
 }
 
+export interface FriendAchievement {
+  key: string;
+  earnedAt: string;
+}
+
 export interface Friend {
   id: string;
   friendshipId: string | null;
@@ -50,6 +55,7 @@ export interface Friend {
   displayName: string | null;
   bio: string | null;
   streak: number;
+  achievements: FriendAchievement[];
   goals: FriendGoal[];
   budgets: FriendBudget[];
 }
