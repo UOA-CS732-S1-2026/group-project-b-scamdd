@@ -149,31 +149,6 @@ const MOOD_KEYS   = ['regret', 'meh', 'okay', 'glad', 'worth-it'] as const;
 const MOOD_LABELS = ['Regret', 'Meh', 'Okay', 'Glad', 'Worth It'] as const;
 const MOOD_COLORS = ['#FFBDC2', '#CBCBCB', '#FDFBD4', '#C5FFD8', '#C68BE1'];
 
-function computeStreak(transactions: Transaction[]): number {
-  if (transactions.length === 0) return 0;
-  const dateSet = new Set(
-    transactions.map((t) => {
-      const d = new Date(t.date);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }),
-  );
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const cur = new Date(today);
-  const todayKey = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
-  if (!dateSet.has(todayKey)) cur.setDate(cur.getDate() - 1);
-  let n = 0;
-  while (true) {
-    const k = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
-    if (!dateSet.has(k)) break;
-    n++;
-    cur.setDate(cur.getDate() - 1);
-    if (n > 3650) break;
-  }
-  return n;
-}
-
-
 function PieChart({ slices }: { slices: { value: number; color: string }[] }) {
   const cx = 60, cy = 60, r = 56;
   const total = slices.reduce((s, d) => s + d.value, 0);
@@ -318,9 +293,12 @@ export default function Dashboard() {
   const totalSpent  = expenses.reduce((s, t) => s + Math.abs(t.amount), 0);
   const totalIncome = incomes.reduce((s, t) => s + t.amount, 0);
 
-  const periodBudgetTotal = rawBudgets
-    .filter(b => (b.period ?? 'monthly') === viewPeriod)
-    .reduce((s, b) => s + b.monthlyLimit, 0);
+  const periodBudgets = rawBudgets.filter(b => (b.period ?? 'monthly') === viewPeriod);
+  const overallBudget = periodBudgets.find(b => b.category === 'overall');
+  const categoryBudgets = periodBudgets.filter(b => b.category !== 'overall');
+  const periodBudgetTotal = overallBudget
+    ? overallBudget.monthlyLimit
+    : categoryBudgets.reduce((s, b) => s + b.monthlyLimit, 0);
 
   const MOOD_VALUES: Record<string, number> = { regret: 1, meh: 2, okay: 3, glad: 4, 'worth-it': 5 };
   const moodTxns = periodTxns.filter(t => t.essential === false && t.mood && MOOD_VALUES[t.mood] !== undefined);
@@ -456,7 +434,7 @@ export default function Dashboard() {
   ];
 
   // ── Leaderboard ───────────────────────────────────────────────────────────────
-  const myStreak = computeStreak(allTransactions);
+  const myStreak = profile?.streak ?? 0;
   const AVATAR_PALETTE = ['#C68BE1','#1D9E75','#D85A30','#3B82F6','#F59E0B','#EC4899','#8B5CF6'];
   const leaderboard = [
     { id: 'me', name: profile?.displayName || profile?.name || 'You', streak: myStreak, isMe: true, color: 'var(--c-accent)' },
@@ -1077,26 +1055,45 @@ export default function Dashboard() {
               )}
             </div>
             <div className={`${cardBase} bg-[var(--c-tint-green)]`}>
-              <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Remaining</div>
-              <div className="text-xs mb-3 text-[var(--c-tint-text-2)]">Budget for {PERIOD_DISPLAY[viewPeriod].toLowerCase()}</div>
-              {periodBudgetTotal === 0 ? (
-                <button onClick={() => navigate('/budgets')} className="text-sm font-semibold text-[var(--c-accent)] hover:opacity-70 transition-opacity text-left">
-                  Create {PERIOD_DISPLAY[viewPeriod].toLowerCase()} budget →
-                </button>
-              ) : (() => {
+              {periodBudgets.length === 0 ? (
+                <>
+                  <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Remaining</div>
+                  <div className="text-xs mb-3 text-[var(--c-tint-text-2)]">Budget for {PERIOD_DISPLAY[viewPeriod].toLowerCase()}</div>
+                  <button onClick={() => navigate('/budgets')} className="text-sm font-semibold text-[var(--c-accent)] hover:opacity-70 transition-opacity text-left">
+                    Create {PERIOD_DISPLAY[viewPeriod].toLowerCase()} budget →
+                  </button>
+                </>
+              ) : overallBudget ? (() => {
                 const nonEmergSpent = nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0);
-                const remainNonEmerg = periodBudgetTotal - nonEmergSpent;
-                const remainIncl = periodBudgetTotal - totalSpent;
+                const remain = overallBudget.monthlyLimit - nonEmergSpent;
                 return (
                   <>
-                    <div className={`text-2xl font-bold ${remainNonEmerg < 0 ? 'text-[var(--c-negative)]' : 'text-[var(--c-tint-text)]'}`}>
-                      {remainNonEmerg < 0 ? '-' : ''}${Math.abs(remainNonEmerg).toFixed(2)}
+                    <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Remaining</div>
+                    <div className="text-xs mb-3 text-[var(--c-tint-text-2)]">Overall · {PERIOD_DISPLAY[viewPeriod].toLowerCase()}</div>
+                    <div className={`text-2xl font-bold ${remain < 0 ? 'text-[var(--c-negative)]' : 'text-[var(--c-tint-text)]'}`}>
+                      {remain < 0 ? '-' : ''}${Math.abs(remain).toFixed(2)}
                     </div>
-                    {hasEmergency && (
-                      <div className="text-[11px] mt-1 text-[var(--c-tint-text-2)]">
-                        {remainIncl < 0 ? '-' : ''}${Math.abs(remainIncl).toFixed(2)} (incl. emergency)
-                      </div>
-                    )}
+                  </>
+                );
+              })() : (() => {
+                const tightest = categoryBudgets
+                  .map(b => {
+                    const spent = nonEmergencyExpenses
+                      .filter(t => t.category === b.category)
+                      .reduce((s, t) => s + Math.abs(t.amount), 0);
+                    return { b, spent, remaining: b.monthlyLimit - spent };
+                  })
+                  .sort((a, b) => a.remaining - b.remaining)[0];
+                if (!tightest) return null;
+                return (
+                  <>
+                    <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Remaining</div>
+                    <div className="text-xs mb-3 text-[var(--c-tint-text-2)] capitalize">
+                      Tightest · {tightest.b.category}
+                    </div>
+                    <div className={`text-2xl font-bold ${tightest.remaining < 0 ? 'text-[var(--c-negative)]' : 'text-[var(--c-tint-text)]'}`}>
+                      {tightest.remaining < 0 ? '-' : ''}${Math.abs(tightest.remaining).toFixed(2)}
+                    </div>
                   </>
                 );
               })()}

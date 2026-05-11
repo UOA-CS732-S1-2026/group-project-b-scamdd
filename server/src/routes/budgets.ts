@@ -39,11 +39,23 @@ function periodRange(period: BudgetPeriod): { start: Date; end: Date } {
 async function spentForPeriod(userId: string, period: BudgetPeriod): Promise<Record<string, number>> {
   const { start, end } = periodRange(period);
   const rows = await Transaction.aggregate<{ _id: string; total: number }>([
-    { $match: { userId, type: 'expense', date: { $gte: start, $lt: end } } },
+    {
+      $match: {
+        userId,
+        type: 'expense',
+        category: { $ne: 'emergency' },
+        date: { $gte: start, $lt: end },
+      },
+    },
     { $group: { _id: '$category', total: { $sum: '$amount' } } },
   ]);
   const map: Record<string, number> = {};
-  for (const r of rows) map[r._id] = r.total;
+  let overall = 0;
+  for (const r of rows) {
+    map[r._id] = r.total;
+    overall += r.total;
+  }
+  map['overall'] = overall;
   return map;
 }
 
@@ -77,6 +89,10 @@ router.post('/', async (req: Request, res: Response) => {
     const { category, monthlyLimit, period, isPublic } = req.body ?? {};
     if (!category) {
       res.status(400).json({ message: 'category is required' });
+      return;
+    }
+    if (category === 'emergency') {
+      res.status(400).json({ message: 'Emergency cannot have a budget' });
       return;
     }
     if (typeof monthlyLimit !== 'number' || monthlyLimit <= 0) {
