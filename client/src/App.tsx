@@ -1,14 +1,16 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useSession } from './lib/auth-client';
-import AuthPage from './pages/AuthPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
+import Auth from './pages/Auth';
+import ResetPassword from './pages/ResetPassword';
+import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Goals from './pages/Goals';
 import Budgets from './pages/Budgets';
 import Friends from './pages/Friends';
 import ProfileSetup from './pages/ProfileSetup';
 import Profile from './pages/Profile';
+import Games from './pages/Games';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -30,50 +32,17 @@ export default function App() {
     <BrowserRouter>
       <ScrollToTop />
       <Routes>
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/profile/setup" element={<ProfileSetup />} />
-        <Route
-          path="/profile"
-          element={
-            <RequireProfile>
-              <Profile />
-            </RequireProfile>
-          }
-        />
-        <Route
-          path="/transactions"
-          element={
-            <RequireProfile>
-              <Transactions />
-            </RequireProfile>
-          }
-        />
-        <Route
-          path="/goals"
-          element={
-            <RequireProfile>
-              <Goals />
-            </RequireProfile>
-          }
-        />
-        <Route
-          path="/budgets"
-          element={
-            <RequireProfile>
-              <Budgets />
-            </RequireProfile>
-          }
-        />
-        <Route
-          path="/friends"
-          element={
-            <RequireProfile>
-              <Friends />
-            </RequireProfile>
-          }
-        />
         <Route path="/" element={<Home />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
+        <Route path="/profile/setup" element={<ProfileSetup />} />
+        <Route path="/dashboard" element={<RequireProfile><Dashboard /></RequireProfile>} />
+        <Route path="/transactions" element={<RequireProfile><Transactions /></RequireProfile>} />
+        <Route path="/goals" element={<RequireProfile><Goals /></RequireProfile>} />
+        <Route path="/budgets" element={<RequireProfile><Budgets /></RequireProfile>} />
+        <Route path="/friends" element={<RequireProfile><Friends /></RequireProfile>} />
+        <Route path="/profile" element={<RequireProfile><Profile /></RequireProfile>} />
+        <Route path="/games" element={<RequireProfile><Games /></RequireProfile>} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
@@ -91,19 +60,13 @@ function RequireProfile({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isPending) return;
-    if (!session) {
-      navigate('/auth');
-      return;
-    }
+    if (!session) { navigate('/auth'); return; }
     let cancelled = false;
     (async () => {
       try {
         const me = await getMyProfile();
         if (cancelled) return;
-        if (!me.profileComplete) {
-          navigate('/profile/setup');
-          return;
-        }
+        if (!me.profileComplete) { navigate('/profile/setup'); return; }
         setOk(true);
       } catch {
         if (!cancelled) navigate('/auth');
@@ -111,14 +74,12 @@ function RequireProfile({ children }: { children: ReactNode }) {
         if (!cancelled) setChecking(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [session, isPending, navigate]);
 
   if (isPending || checking) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-[var(--c-text-2)]">
+      <div className="flex items-center justify-center min-h-screen bg-[var(--c-bg)] text-[var(--c-text-2)] text-sm">
         Loading…
       </div>
     );
@@ -139,7 +100,7 @@ function HeroCtas() {
   if (session) {
     return (
       <div className="flex flex-wrap gap-3">
-        <button type="button" className={primary} onClick={() => navigate('/transactions')}>
+        <button type="button" className={primary} onClick={() => navigate('/dashboard')}>
           Open the app
         </button>
         <button type="button" className={ghost} onClick={() => navigate('/about')}>

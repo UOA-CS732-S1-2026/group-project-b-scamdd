@@ -49,6 +49,7 @@ export interface Friend {
   username: string | null;
   displayName: string | null;
   bio: string | null;
+  streak: number;
   goals: FriendGoal[];
   budgets: FriendBudget[];
 }

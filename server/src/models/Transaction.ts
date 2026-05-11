@@ -5,10 +5,12 @@ export interface ITransaction extends Document {
   title: string;
   amount: number;
   type: 'income' | 'expense';
-  category: string;
+  category?: string;
   date: Date;
   note?: string;
   mood?: string;
+  essential?: boolean;
+  paymentMethod?: string;
 }
 
 const TransactionSchema = new Schema<ITransaction>(
@@ -17,10 +19,12 @@ const TransactionSchema = new Schema<ITransaction>(
     title: { type: String, required: true },
     amount: { type: Number, required: true, min: 0 },
     type: { type: String, enum: ['income', 'expense'], required: true },
-    category: { type: String, required: true },
+    category: { type: String },
     date: { type: Date, required: true },
     note: { type: String },
     mood: { type: String },
+    essential: { type: Boolean },
+    paymentMethod: { type: String },
   },
   { timestamps: true },
 );

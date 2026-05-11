@@ -82,7 +82,7 @@ export default function ProfileSetup() {
     e.preventDefault();
     setError('');
     if (!USERNAME_RE.test(username)) {
-      setError('Username must be 3–20 chars: lowercase letters, numbers, or underscore.');
+      setError('Username must be 3-20 chars: lowercase letters, numbers, or underscore.');
       return;
     }
     if (availability === 'taken') {
@@ -129,7 +129,7 @@ export default function ProfileSetup() {
       case 'invalid':
         return (
           <span className="text-xs text-[var(--text)]">
-            3–20 chars: lowercase, numbers, or underscore
+            3-20 chars: lowercase, numbers, or underscore
           </span>
         );
       default:
