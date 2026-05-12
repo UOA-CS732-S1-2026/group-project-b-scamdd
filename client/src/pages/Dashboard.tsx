@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
 import { getTransactions } from '../api/transactions';
 import { getBudgets } from '../api/budgets';
+import { getSharedBudgets, getSharedBudgetInvites } from '../api/sharedBudgets';
 import { getMyProfile } from '../api/profile';
 import { getFriends } from '../api/friends';
 import { getMyAchievements, type Achievement } from '../api/achievements';
@@ -19,6 +20,8 @@ import { useCategories } from '../hooks/useCategories';
 import type { Transaction } from '../types/transaction';
 import type { Budget } from '../types/budget';
 import type { Friend } from '../types/friend';
+import type { SharedBudget } from '../types/sharedBudget';
+import { sharedBudgetPace } from '../components/SharedBudgetCard';
 
 // ── Period helpers ────────────────────────────────────────────────────────────
 
@@ -191,6 +194,8 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [myAchievements, setMyAchievements] = useState<Achievement[]>([]);
+  const [sharedBudgets, setSharedBudgets] = useState<SharedBudget[]>([]);
+  const [sharedInvites, setSharedInvites] = useState<SharedBudget[]>([]);
   const [likedAchievements, setLikedAchievements] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -232,13 +237,16 @@ export default function Dashboard() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [transactions, budgets, prof, friendList, ach, wrapped] = await Promise.all([
+
+      const [transactions, budgets, prof, friendList, ach, shared, invites, wrapped] = await Promise.all([
         getTransactions(),
         getBudgets(),
         getMyProfile(),
         getFriends().catch(() => [] as Friend[]),
         getMyAchievements().catch(() => [] as Achievement[]),
         getWrapped().catch(() => [] as WrappedMonth[]),
+        getSharedBudgets().catch(() => [] as SharedBudget[]),
+        getSharedBudgetInvites().catch(() => [] as SharedBudget[]),
       ]);
       setAllTransactions(transactions);
       setRawBudgets(budgets);
@@ -246,6 +254,8 @@ export default function Dashboard() {
       setFriends(friendList);
       setMyAchievements(ach);
       setWrappedMonths(wrapped);
+      setSharedBudgets(shared);
+      setSharedInvites(invites);
     } finally {
       setLoading(false);
     }
@@ -441,6 +451,15 @@ export default function Dashboard() {
   // ── Breakdown rows ────────────────────────────────────────────────────────────
   const essentialSpent    = expenses.filter(t => t.essential === true) .reduce((s, t) => s + Math.abs(t.amount), 0);
   const nonEssentialSpent = expenses.filter(t => t.essential === false).reduce((s, t) => s + Math.abs(t.amount), 0);
+  // Personal vs Shared: "Shared" = my own contribution to shared budgets as
+  // reported by the server (matches what each Shared Budget card shows for me).
+  // "Personal" = the rest of my expenses in the current view period.
+  const meId = session?.user?.id ?? '';
+  const mySharedSpent = sharedBudgets.reduce((sum, sb) => {
+    const mine = sb.members.find(m => m.userId === meId);
+    return sum + (mine?.amount ?? 0);
+  }, 0);
+  const personalSpent = Math.max(0, totalSpent - mySharedSpent);
   const breakdownRows = [
     { label: 'By category', slices: catAllSlices },
     { label: 'Essential vs Non-essential', slices: [
@@ -451,10 +470,15 @@ export default function Dashboard() {
         { label: 'Income', value: totalIncome, color: '#C5FFD8' },
         { label: 'Expenses', value: totalSpent, color: '#C68BE1' },
       ].filter(s => s.value > 0) },
-    { label: 'Personal vs Shared expenses', slices: [
-        { label: 'Personal', value: totalSpent * 0.6, color: '#FDFBD4' },
-        { label: 'Shared expenses', value: totalSpent * 0.4, color: '#FFBDC2' },
-      ].filter(s => s.value > 0) },
+    ...(sharedBudgets.length > 0
+      ? [{
+          label: 'Personal vs Shared expenses',
+          slices: [
+            { label: 'Personal', value: personalSpent, color: '#FDFBD4' },
+            { label: 'Shared', value: mySharedSpent, color: '#C68BE1' },
+          ].filter(s => s.value > 0),
+        }]
+      : []),
   ];
 
   // ── Leaderboard ───────────────────────────────────────────────────────────────
@@ -1050,8 +1074,8 @@ export default function Dashboard() {
         <div className="grid grid-cols-[2fr_3fr] gap-6 items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-[var(--c-text)]" style={{ margin: 0 }}>
-              <Highlight className="px-3 py-1">Welcome</Highlight>,{' '}
-              <span className="text-[var(--c-text)]">{profile?.displayName || profile?.name || 'there'}</span>
+              <Highlight className="px-3 py-1">Welcome</Highlight>
+              <span className="text-[var(--c-text)]">, {profile?.displayName || profile?.name || 'there'}</span>
             </h1>
             <p className="text-sm mt-2 text-[var(--c-text-2)]">Here's your spending overview for {label}.</p>
           </div>
@@ -1085,6 +1109,38 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+
+        {/* ── Shared budgets summary tile ── */}
+        {(sharedBudgets.length > 0 || sharedInvites.length > 0) && (() => {
+          const overCount = sharedBudgets.filter((b) => sharedBudgetPace(b) === 'exceeded').length;
+          const overPacingCount = sharedBudgets.filter((b) => sharedBudgetPace(b) === 'over-pacing').length;
+          const onTrackCount = sharedBudgets.length - overCount - overPacingCount;
+          return (
+            <button
+              type="button"
+              onClick={() => navigate('/budgets#shared')}
+              className="w-full mb-6 flex items-center justify-between gap-4 px-5 py-4 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-mood)] hover:opacity-90 transition-opacity text-left cursor-pointer"
+            >
+              <div className="flex items-center gap-4 min-w-0">
+                <div>
+                  <div className="text-sm font-semibold text-[var(--c-tint-mood-text)]">Shared with you</div>
+                  <div className="text-xs text-[var(--c-tint-mood-sub)]">
+                    {sharedBudgets.length} shared budget{sharedBudgets.length !== 1 ? 's' : ''}
+                    {sharedInvites.length > 0 && ` · ${sharedInvites.length} pending invite${sharedInvites.length !== 1 ? 's' : ''}`}
+                  </div>
+                </div>
+                {sharedBudgets.length > 0 && (
+                  <div className="hidden sm:flex items-center gap-2 text-xs text-[var(--c-tint-mood-sub)]">
+                    {onTrackCount > 0 && <span>{onTrackCount} on track</span>}
+                    {overPacingCount > 0 && <span>· {overPacingCount} over-pacing</span>}
+                    {overCount > 0 && <span className="text-[var(--c-negative)]">· {overCount} over</span>}
+                  </div>
+                )}
+              </div>
+              <span className="text-sm font-semibold text-[var(--c-tint-mood-text)]">View →</span>
+            </button>
+          );
+        })()}
 
         {/* ── Row 1: 2×2 stat cards + cumulative chart (always visible) ── */}
         <div className="grid grid-cols-[2fr_3fr] gap-6 mb-6">
