@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { Friendship } from '../models/Friendship';
 import { User } from '../models/User';
+import { UserAvatar } from '../models/UserAvatar';
 import { Goal } from '../models/Goal';
 import { Budget } from '../models/Budget';
 import { Transaction } from '../models/Transaction';
@@ -263,7 +264,7 @@ router.get('/', async (req: Request, res: Response) => {
       return;
     }
 
-    const [friends, goals, budgets, friendTxnDates] = await Promise.all([
+    const [friends, goals, budgets, friendTxnDates, avatarDocs] = await Promise.all([
       User.find({ _id: { $in: friendIds } }).lean(),
       Goal.find({ userId: { $in: friendIds }, isPublic: true }).lean(),
       Budget.find({ userId: { $in: friendIds }, isPublic: true }).lean(),
@@ -271,7 +272,10 @@ router.get('/', async (req: Request, res: Response) => {
         { $match: { userId: { $in: friendIds } } },
         { $group: { _id: { userId: '$userId', date: { $dateToString: { format: '%Y-%m-%d', date: '$date' } } } } },
       ]),
+      UserAvatar.find({ userId: { $in: friendIds } }).lean(),
     ]);
+
+    const avatarByUserId = new Map(avatarDocs.map((a) => [a.userId, a]));
 
     const friendDateSets = new Map<string, Set<string>>();
     for (const row of friendTxnDates) {
@@ -305,14 +309,15 @@ router.get('/', async (req: Request, res: Response) => {
       );
       const userBudgets = budgetsByUser.get(id) ?? [];
       const spentMap = spentByUser.get(id) ?? {};
+      const avatar = avatarByUserId.get(id);
       return {
         id,
         friendshipId: friendshipRow ? String(friendshipRow._id) : null,
         username: u.username ?? null,
         displayName: u.displayName ?? null,
         bio: u.bio ?? null,
-        avatarColor: u.avatarColor ?? null,
-        avatarImage: u.avatarImage ?? null,
+        avatarColor: avatar?.avatarColor ?? null,
+        avatarImage: avatar?.avatarImage ?? null,
         streak: streakFromDates(friendDateSets.get(id) ?? new Set()),
         goals: (goalsByUser.get(id) ?? []).map((g) => ({
           id: String(g._id),

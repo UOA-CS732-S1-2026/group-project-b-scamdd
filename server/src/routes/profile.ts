@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { User } from '../models/User';
+import { UserAvatar } from '../models/UserAvatar';
 import { requireAuth } from '../middleware/auth';
 
 const router = Router();
@@ -23,7 +24,11 @@ function publicProfile(u: {
 
 router.get('/me', requireAuth, async (req: Request, res: Response) => {
   try {
-    const user = await User.findById(req.user!._id).lean();
+    const userId = req.user!._id;
+    const [user, userAvatar] = await Promise.all([
+      User.findById(userId).lean(),
+      UserAvatar.findOne({ userId }).lean(),
+    ]);
     if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
@@ -37,8 +42,8 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
       bio: user.bio ?? null,
       currency: user.currency ?? 'NZD',
       phone: user.phone ?? null,
-      avatarColor: user.avatarColor ?? null,
-      avatarImage: user.avatarImage ?? null,
+      avatarColor: userAvatar?.avatarColor ?? null,
+      avatarImage: userAvatar?.avatarImage ?? null,
       profileComplete: Boolean(user.profileComplete),
     });
   } catch {
@@ -138,11 +143,28 @@ router.patch('/me', requireAuth, async (req: Request, res: Response) => {
       return;
     }
 
-    const user = await User.findByIdAndUpdate(
-      req.user!._id,
-      { $set: updates },
-      { new: true },
-    ).lean();
+    // Separate avatar fields — save to user_avatar collection so better-auth
+    // can never wipe them when it updates the user document.
+    const userId = req.user!._id;
+    const avatarPatch: Record<string, unknown> = {};
+    if (updates.avatarColor !== undefined) { avatarPatch.avatarColor = updates.avatarColor; delete updates.avatarColor; }
+    if (updates.avatarImage !== undefined) { avatarPatch.avatarImage = updates.avatarImage; delete updates.avatarImage; }
+
+    // Upsert avatar data (always, even when nothing else changes)
+    const avatarPromise = Object.keys(avatarPatch).length > 0
+      ? UserAvatar.findOneAndUpdate(
+          { userId },
+          { $set: avatarPatch },
+          { upsert: true, new: true },
+        ).lean()
+      : UserAvatar.findOne({ userId }).lean();
+
+    // Update user doc for remaining fields (if any)
+    const userPromise = Object.keys(updates).length > 0
+      ? User.findByIdAndUpdate(userId, { $set: updates }, { new: true }).lean()
+      : User.findById(userId).lean();
+
+    const [user, userAvatar] = await Promise.all([userPromise, avatarPromise]);
     if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
@@ -156,8 +178,8 @@ router.patch('/me', requireAuth, async (req: Request, res: Response) => {
       bio: user.bio ?? null,
       currency: user.currency ?? 'NZD',
       phone: user.phone ?? null,
-      avatarColor: user.avatarColor ?? null,
-      avatarImage: user.avatarImage ?? null,
+      avatarColor: userAvatar?.avatarColor ?? null,
+      avatarImage: userAvatar?.avatarImage ?? null,
       profileComplete: Boolean(user.profileComplete),
     });
   } catch (err: unknown) {
