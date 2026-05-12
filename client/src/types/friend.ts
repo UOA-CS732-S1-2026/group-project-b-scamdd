@@ -28,6 +28,14 @@ export interface Requests {
   outgoing: OutgoingRequest[];
 }
 
+export interface FriendAcceptance {
+  id: string;
+  userId: string;
+  username: string | null;
+  displayName: string | null;
+  acceptedAt: string;
+}
+
 export interface FriendGoal {
   id: string;
   name: string;

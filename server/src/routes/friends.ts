@@ -232,6 +232,8 @@ router.patch('/requests/:id', async (req: Request, res: Response) => {
       return;
     }
     f.status = action === 'accept' ? 'accepted' : 'rejected';
+    // Mark unseen for the requester only on accept; reject quietly removes.
+    f.seenByRequester = action === 'accept' ? false : true;
     await f.save();
     res.json(f);
     notify(f.requesterId, { type: 'friend-request-responded' });
@@ -359,6 +361,52 @@ router.get('/', async (req: Request, res: Response) => {
     res.json(result);
   } catch {
     res.status(500).json({ message: 'Failed to load friends' });
+  }
+});
+
+router.get('/acceptances', async (req: Request, res: Response) => {
+  try {
+    const meId = req.user!._id;
+    const rows = await Friendship.find({
+      requesterId: meId,
+      status: 'accepted',
+      seenByRequester: false,
+    })
+      .sort({ updatedAt: -1 })
+      .lean();
+    if (rows.length === 0) {
+      res.json([]);
+      return;
+    }
+    const users = await User.find({ _id: { $in: rows.map((r) => r.addresseeId) } }).lean();
+    const userById = new Map(users.map((u) => [String(u._id), u]));
+    res.json(
+      rows.map((r) => {
+        const u = userById.get(r.addresseeId);
+        return {
+          id: String(r._id),
+          userId: r.addresseeId,
+          username: u?.username ?? null,
+          displayName: u?.displayName ?? null,
+          acceptedAt: r.updatedAt,
+        };
+      }),
+    );
+  } catch {
+    res.status(500).json({ message: 'Failed to load acceptances' });
+  }
+});
+
+router.post('/acceptances/seen', async (req: Request, res: Response) => {
+  try {
+    const meId = req.user!._id;
+    await Friendship.updateMany(
+      { requesterId: meId, status: 'accepted', seenByRequester: false },
+      { $set: { seenByRequester: true } },
+    );
+    res.status(204).send();
+  } catch {
+    res.status(500).json({ message: 'Failed to mark acceptances seen' });
   }
 });
 

@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from '../lib/auth-client';
-import { getRequests, getFriends, respondToRequest } from '../api/friends';
+import {
+  getRequests,
+  getFriends,
+  respondToRequest,
+  getAcceptances,
+  markAcceptancesSeen,
+} from '../api/friends';
 import { getReceivedCheers, markCheersSeen, type ReceivedCheer } from '../api/cheers';
 import {
   acceptSharedBudgetInvite,
@@ -9,6 +15,7 @@ import {
   getSharedBudgetInvites,
 } from '../api/sharedBudgets';
 import type { SharedBudget } from '../types/sharedBudget';
+import type { FriendAcceptance } from '../types/friend';
 import { achievementMessage } from '../lib/achievementMeta';
 import FeltWordmark from './FeltWordmark';
 import type { Friend, Requests } from '../types/friend';
@@ -121,6 +128,7 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [cheers, setCheers] = useState<ReceivedCheer[]>([]);
   const [sharedInvites, setSharedInvites] = useState<SharedBudget[]>([]);
+  const [acceptances, setAcceptances] = useState<FriendAcceptance[]>([]);
   const [bellOpen, setBellOpen] = useState(false);
   const [newAtOpen, setNewAtOpen] = useState<Set<string>>(new Set());
   const bellWrapRef = useRef<HTMLDivElement>(null);
@@ -130,6 +138,7 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
     getFriends().then(setFriends).catch(() => {});
     getReceivedCheers().then(setCheers).catch(() => {});
     getSharedBudgetInvites().then(setSharedInvites).catch(() => {});
+    getAcceptances().then(setAcceptances).catch(() => {});
   };
 
   useEffect(() => {
@@ -196,9 +205,10 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
     } catch { /* ignore */ }
   };
 
-  const notifications: Array<{ id: string; kind: 'request' | 'like' | 'shared-invite'; isNew: boolean; data: any }> = [
+  const notifications: Array<{ id: string; kind: 'request' | 'like' | 'shared-invite' | 'friend-accepted'; isNew: boolean; data: any }> = [
     ...requests.incoming.map((r) => ({ id: `req-${r.id}`, kind: 'request' as const, isNew: true, data: r })),
     ...sharedInvites.map((sb) => ({ id: `shared-${sb._id}`, kind: 'shared-invite' as const, isNew: true, data: sb })),
+    ...acceptances.map((a) => ({ id: `accept-${a.id}`, kind: 'friend-accepted' as const, isNew: true, data: a })),
     ...cheers.map((c) => ({ id: `cheer-${c.id}`, kind: 'like' as const, isNew: !c.seen, data: c })),
   ];
   const unseenCount = notifications.filter((n) => n.isNew).length;
@@ -211,6 +221,9 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
         setNewAtOpen(newOnes);
         markCheersSeen().then(() => {
           setCheers((prev) => prev.map((c) => ({ ...c, seen: true })));
+        }).catch(() => {});
+        markAcceptancesSeen().then(() => {
+          setAcceptances([]);
         }).catch(() => {});
       } else {
         setNewAtOpen(new Set());
@@ -371,6 +384,30 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
                                   ✕
                                 </button>
                               </div>
+                            </li>
+                          );
+                        }
+                        if (n.kind === 'friend-accepted') {
+                          const a = n.data as FriendAcceptance;
+                          const acceptedName = a.displayName ?? a.username ?? 'Someone';
+                          const idx = friends.findIndex((fr) => fr.id === a.userId);
+                          const acceptedColor = AVATAR_PALETTE[(idx < 0 ? 0 : idx) % AVATAR_PALETTE.length];
+                          return (
+                            <li
+                              key={n.id}
+                              className={`px-4 py-3 border-b border-[var(--c-border)] last:border-b-0 flex items-center gap-3 cursor-pointer hover:bg-[var(--c-nav-active)] ${wasNew ? 'bg-[var(--c-tint-yellow)]' : ''}`}
+                              onClick={() => { setBellOpen(false); navigate('/friends'); }}
+                            >
+                              <div
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0"
+                                style={{ backgroundColor: acceptedColor }}
+                              >
+                                {initials(acceptedName)}
+                              </div>
+                              <p className="text-xs text-[var(--c-text)] flex-1 min-w-0 truncate">
+                                <span className="font-semibold">{acceptedName}</span>{' '}
+                                <span className="text-[var(--c-text-2)]">accepted your friend request</span>
+                              </p>
                             </li>
                           );
                         }
