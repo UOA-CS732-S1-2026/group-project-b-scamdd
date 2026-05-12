@@ -1,11 +1,30 @@
 import { useState } from 'react';
 import { statsToInsights } from '../lib/insights';
+import { regenerateWrapped } from '../api/wrapped';
 import type { WrappedMonth } from '../types/wrapped';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export default function MonthlyWrapped({ months }: { months: WrappedMonth[] }) {
+export default function MonthlyWrapped({
+  months,
+  onRegenerate,
+}: {
+  months: WrappedMonth[];
+  onRegenerate: (fresh: WrappedMonth[]) => void;
+}) {
   const [selected, setSelected] = useState(0);
+  const [regenerating, setRegenerating] = useState(false);
+
+  const handleRegenerate = async () => {
+    setRegenerating(true);
+    try {
+      const fresh = await regenerateWrapped();
+      setSelected(0);
+      onRegenerate(fresh);
+    } finally {
+      setRegenerating(false);
+    }
+  };
 
   if (months.length === 0) return null;
 
@@ -14,9 +33,15 @@ export default function MonthlyWrapped({ months }: { months: WrappedMonth[] }) {
 
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-4">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-[var(--c-text)] m-0">Monthly Wrapped</h2>
-        <span className="text-xs text-[var(--c-text-2)]">Your month in numbers</span>
+        <button
+          onClick={handleRegenerate}
+          disabled={regenerating}
+          className="px-3 py-1.5 rounded-full text-xs font-semibold border border-[var(--c-border)] text-[var(--c-text-2)] hover:opacity-80 transition-opacity disabled:opacity-40"
+        >
+          {regenerating ? 'Generating…' : '⟳ Regenerate'}
+        </button>
       </div>
 
       {/* Month tab strip */}

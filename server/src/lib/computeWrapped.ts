@@ -1,0 +1,99 @@
+import type { ITransaction } from '../models/Transaction';
+import type { IWrappedStats } from '../models/MonthlyWrapped';
+
+const MOOD_VALUES: Record<string, number> = { regret: 1, meh: 2, okay: 3, glad: 4, 'worth-it': 5 };
+
+export function computeWrappedStats(txns: ITransaction[]): IWrappedStats {
+  const expenses = txns.filter((t) => t.type === 'expense');
+  const income   = txns.filter((t) => t.type === 'income');
+
+  const totalSpent  = expenses.reduce((s, t) => s + t.amount, 0);
+  const totalIncome = income.reduce((s, t) => s + t.amount, 0);
+  const savingsRate = totalIncome > 0 ? (totalIncome - totalSpent) / totalIncome : -1;
+
+  // Top category
+  const catTotals: Record<string, number> = {};
+  for (const t of expenses) {
+    const c = t.category ?? 'other';
+    catTotals[c] = (catTotals[c] ?? 0) + t.amount;
+  }
+  const topCategory = Object.entries(catTotals).sort((a, b) => b[1] - a[1])[0] ?? ['other', 0];
+
+  // Biggest expense
+  const biggest = expenses.reduce<ITransaction | null>(
+    (b, t) => (!b || t.amount > b.amount ? t : b), null,
+  );
+
+  // Most regretted: has mood, lowest mood value, highest spend among ties
+  const moodedExpenses = expenses.filter((t) => t.mood && MOOD_VALUES[t.mood] !== undefined);
+  const mostRegretted = moodedExpenses.reduce<ITransaction | null>((b, t) => {
+    if (!b) return t;
+    const bv = MOOD_VALUES[b.mood!], tv = MOOD_VALUES[t.mood!];
+    if (tv < bv) return t;
+    if (tv === bv && t.amount > b.amount) return t;
+    return b;
+  }, null);
+
+  // Happiest: worth-it mood, highest spend
+  const happiest = expenses
+    .filter((t) => t.mood === 'worth-it')
+    .reduce<ITransaction | null>((b, t) => (!b || t.amount > b.amount ? t : b), null);
+
+  // Busiest day
+  const dayTotals: Record<number, number> = {};
+  for (const t of expenses) {
+    const day = new Date(t.date).getDate();
+    dayTotals[day] = (dayTotals[day] ?? 0) + t.amount;
+  }
+  const busiestEntry = Object.entries(dayTotals).sort((a, b) => b[1] - a[1])[0] ?? ['1', 0];
+
+  // Daily average (over days that have any transaction)
+  const activeDays = Object.keys(dayTotals).length || 1;
+  const avgDailySpend = totalSpent / activeDays;
+
+  // Mood average (expense-spend-weighted)
+  const moodTotal = moodedExpenses.reduce((s, t) => s + t.amount, 0);
+  const moodAvg = moodTotal > 0
+    ? moodedExpenses.reduce((s, t) => s + MOOD_VALUES[t.mood!] * t.amount, 0) / moodTotal
+    : 3;
+
+  return {
+    totalSpent,
+    totalIncome,
+    savingsRate,
+    transactionCount: txns.length,
+    topCategory: topCategory[0],
+    topCategoryAmount: topCategory[1],
+    biggestExpenseTitle:  biggest?.title ?? '',
+    biggestExpenseAmount: biggest?.amount ?? 0,
+    mostRegrettedTitle:   mostRegretted?.title ?? '',
+    mostRegrettedAmount:  mostRegretted?.amount ?? 0,
+    happiestTitle:        happiest?.title ?? '',
+    happiestAmount:       happiest?.amount ?? 0,
+    busiestDayOfMonth:    Number(busiestEntry[0]),
+    busiestDayAmount:     busiestEntry[1],
+    avgDailySpend,
+    moodAvg,
+  };
+}
+
+/** Returns all completed (year, month) pairs from a list of transactions, excluding the current month. */
+export function completedMonths(txns: ITransaction[]): { year: number; month: number }[] {
+  const now = new Date();
+  const currentYear  = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  const seen = new Set<string>();
+  for (const t of txns) {
+    const d = new Date(t.date);
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    if (y < currentYear || (y === currentYear && m < currentMonth)) {
+      seen.add(`${y}-${m}`);
+    }
+  }
+
+  return [...seen]
+    .map((k) => { const [y, m] = k.split('-').map(Number); return { year: y, month: m }; })
+    .sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month);
+}
