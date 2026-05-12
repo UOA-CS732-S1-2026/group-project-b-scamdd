@@ -14,8 +14,6 @@ const router = Router();
 
 router.use(requireAuth);
 
-const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
-
 function periodRange(period: BudgetPeriod): { start: Date; end: Date } {
   const now = new Date();
   switch (period) {
