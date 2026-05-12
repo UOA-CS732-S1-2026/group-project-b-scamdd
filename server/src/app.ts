@@ -11,6 +11,7 @@ import gameRoutes from './routes/games';
 import categoryRoutes from './routes/categories';
 import achievementRoutes from './routes/achievements';
 import cheerRoutes from './routes/cheers';
+import wrappedRoutes from './routes/wrapped';
 
 export const app = express();
 
@@ -39,5 +40,6 @@ app.use('/api/games', gameRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/cheers', cheerRoutes);
+app.use('/api/wrapped', wrappedRoutes);
 
 app.get('/favicon.ico', (_req, res) => res.status(204).end());
