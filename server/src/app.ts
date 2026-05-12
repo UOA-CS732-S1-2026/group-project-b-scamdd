@@ -16,9 +16,14 @@ import wrappedRoutes from './routes/wrapped.js';
 
 export const app = express();
 
+const allowedOrigins = [
+  process.env.CLIENT_URL ?? 'http://localhost:5173',
+  ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+];
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL ?? 'http://localhost:5173',
+    origin: allowedOrigins,
     credentials: true,
   }),
 );

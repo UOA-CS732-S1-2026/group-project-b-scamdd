@@ -16,7 +16,10 @@ const transporter = process.env.SMTP_HOST
 
 export const auth = betterAuth({
   database: mongodbAdapter(client.db()),
-  trustedOrigins: [process.env.CLIENT_URL ?? 'http://localhost:5173'],
+  trustedOrigins: [
+    process.env.CLIENT_URL ?? 'http://localhost:5173',
+    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+  ],
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, token }) => {
