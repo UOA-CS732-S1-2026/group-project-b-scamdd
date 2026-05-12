@@ -443,6 +443,12 @@ export default function Dashboard() {
   // ── Breakdown rows ────────────────────────────────────────────────────────────
   const essentialSpent    = expenses.filter(t => t.essential === true) .reduce((s, t) => s + Math.abs(t.amount), 0);
   const nonEssentialSpent = expenses.filter(t => t.essential === false).reduce((s, t) => s + Math.abs(t.amount), 0);
+  // Personal vs Shared: categorise the caller's own expenses by whether the
+  // category is covered by one of their accepted shared budgets.
+  const sharedCategorySet = new Set(sharedBudgets.map(b => b.category));
+  const sharedSpent  = expenses.filter(t => t.category && sharedCategorySet.has(t.category))
+                               .reduce((s, t) => s + Math.abs(t.amount), 0);
+  const personalSpent = Math.max(0, totalSpent - sharedSpent);
   const breakdownRows = [
     { label: 'By category', slices: catAllSlices },
     { label: 'Essential vs Non-essential', slices: [
@@ -454,8 +460,8 @@ export default function Dashboard() {
         { label: 'Expenses', value: totalSpent, color: '#C68BE1' },
       ].filter(s => s.value > 0) },
     { label: 'Personal vs Shared expenses', slices: [
-        { label: 'Personal', value: totalSpent * 0.6, color: '#FDFBD4' },
-        { label: 'Shared expenses', value: totalSpent * 0.4, color: '#FFBDC2' },
+        { label: 'Personal', value: personalSpent, color: '#FDFBD4' },
+        { label: 'Shared', value: sharedSpent, color: '#C68BE1' },
       ].filter(s => s.value > 0) },
   ];
 
@@ -1044,8 +1050,8 @@ export default function Dashboard() {
         <div className="grid grid-cols-[2fr_3fr] gap-6 items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-[var(--c-text)]" style={{ margin: 0 }}>
-              <Highlight className="px-3 py-1">Welcome</Highlight>,{' '}
-              <span className="text-[var(--c-text)]">{profile?.displayName || profile?.name || 'there'}</span>
+              <Highlight className="px-3 py-1">Welcome</Highlight>
+              <span className="text-[var(--c-text)]">, {profile?.displayName || profile?.name || 'there'}</span>
             </h1>
             <p className="text-sm mt-2 text-[var(--c-text-2)]">Here's your spending overview for {label}.</p>
           </div>
