@@ -166,6 +166,8 @@ function Leaderboard({ game, entries, loading }: {
           {entries.map((e) => {
             const ranked = e.score !== null;
             const rank = entries.filter(x => x.score !== null).findIndex(x => x.userId === e.userId);
+            const avatarBg = e.avatarImage ? 'transparent' : (e.avatarColor ?? '#C68BE1');
+            const avatarInitials = (e.name || '?').split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('') || '?';
             return (
               <div
                 key={e.userId}
@@ -176,6 +178,14 @@ function Leaderboard({ game, entries, loading }: {
                 <span className="text-sm w-6 text-center flex-shrink-0 font-bold text-[var(--c-text-2)]">
                   {ranked ? (rank < 3 ? RANK_MEDALS[rank] : `#${rank + 1}`) : '-'}
                 </span>
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
+                  style={{ backgroundColor: avatarBg }}
+                >
+                  {e.avatarImage
+                    ? <img src={e.avatarImage} alt={e.name} className="w-full h-full object-cover" />
+                    : avatarInitials}
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-[var(--c-text)] truncate">
                     {e.name}{e.isMe && <span className="text-xs text-[var(--c-text-2)] ml-1">(you)</span>}

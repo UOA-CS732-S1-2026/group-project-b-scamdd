@@ -179,18 +179,25 @@ router.get('/requests', async (req: Request, res: Response) => {
     }).lean();
 
     const otherIds = all.map((f) => (f.requesterId === meId ? f.addresseeId : f.requesterId));
-    const users = await User.find({ _id: { $in: otherIds } }).lean();
+    const [users, avatarDocs] = await Promise.all([
+      User.find({ _id: { $in: otherIds } }).lean(),
+      UserAvatar.find({ userId: { $in: otherIds } }).lean(),
+    ]);
     const userById = new Map(users.map((u) => [String(u._id), u]));
+    const avatarByUserId = new Map(avatarDocs.map((a) => [a.userId, a]));
 
     const incoming = all
       .filter((f) => f.addresseeId === meId)
       .map((f) => {
         const u = userById.get(f.requesterId);
+        const av = avatarByUserId.get(f.requesterId);
         return {
           id: String(f._id),
           fromId: f.requesterId,
           username: u?.username ?? null,
           displayName: u?.displayName ?? null,
+          avatarColor: av?.avatarColor ?? null,
+          avatarImage: av?.avatarImage ?? null,
           createdAt: f.createdAt,
         };
       });
@@ -198,11 +205,14 @@ router.get('/requests', async (req: Request, res: Response) => {
       .filter((f) => f.requesterId === meId)
       .map((f) => {
         const u = userById.get(f.addresseeId);
+        const av = avatarByUserId.get(f.addresseeId);
         return {
           id: String(f._id),
           toId: f.addresseeId,
           username: u?.username ?? null,
           displayName: u?.displayName ?? null,
+          avatarColor: av?.avatarColor ?? null,
+          avatarImage: av?.avatarImage ?? null,
           createdAt: f.createdAt,
         };
       });
@@ -382,16 +392,24 @@ router.get('/acceptances', async (req: Request, res: Response) => {
       res.json([]);
       return;
     }
-    const users = await User.find({ _id: { $in: rows.map((r) => r.addresseeId) } }).lean();
+    const userIds = rows.map((r) => r.addresseeId);
+    const [users, avatarDocs] = await Promise.all([
+      User.find({ _id: { $in: userIds } }).lean(),
+      UserAvatar.find({ userId: { $in: userIds } }).lean(),
+    ]);
     const userById = new Map(users.map((u) => [String(u._id), u]));
+    const avatarByUserId = new Map(avatarDocs.map((a) => [a.userId, a]));
     res.json(
       rows.map((r) => {
         const u = userById.get(r.addresseeId);
+        const av = avatarByUserId.get(r.addresseeId);
         return {
           id: String(r._id),
           userId: r.addresseeId,
           username: u?.username ?? null,
           displayName: u?.displayName ?? null,
+          avatarColor: av?.avatarColor ?? null,
+          avatarImage: av?.avatarImage ?? null,
           acceptedAt: r.updatedAt,
         };
       }),

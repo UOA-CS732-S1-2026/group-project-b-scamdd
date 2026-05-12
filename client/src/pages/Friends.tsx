@@ -272,7 +272,7 @@ export default function Friends() {
           for (const a of myAchievements) {
             feedRows.push({
               id: `me-${a.key}`, key: a.key, toUserId: profile?.id ?? '', name: myName, isMe: true,
-              color: '#C68BE1', earnedAt: a.earnedAt,
+              color: myAvatarColor, image: myAvatarImage, earnedAt: a.earnedAt,
               message: achievementMessage(a.key, true),
             });
           }
@@ -282,7 +282,7 @@ export default function Friends() {
             for (const a of f.achievements ?? []) {
               feedRows.push({
                 id: `${f.id}-${a.key}`, key: a.key, toUserId: f.id, name: fname, isMe: false,
-                color: AVATAR_PALETTE[i % AVATAR_PALETTE.length], earnedAt: a.earnedAt,
+                color: f.avatarColor ?? AVATAR_PALETTE[i % AVATAR_PALETTE.length], image: f.avatarImage ?? null, earnedAt: a.earnedAt,
                 message: achievementMessage(a.key, false),
               });
             }
@@ -399,7 +399,7 @@ export default function Friends() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {withBudgets.map((f, i) => {
                   const name = f.displayName ?? f.username ?? 'Friend';
-                  const color = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
+                  const color = f.avatarColor ?? AVATAR_PALETTE[i % AVATAR_PALETTE.length];
                   return (
                     <div
                       key={f.id}
@@ -407,10 +407,12 @@ export default function Friends() {
                     >
                       <div className="flex items-center gap-3 mb-4">
                         <div
-                          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0"
-                          style={{ backgroundColor: color }}
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
+                          style={{ backgroundColor: f.avatarImage ? 'transparent' : color }}
                         >
-                          {initials(name)}
+                          {f.avatarImage
+                            ? <img src={f.avatarImage} alt={name} className="w-full h-full object-cover" />
+                            : initials(name)}
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-[var(--c-text)] truncate">{name}</p>

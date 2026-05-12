@@ -75,10 +75,7 @@ export default function Profile() {
   const { fmt, fmtY, setCurrency: setGlobalCurrency } = useCurrency();
   const { setAvatarColor: setGlobalAvatarColor, setAvatarImage: setGlobalAvatarImage } = useProfileAvatar();
 
-  const [tab, setTab] = useState<ProfileTab>(() => {
-    const saved = localStorage.getItem('profile-tab');
-    return (saved === 'home' || saved === 'stats' || saved === 'account') ? saved : 'home';
-  });
+  const [tab, setTab] = useState<ProfileTab>('home');
   const [profile, setProfile] = useState<ProfileType | null>(null);
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [rawBudgets, setRawBudgets] = useState<Budget[]>([]);
@@ -339,10 +336,16 @@ export default function Profile() {
         {requests.incoming.map(req => {
           const name = req.displayName || req.username || 'Someone';
           const ini = initials(name);
-          const color = AVATAR_PALETTE[Math.abs(req.fromId.charCodeAt(0)) % AVATAR_PALETTE.length];
+          const reqColor = req.avatarColor ?? AVATAR_PALETTE[Math.abs(req.fromId.charCodeAt(0)) % AVATAR_PALETTE.length];
+          const reqImage = req.avatarImage ?? null;
           return (
             <div key={req.id} className="flex items-center gap-3 py-3 flex-wrap">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] flex-shrink-0" style={{ backgroundColor: color }}>{ini}</div>
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] flex-shrink-0 overflow-hidden"
+                style={{ backgroundColor: reqImage ? 'transparent' : reqColor }}
+              >
+                {reqImage ? <img src={reqImage} alt={name} className="w-full h-full object-cover" /> : ini}
+              </div>
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-semibold text-[var(--c-text)]">{name}</span>
                 <span className="text-sm text-[var(--c-text-2)]"> • Sent you a friend request</span>
@@ -356,13 +359,19 @@ export default function Profile() {
         })}
 
         {/* Accepted friends */}
-        {friends.slice(0, 3).map((f, i) => {
+        {friends.slice(0, 3).map((f) => {
           const name = f.displayName || f.username || 'Friend';
           const ini = initials(name);
-          const color = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
+          const fColor = f.avatarColor ?? '#C68BE1';
+          const fImage = f.avatarImage ?? null;
           return (
             <div key={f.id} className="flex items-center gap-3 py-3">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] flex-shrink-0" style={{ backgroundColor: color }}>{ini}</div>
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] flex-shrink-0 overflow-hidden"
+                style={{ backgroundColor: fImage ? 'transparent' : fColor }}
+              >
+                {fImage ? <img src={fImage} alt={name} className="w-full h-full object-cover" /> : ini}
+              </div>
               <div className="flex-1 min-w-0 text-sm">
                 <span className="font-semibold text-[var(--c-text)]">{name}</span>
                 <span className="text-[var(--c-text-2)]"> • Accepted your friend request!</span>
