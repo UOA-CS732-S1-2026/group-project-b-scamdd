@@ -17,7 +17,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.33.2",
+  "packageManager": "pnpm@11.1.0",
   "dependencies": {
     "better-auth": "^1.6.9",
     "cors": "^2.8.6",
