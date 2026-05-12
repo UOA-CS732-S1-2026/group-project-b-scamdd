@@ -9,7 +9,7 @@ import TransactionForm from '../components/TransactionForm';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useTheme } from '../hooks/useTheme';
 import type { Transaction } from '../types/transaction';
-import { CATEGORIES } from '../types/transaction';
+import { useCategories } from '../hooks/useCategories';
 
 const MOOD_DISPLAY: Record<string, { label: string; emoji: string; color: string; value: number }> = {
   'regret':   { label: 'Regret',   emoji: '😞', color: '#FFBDC2', value: 1 },
@@ -77,6 +77,9 @@ export default function Transactions() {
   const [filterAmountMin, setFilterAmountMin] = useState<string>('');
   const [filterAmountMax, setFilterAmountMax] = useState<string>('');
   const [filtersOpen, setFiltersOpen] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  const { allCategories } = useCategories();
 
   useEffect(() => {
     if (!isPending && !session) navigate('/auth');
@@ -117,6 +120,7 @@ export default function Transactions() {
   };
 
   const filteredTransactions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
     const list = transactions.filter((t) => {
       if (filterType !== 'all' && t.type !== filterType) return false;
       if (filterCategory !== 'all' && t.category !== filterCategory) return false;
@@ -126,6 +130,7 @@ export default function Transactions() {
       const amt = Math.abs(t.amount);
       if (filterAmountMin && amt < Number(filterAmountMin)) return false;
       if (filterAmountMax && amt > Number(filterAmountMax)) return false;
+      if (q && !t.title.toLowerCase().includes(q) && !(t.note ?? '').toLowerCase().includes(q)) return false;
       return true;
     });
     return [...list].sort((a, b) => {
@@ -137,19 +142,21 @@ export default function Transactions() {
         case 'regretful': return (MOOD_DISPLAY[a.mood ?? '']?.value ?? 99) - (MOOD_DISPLAY[b.mood ?? '']?.value ?? 99);
       }
     });
-  }, [transactions, filterType, filterCategory, filterFrom, filterTo, filterMood, filterAmountMin, filterAmountMax, sortBy]);
+  }, [transactions, filterType, filterCategory, filterFrom, filterTo, filterMood, filterAmountMin, filterAmountMax, sortBy, searchQuery]);
 
   const hasActiveFilters =
     filterType !== 'all' || filterCategory !== 'all' || filterFrom !== '' || filterTo !== ''
-    || filterMood !== 'all' || filterAmountMin !== '' || filterAmountMax !== '' || timeRange !== 'all' || sortBy !== 'recent';
+    || filterMood !== 'all' || filterAmountMin !== '' || filterAmountMax !== '' || timeRange !== 'all' || sortBy !== 'recent'
+    || searchQuery !== '';
 
   const stats = useMemo(() => {
     const expenses = filteredTransactions.filter(t => t.type === 'expense');
     const spent = expenses.reduce((s, t) => s + Math.abs(t.amount), 0);
     const biggest = expenses.reduce<Transaction | null>((b, t) => !b || Math.abs(t.amount) > Math.abs(b.amount) ? t : b, null);
-    const moodList = filteredTransactions.filter(t => t.mood && MOOD_DISPLAY[t.mood]);
-    const moodAvg = moodList.length
-      ? moodList.reduce((s, t) => s + (MOOD_DISPLAY[t.mood!].value), 0) / moodList.length
+    const moodList = filteredTransactions.filter(t => t.essential === false && t.mood && MOOD_DISPLAY[t.mood]);
+    const moodTotalSpent = moodList.reduce((s, t) => s + Math.abs(t.amount), 0);
+    const moodAvg = moodTotalSpent > 0
+      ? moodList.reduce((s, t) => s + MOOD_DISPLAY[t.mood!].value * Math.abs(t.amount), 0) / moodTotalSpent
       : 0;
     const moodEmoji = moodAvg >= 4.5 ? '🤩' : moodAvg >= 3.5 ? '😊' : moodAvg >= 2.5 ? '😐' : moodAvg >= 1.5 ? '😕' : moodAvg > 0 ? '😞' : '—';
     return { spent, count: filteredTransactions.length, biggest, moodAvg, moodEmoji };
@@ -229,7 +236,7 @@ export default function Transactions() {
             bg="#C68BE1"
             label="Mood average"
             sub="This month's average"
-            value={stats.moodAvg ? `${stats.moodAvg.toFixed(2)}/5 ${stats.moodEmoji}` : '—'}
+            value={stats.moodAvg ? `${stats.moodAvg.toFixed(1)}/5 ${stats.moodEmoji}` : '—'}
           />
         </div>
 
@@ -243,9 +250,9 @@ export default function Transactions() {
               <div className="text-xs text-[var(--c-text-2)] mb-4">
                 {dailySpend.monthLabel} · ${dailySpend.bars.reduce((s, b) => s + b.total, 0).toFixed(2)} spent
               </div>
-              <div className="flex items-end gap-1 h-40">
+              <div className="flex items-end gap-1 h-36">
                 {dailySpend.bars.map(b => (
-                  <div key={b.day} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+                  <div key={b.day} className="flex-1 h-full flex flex-col justify-end">
                     <div
                       className="w-full rounded-t-md transition-all"
                       style={{
@@ -254,6 +261,12 @@ export default function Transactions() {
                       }}
                       title={`Day ${b.day}: $${b.total.toFixed(2)}`}
                     />
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-1 mt-1">
+                {dailySpend.bars.map(b => (
+                  <div key={b.day} className="flex-1 flex justify-center">
                     {(b.day === 1 || b.day % 5 === 0 || b.day === dailySpend.bars.length) && (
                       <span className="text-[10px] text-[var(--c-text-2)] leading-none">{b.day}</span>
                     )}
@@ -285,6 +298,20 @@ export default function Transactions() {
             </button>
 
             {filtersOpen && (<>
+            {/* Search */}
+            <div className="relative mb-4">
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--c-text-2)] pointer-events-none" width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <circle cx="6.5" cy="6.5" r="4.5" />
+                <path d="M10.5 10.5l3 3" />
+              </svg>
+              <input
+                type="search"
+                placeholder="Search by title or note…"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-[rgba(109,109,109,0.5)] bg-[var(--c-card)] text-sm text-[var(--c-text)] placeholder:text-[var(--c-text-2)] focus:outline-none focus:border-[var(--c-text)] transition-colors"
+              />
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1">
             <FilterGroup label="SORT BY">
               {(['recent', 'largest', 'smallest', 'happiest', 'regretful'] as SortOption[]).map(s => (
@@ -332,7 +359,7 @@ export default function Transactions() {
 
             <FilterGroup label="CATEGORY">
               <FilterChip active={filterCategory === 'all'} onClick={() => setFilterCategory('all')}>All</FilterChip>
-              {CATEGORIES.map(c => (
+              {allCategories.map(c => (
                 <FilterChip key={c} active={filterCategory === c} onClick={() => setFilterCategory(c)}>
                   <span className="capitalize">{c}</span>
                 </FilterChip>
@@ -377,7 +404,7 @@ export default function Transactions() {
               onClick={() => {
                 setFilterType('all'); setFilterCategory('all'); setFilterFrom(''); setFilterTo('');
                 setFilterMood('all'); setFilterAmountMin(''); setFilterAmountMax('');
-                setSortBy('recent'); setTimeRange('all');
+                setSortBy('recent'); setTimeRange('all'); setSearchQuery('');
               }}
               className="mt-4 px-4 py-2 rounded-[20px] text-sm border border-[rgba(109,109,109,0.8)] bg-[var(--c-card)] text-[var(--c-text)] hover:opacity-80 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >

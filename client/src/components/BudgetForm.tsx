@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { CATEGORIES, EMERGENCY_CATEGORY, OVERALL_CATEGORY } from '../types/transaction';
+import { EMERGENCY_CATEGORY, OVERALL_CATEGORY } from '../types/transaction';
 import type { Budget, BudgetInput, BudgetPeriod } from '../types/budget';
 import { PERIOD_LABELS } from '../types/budget';
 import { createBudget, updateBudget } from '../api/budgets';
+import { useCategories } from '../hooks/useCategories';
+import ManageCategoriesModal from './ManageCategoriesModal';
 
 interface Props {
   budget?: Budget;
-  existingCategories: string[];
+  existingBudgets: Array<{ category: string; period: BudgetPeriod }>;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -16,7 +18,10 @@ const PERIODS: BudgetPeriod[] = ['daily', 'weekly', 'monthly', 'yearly'];
 const inputClass =
   'px-4 py-2.5 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[var(--c-card)] text-[var(--c-text)] text-sm placeholder:text-[var(--c-text-2)] focus:outline-none focus:border-[var(--c-text)] transition-colors w-full';
 
-export default function BudgetForm({ budget, existingCategories, onSuccess, onCancel }: Props) {
+export default function BudgetForm({ budget, existingBudgets, onSuccess, onCancel }: Props) {
+  const { allCategories, userCategories, refresh } = useCategories();
+  const [showManage, setShowManage] = useState(false);
+
   const [form, setForm] = useState<BudgetInput>({
     category: '',
     monthlyLimit: 0,
@@ -37,10 +42,10 @@ export default function BudgetForm({ budget, existingCategories, onSuccess, onCa
     }
   }, [budget]);
 
-  const budgetableCategories = CATEGORIES.filter((c) => c !== EMERGENCY_CATEGORY);
+  const budgetableCategories = allCategories.filter((c) => c !== EMERGENCY_CATEGORY);
   const availableCategories = budget
     ? budgetableCategories
-    : budgetableCategories.filter((c) => !existingCategories.includes(c));
+    : budgetableCategories.filter((c) => !existingBudgets.some((b) => b.category === c && b.period === form.period));
 
   function set<K extends keyof BudgetInput>(key: K, value: BudgetInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -58,6 +63,7 @@ export default function BudgetForm({ budget, existingCategories, onSuccess, onCa
     try {
       if (budget) {
         await updateBudget(budget._id, {
+          category: form.category,
           monthlyLimit: form.monthlyLimit,
           period: form.period,
           isPublic: form.isPublic,
@@ -76,28 +82,46 @@ export default function BudgetForm({ budget, existingCategories, onSuccess, onCa
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="w-full max-w-md bg-[var(--c-card)] border border-[rgba(109,109,109,0.8)] rounded-3xl flex flex-col max-h-[92vh]">
-        <div className="px-7 pt-6 pb-3 flex justify-between items-start flex-shrink-0">
-          <div>
-            <h2 className="text-2xl font-bold text-[var(--c-text)]">
-              {budget ? 'Edit budget' : 'New budget'}
-            </h2>
-            <p className="text-sm text-[var(--c-text-2)] mt-1">
-              Set a spending cap and track your pace.
-            </p>
+        {showManage ? (
+          <ManageCategoriesModal
+            userCategories={userCategories}
+            onBack={() => setShowManage(false)}
+            onChanged={refresh}
+          />
+        ) : (
+          <>
+          <div className="px-7 pt-6 pb-3 flex justify-between items-start flex-shrink-0">
+            <div>
+              <h2 className="text-2xl font-bold text-[var(--c-text)]">
+                {budget ? 'Edit budget' : 'New budget'}
+              </h2>
+              <p className="text-sm text-[var(--c-text-2)] mt-1">
+                Set a spending cap and track your pace.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onCancel}
+              aria-label="Close"
+              className="text-2xl leading-none text-[var(--c-text-2)] hover:text-[var(--c-text)] cursor-pointer px-2"
+            >
+              ×
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onCancel}
-            aria-label="Close"
-            className="text-2xl leading-none text-[var(--c-text-2)] hover:text-[var(--c-text)] cursor-pointer px-2"
-          >
-            ×
-          </button>
-        </div>
 
-        <form className="flex flex-col gap-5 overflow-y-auto px-7 pb-7" onSubmit={handleSubmit}>
+          <form className="flex flex-col gap-5 overflow-y-auto px-7 pb-7" onSubmit={handleSubmit}>
+          {/* Category — pill grid */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-[var(--c-text)]">Category</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold text-[var(--c-text)]">Category</label>
+              <button
+                type="button"
+                onClick={() => setShowManage(true)}
+                className="text-xs text-[var(--c-text-2)] hover:text-[var(--c-text)] cursor-pointer transition-colors"
+              >
+                + Manage categories
+              </button>
+            </div>
             <button
               type="button"
               disabled={Boolean(budget) && form.category !== OVERALL_CATEGORY}
@@ -118,9 +142,8 @@ export default function BudgetForm({ budget, existingCategories, onSuccess, onCa
                   <button
                     key={c}
                     type="button"
-                    disabled={Boolean(budget) && form.category !== c}
                     onClick={() => set('category', c)}
-                    className={`py-2 px-3 rounded-2xl text-sm font-medium border transition-colors cursor-pointer capitalize disabled:opacity-40 disabled:cursor-not-allowed ${
+                    className={`py-2 px-3 rounded-2xl text-sm font-medium border transition-colors cursor-pointer capitalize ${
                       selected
                         ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
                         : 'bg-[var(--c-card)] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
@@ -133,7 +156,7 @@ export default function BudgetForm({ budget, existingCategories, onSuccess, onCa
             </div>
             {!budget && availableCategories.length === 0 && (
               <p className="text-xs text-[var(--c-text-2)]">
-                Every category already has a budget. Edit one instead.
+                Every category already has a {form.period} budget. Try a different period or edit an existing one.
               </p>
             )}
           </div>
@@ -203,7 +226,9 @@ export default function BudgetForm({ budget, existingCategories, onSuccess, onCa
           >
             {loading ? 'Saving…' : budget ? 'Save changes' : 'Create budget'}
           </button>
-        </form>
+          </form>
+          </>
+        )}
       </div>
     </div>
   );
