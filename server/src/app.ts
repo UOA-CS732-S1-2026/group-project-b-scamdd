@@ -26,7 +26,7 @@ app.use(
 // Must be mounted before express.json()
 app.all('/api/auth/*path', toNodeHandler(auth));
 
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });

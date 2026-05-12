@@ -323,10 +323,10 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
                               onClick={goToNotification}
                             >
                               <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0 bg-[#C68BE1]">
-                                {initials(r.displayName ?? r.username ?? '?')}
+                                {initials(r.displayName ?? '?')}
                               </div>
                               <p className="text-xs text-[var(--c-text)] flex-1 min-w-0 truncate">
-                                <span className="font-semibold">{r.displayName ?? r.username}</span>{' '}
+                                <span className="font-semibold">{r.displayName ?? 'Someone'}</span>{' '}
                                 <span className="text-[var(--c-text-2)]">sent you a friend request</span>
                               </p>
                               <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>

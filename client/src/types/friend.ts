@@ -65,6 +65,8 @@ export interface Friend {
   username: string | null;
   displayName: string | null;
   bio: string | null;
+  avatarColor: string | null;
+  avatarImage: string | null;
   streak: number;
   achievements: FriendAchievement[];
   goals: FriendGoal[];

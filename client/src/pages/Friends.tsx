@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
 import {
@@ -16,6 +16,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Highlight from '../components/Highlight';
 import { useTheme } from '../hooks/useTheme';
+import { useProfileAvatar } from '../context/ProfileContext';
 import { achievementMessage } from '../lib/achievementMeta';
 import type { Friend, Requests, SearchResult } from '../types/friend';
 import { PERIOD_LABELS } from '../types/budget';
@@ -67,6 +68,7 @@ export default function Friends() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
+  const { avatarColor: myAvatarColor, avatarImage: myAvatarImage } = useProfileAvatar();
 
   const [friends, setFriends] = useState<Friend[]>([]);
   const [requests, setRequests] = useState<Requests>({ incoming: [], outgoing: [] });
@@ -76,9 +78,10 @@ export default function Friends() {
   const [myAchievements, setMyAchievements] = useState<Achievement[]>([]);
 
   const [query, setQuery] = useState('');
-  const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchError, setSearchError] = useState('');
   const [searching, setSearching] = useState(false);
+  const searchDebounceRef = useRef<number | null>(null);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [likedAchievements, setLikedAchievements] = useState<Set<string>>(new Set());
@@ -149,26 +152,44 @@ export default function Friends() {
     }
   }, [session, load, refreshSentCheers]);
 
+  // Live debounced search as user types
+  useEffect(() => {
+    if (searchDebounceRef.current) window.clearTimeout(searchDebounceRef.current);
+    const q = query.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      setSearchError('');
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    // strip leading @ so users can type @username and it still works
+    const bare = q.startsWith('@') ? q.slice(1) : q;
+    searchDebounceRef.current = window.setTimeout(async () => {
+      try {
+        const results = await searchUser(bare);
+        setSearchResults(results);
+        setSearchError(results.length === 0 ? 'No users found' : '');
+      } catch (err) {
+        setSearchError(err instanceof Error ? err.message : 'Search failed');
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => {
+      if (searchDebounceRef.current) window.clearTimeout(searchDebounceRef.current);
+    };
+  }, [query]);
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSearchResult(null);
-    setSearchError('');
-    if (!query.trim()) return;
-    setSearching(true);
-    try {
-      const result = await searchUser(query.trim().toLowerCase());
-      setSearchResult(result);
-    } catch (err) {
-      setSearchError(err instanceof Error ? err.message : 'User not found');
-    } finally {
-      setSearching(false);
-    }
   };
 
   const handleAdd = async (addresseeId: string) => {
     try {
       await sendRequest(addresseeId);
-      setSearchResult((r) => (r ? { ...r, status: 'pending-out' } : r));
+      setSearchResults((prev) => prev.map((r) => r.id === addresseeId ? { ...r, status: 'pending-out' } : r));
       load();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to send request');
@@ -235,17 +256,18 @@ export default function Friends() {
         {/* Achievements + Streak board */}
         {(() => {
           const myName = profile?.displayName || profile?.name || 'You';
-          const myEntry = { id: 'me', name: myName, streak: myStreak, isMe: true, color: '#C68BE1' };
-          const friendEntries = friends.map((f, i) => ({
+          const myEntry = { id: 'me', name: myName, streak: myStreak, isMe: true, color: myAvatarColor, image: myAvatarImage };
+          const friendEntries = friends.map((f) => ({
             id: f.id,
-            name: f.displayName ?? f.username ?? 'Friend',
+            name: f.displayName ?? 'Friend',
             streak: f.streak,
             isMe: false,
-            color: AVATAR_PALETTE[i % AVATAR_PALETTE.length],
+            color: f.avatarColor ?? '#C68BE1',
+            image: f.avatarImage ?? null,
           }));
           const everyone = [myEntry, ...friendEntries];
 
-          type Row = { id: string; key: string; toUserId: string; name: string; isMe: boolean; color: string; earnedAt: string; message: string };
+          type Row = { id: string; key: string; toUserId: string; name: string; isMe: boolean; color: string; earnedAt: string; message: string; image?: string | null };
           const feedRows: Row[] = [];
           for (const a of myAchievements) {
             feedRows.push({
@@ -285,10 +307,12 @@ export default function Friends() {
                     return (
                       <div key={e.id} className="flex items-center gap-3">
                         <div
-                          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0"
-                          style={{ backgroundColor: e.color }}
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
+                          style={{ backgroundColor: e.image ? 'transparent' : e.color }}
                         >
-                          {initials(e.name)}
+                          {e.image
+                            ? <img src={e.image} alt={e.name} className="w-full h-full object-cover" />
+                            : initials(e.name)}
                         </div>
                         <p className="text-sm text-[var(--c-text)] truncate flex-1 min-w-0">
                           {e.isMe ? (
@@ -333,10 +357,12 @@ export default function Friends() {
                     <div key={e.id} className="flex items-center gap-3">
                       <span className="text-xs font-bold text-[var(--c-tint-text-2)] w-6">#{i + 1}</span>
                       <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-[3px] border-white text-[var(--c-tint-text)] flex-shrink-0"
-                        style={{ backgroundColor: e.color }}
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-[3px] border-white text-[var(--c-tint-text)] flex-shrink-0 overflow-hidden"
+                        style={{ backgroundColor: e.image ? 'transparent' : e.color }}
                       >
-                        {initials(e.name)}
+                        {e.image
+                          ? <img src={e.image} alt={e.name} className="w-full h-full object-cover" />
+                          : initials(e.name)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-[var(--c-tint-text)] truncate">
@@ -444,17 +470,17 @@ export default function Friends() {
       {showSearchModal && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) { setShowSearchModal(false); setSearchResult(null); setSearchError(''); } }}
+          onClick={(e) => { if (e.target === e.currentTarget) { setShowSearchModal(false); setSearchResults([]); setSearchError(''); } }}
         >
           <div className="w-full max-w-lg bg-[var(--c-card)] border border-[rgba(109,109,109,0.8)] rounded-3xl flex flex-col max-h-[90vh]">
             <div className="px-7 pt-6 pb-3 flex justify-between items-start flex-shrink-0">
               <div>
                 <h2 className="text-2xl font-bold text-[var(--c-text)]">Add a friend</h2>
-                <p className="text-sm text-[var(--c-text-2)] mt-1">Enter a username to send a request.</p>
+                <p className="text-sm text-[var(--c-text-2)] mt-1">Search by display name or @username.</p>
               </div>
               <button
                 type="button"
-                onClick={() => { setShowSearchModal(false); setSearchResult(null); setSearchError(''); }}
+                onClick={() => { setShowSearchModal(false); setSearchResults([]); setSearchError(''); }}
                 aria-label="Close"
                 className="text-2xl leading-none text-[var(--c-text-2)] hover:text-[var(--c-text)] cursor-pointer px-2"
               >
@@ -462,32 +488,32 @@ export default function Friends() {
               </button>
             </div>
             <div className="overflow-y-auto px-7 pb-7">
-              <form onSubmit={handleSearch} autoComplete="off" className="flex gap-3">
+              <form onSubmit={handleSearch} autoComplete="off" className="relative">
                 <input
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Enter exact username"
+                  placeholder="Search by name or @username"
                   autoComplete="new-password"
                   name="friend-search"
-                  className="flex-1 px-4 py-2 border border-[rgba(109,109,109,0.5)] rounded-2xl text-sm focus:outline-none focus:border-[var(--c-text)] bg-[var(--c-card)] text-[var(--c-text)] placeholder:text-[var(--c-text-2)] transition-colors"
+                  className="w-full px-4 py-2 pr-10 border border-[rgba(109,109,109,0.5)] rounded-2xl text-sm focus:outline-none focus:border-[var(--c-text)] bg-[var(--c-card)] text-[var(--c-text)] placeholder:text-[var(--c-text-2)] transition-colors"
                 />
-                <button
-                  type="submit"
-                  disabled={searching}
-                  className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 disabled:opacity-50 transition-opacity"
-                >
-                  {searching ? 'Searching…' : 'Search'}
-                </button>
+                {searching && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--c-text-2)] text-xs animate-pulse">…</span>
+                )}
               </form>
               {searchError && <p className="mt-3 text-sm text-[var(--c-expense)]">{searchError}</p>}
-              {searchResult && (
-                <div className="mt-4 flex items-center justify-between gap-3 p-4 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[var(--c-card)]">
-                  <div>
-                    <p className="font-medium text-[var(--c-text)]">{searchResult.displayName ?? searchResult.username}</p>
-                    <p className="text-sm text-[var(--c-text-2)]">@{searchResult.username}</p>
-                  </div>
-                  <SearchAction result={searchResult} onAdd={handleAdd} />
+              {searchResults.length > 0 && (
+                <div className="mt-4 flex flex-col gap-2">
+                  {searchResults.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between gap-3 p-4 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[var(--c-card)]">
+                      <div>
+                        <p className="font-medium text-[var(--c-text)]">{r.displayName ?? r.username ?? 'Unknown'}</p>
+                        {r.username && <p className="text-xs text-[var(--c-text-2)] mt-0.5">@{r.username}</p>}
+                      </div>
+                      <SearchAction result={r} onAdd={handleAdd} />
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -498,8 +524,7 @@ export default function Friends() {
                     {requests.outgoing.map((r) => (
                       <div key={r.id} className="flex items-center justify-between gap-2 p-3 rounded-2xl border border-[rgba(109,109,109,0.5)] bg-[var(--c-card)]">
                         <span className="text-sm text-[var(--c-text)] truncate">
-                          {r.displayName ?? r.username}
-                          <span className="text-[var(--c-text-2)]"> @{r.username}</span>
+                          {r.displayName ?? 'Unknown'}
                         </span>
                         <button
                           onClick={() => handleCancel(r.id)}
@@ -545,23 +570,24 @@ export default function Friends() {
                 </p>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {friends.map((friend, i) => {
-                    const name = friend.displayName ?? friend.username ?? 'Unknown';
-                    const avatarColor = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
+                  {friends.map((friend) => {
+                    const name = friend.displayName ?? 'Unknown';
+                    const color = friend.avatarColor ?? '#C68BE1';
                     return (
                       <div
                         key={friend.id}
                         className="flex items-center gap-3 p-3 rounded-2xl border border-[rgba(109,109,109,0.5)] bg-[var(--c-card)]"
                       >
                         <div
-                          className="w-11 h-11 rounded-full flex items-center justify-center font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0"
-                          style={{ backgroundColor: avatarColor }}
+                          className="w-11 h-11 rounded-full flex items-center justify-center font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
+                          style={{ backgroundColor: friend.avatarImage ? 'transparent' : color }}
                         >
-                          {name[0].toUpperCase()}
+                          {friend.avatarImage
+                            ? <img src={friend.avatarImage} alt={name} className="w-full h-full object-cover" />
+                            : initials(name)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-[var(--c-text)] truncate">{name}</p>
-                          <p className="text-xs text-[var(--c-text-2)]">@{friend.username}</p>
                         </div>
                         <button
                           onClick={() => handleUnfriend(friend.id, name)}

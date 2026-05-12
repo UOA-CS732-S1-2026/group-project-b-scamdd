@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useSession } from './lib/auth-client';
 import Auth from './pages/Auth';
 import ResetPassword from './pages/ResetPassword';
@@ -18,6 +18,8 @@ import NotFoundPage from './pages/NotFoundPage';
 import MarketingLayout from './components/MarketingLayout';
 import Highlight from './components/Highlight';
 import { getMyProfile } from './api/profile';
+import { CurrencyProvider } from './context/CurrencyContext';
+import { ProfileAvatarProvider } from './context/ProfileContext';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -36,13 +38,15 @@ export default function App() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route path="/profile/setup" element={<ProfileSetup />} />
-        <Route path="/dashboard" element={<RequireProfile><Dashboard /></RequireProfile>} />
-        <Route path="/transactions" element={<RequireProfile><Transactions /></RequireProfile>} />
-        <Route path="/goals" element={<RequireProfile><Goals /></RequireProfile>} />
-        <Route path="/budgets" element={<RequireProfile><Budgets /></RequireProfile>} />
-        <Route path="/friends" element={<RequireProfile><Friends /></RequireProfile>} />
-        <Route path="/profile" element={<RequireProfile><Profile /></RequireProfile>} />
-        <Route path="/games" element={<RequireProfile><Games /></RequireProfile>} />
+        <Route element={<RequireProfile />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/transactions" element={<Transactions />} />
+          <Route path="/goals" element={<Goals />} />
+          <Route path="/budgets" element={<Budgets />} />
+          <Route path="/friends" element={<Friends />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/games" element={<Games />} />
+        </Route>
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
@@ -52,21 +56,27 @@ export default function App() {
   );
 }
 
-export function RequireProfile({ children }: { children: ReactNode }) {
+export function RequireProfile() {
   const navigate = useNavigate();
   const { data: session, isPending } = useSession();
   const [checking, setChecking] = useState(true);
   const [ok, setOk] = useState(false);
+  const [currency, setCurrency] = useState('NZD');
+  const [avatarColor, setAvatarColor] = useState('#C68BE1');
+  const [avatarImage, setAvatarImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (isPending) return;
-    if (!session) { navigate('/auth'); return; }
+    if (ok) return;
     let cancelled = false;
     (async () => {
       try {
         const me = await getMyProfile();
         if (cancelled) return;
         if (!me.profileComplete) { navigate('/profile/setup'); return; }
+        setCurrency(me.currency ?? 'NZD');
+        setAvatarColor(me.avatarColor ?? '#C68BE1');
+        setAvatarImage(me.avatarImage ?? null);
         setOk(true);
       } catch {
         if (!cancelled) navigate('/auth');
@@ -75,7 +85,7 @@ export function RequireProfile({ children }: { children: ReactNode }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [session, isPending, navigate]);
+  }, [session, isPending, navigate, ok]);
 
   if (isPending || checking) {
     return (
@@ -85,7 +95,13 @@ export function RequireProfile({ children }: { children: ReactNode }) {
     );
   }
   if (!ok) return null;
-  return <>{children}</>;
+  return (
+    <CurrencyProvider initial={currency}>
+      <ProfileAvatarProvider initial={{ avatarColor, avatarImage }}>
+        <Outlet />
+      </ProfileAvatarProvider>
+    </CurrencyProvider>
+  );
 }
 
 function HeroCtas() {

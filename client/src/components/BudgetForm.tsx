@@ -3,8 +3,12 @@ import { EMERGENCY_CATEGORY, OVERALL_CATEGORY } from '../types/transaction';
 import type { Budget, BudgetInput, BudgetPeriod } from '../types/budget';
 import { PERIOD_LABELS } from '../types/budget';
 import { createBudget, updateBudget } from '../api/budgets';
+import { useCurrency } from '../context/CurrencyContext';
+import { FROM_NZD, SYMBOLS, convertToNZD } from '../lib/currency';
 import { useCategories } from '../hooks/useCategories';
 import ManageCategoriesModal from './ManageCategoriesModal';
+
+const SUPPORTED_CURRENCIES = Object.keys(FROM_NZD);
 
 interface Props {
   budget?: Budget;
@@ -19,6 +23,10 @@ const inputClass =
   'px-4 py-2.5 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[var(--c-card)] text-[var(--c-text)] text-sm placeholder:text-[var(--c-text-2)] focus:outline-none focus:border-[var(--c-text)] transition-colors w-full';
 
 export default function BudgetForm({ budget, existingBudgets, onSuccess, onCancel }: Props) {
+  const { currency: profileCurrency } = useCurrency();
+  const [inputCurrency, setInputCurrency] = useState(profileCurrency);
+  const [rawLimit, setRawLimit] = useState<number | ''>(0);
+  const inputSymbol = SYMBOLS[inputCurrency] ?? '$';
   const { allCategories, userCategories, refresh } = useCategories();
   const [showManage, setShowManage] = useState(false);
 
@@ -33,6 +41,9 @@ export default function BudgetForm({ budget, existingBudgets, onSuccess, onCance
 
   useEffect(() => {
     if (budget) {
+      // Show stored NZD limit converted to profile currency
+      setRawLimit(parseFloat((budget.monthlyLimit * (FROM_NZD[profileCurrency] ?? 1)).toFixed(2)));
+      setInputCurrency(profileCurrency);
       setForm({
         category: budget.category,
         monthlyLimit: budget.monthlyLimit,
@@ -55,21 +66,23 @@ export default function BudgetForm({ budget, existingBudgets, onSuccess, onCance
     e.preventDefault();
     setError('');
     if (!form.category) { setError('Pick a category'); return; }
-    if (!form.monthlyLimit || form.monthlyLimit <= 0) {
+    if (!rawLimit || rawLimit <= 0) {
       setError('Limit must be greater than 0');
       return;
     }
+    // Convert entered amount to NZD for storage
+    const limitInNZD = parseFloat(convertToNZD(Number(rawLimit), inputCurrency).toFixed(4));
     setLoading(true);
     try {
       if (budget) {
         await updateBudget(budget._id, {
           category: form.category,
-          monthlyLimit: form.monthlyLimit,
+          monthlyLimit: limitInNZD,
           period: form.period,
           isPublic: form.isPublic,
         });
       } else {
-        await createBudget(form);
+        await createBudget({ ...form, monthlyLimit: limitInNZD });
       }
       onSuccess();
     } catch (err) {
@@ -187,23 +200,37 @@ export default function BudgetForm({ budget, existingBudgets, onSuccess, onCance
             <label className="text-sm font-semibold text-[var(--c-text)]">
               {PERIOD_LABELS[form.period]} limit
             </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-[var(--c-text-2)] pointer-events-none select-none">
-                $
-              </span>
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                required
-                value={form.monthlyLimit || ''}
-                onChange={(e) =>
-                  set('monthlyLimit', e.target.value === '' ? 0 : parseFloat(e.target.value))
-                }
-                placeholder="0.00"
-                className={`${inputClass} pl-9 text-lg font-semibold`}
-              />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-[var(--c-text-2)] pointer-events-none select-none">
+                  {inputSymbol}
+                </span>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  required
+                  value={rawLimit || ''}
+                  onChange={(e) => setRawLimit(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  placeholder="0.00"
+                  className={`${inputClass} pl-9 text-lg font-semibold`}
+                />
+              </div>
+              <select
+                value={inputCurrency}
+                onChange={(e) => setInputCurrency(e.target.value)}
+                className="px-3 py-2.5 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[var(--c-card)] text-[var(--c-text)] text-sm focus:outline-none focus:border-[var(--c-text)] transition-colors cursor-pointer"
+              >
+                {SUPPORTED_CURRENCIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
+            {inputCurrency !== profileCurrency && rawLimit ? (
+              <p className="text-xs text-[var(--c-text-2)]">
+                ≈ {SYMBOLS[profileCurrency] ?? '$'}{convertToNZD(Number(rawLimit), inputCurrency).toFixed(2)} NZD stored
+              </p>
+            ) : null}
           </div>
 
           {/* Visibility */}

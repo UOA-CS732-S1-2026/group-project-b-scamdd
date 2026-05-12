@@ -12,22 +12,20 @@ const inputCls =
 const labelCls = 'text-sm font-medium text-[var(--c-text)]';
 const fieldCls = 'flex flex-col gap-1.5';
 
-type Availability = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
-
 export default function ProfileSetup() {
   const navigate = useNavigate();
   const { data: session, isPending } = useSession();
 
   const [username, setUsername] = useState('');
+  const [usernameNote, setUsernameNote] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const usernameDebounceRef = useRef<number | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [currency, setCurrency] = useState('NZD');
-  const [availability, setAvailability] = useState<Availability>('idle');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  const debounceRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isPending && !session) navigate('/auth');
@@ -55,49 +53,50 @@ export default function ProfileSetup() {
     })();
   }, [session, navigate]);
 
+  // Debounced username availability check
   useEffect(() => {
-    if (!username) {
-      setAvailability('idle');
+    if (usernameDebounceRef.current) window.clearTimeout(usernameDebounceRef.current);
+    const u = username.trim().toLowerCase();
+    if (!u) { setUsernameNote(null); return; }
+    if (!USERNAME_RE.test(u)) {
+      setUsernameNote({ ok: false, msg: 'Use 3–20 lowercase letters, numbers, or _' });
       return;
     }
-    if (!USERNAME_RE.test(username)) {
-      setAvailability('invalid');
-      return;
-    }
-    setAvailability('checking');
-    if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    debounceRef.current = window.setTimeout(async () => {
+    setCheckingUsername(true);
+    usernameDebounceRef.current = window.setTimeout(async () => {
       try {
-        const { available } = await checkUsername(username);
-        setAvailability(available ? 'available' : 'taken');
-      } catch {
-        setAvailability('idle');
-      }
-    }, 350);
-    return () => {
-      if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    };
+        const { available, reason } = await checkUsername(u);
+        setUsernameNote(available ? { ok: true, msg: '@' + u + ' is available' } : { ok: false, msg: reason ?? 'Username is taken' });
+      } catch { setUsernameNote(null); }
+      finally { setCheckingUsername(false); }
+    }, 400);
+    return () => { if (usernameDebounceRef.current) window.clearTimeout(usernameDebounceRef.current); };
   }, [username]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (!USERNAME_RE.test(username)) {
-      setError('Username must be 3-20 chars: lowercase letters, numbers, or underscore.');
-      return;
-    }
-    if (availability === 'taken') {
-      setError('That username is taken.');
-      return;
-    }
     if (!displayName.trim()) {
       setError('Display name is required.');
+      return;
+    }
+    const u = username.trim().toLowerCase();
+    if (!u) {
+      setError('Username is required.');
+      return;
+    }
+    if (!USERNAME_RE.test(u)) {
+      setError('Username must be 3–20 lowercase letters, numbers, or _');
+      return;
+    }
+    if (usernameNote && !usernameNote.ok) {
+      setError(usernameNote.msg);
       return;
     }
     setSubmitting(true);
     try {
       await updateMyProfile({
-        username,
+        username: u,
         displayName: displayName.trim(),
         bio: bio.trim(),
         currency,
@@ -119,25 +118,6 @@ export default function ProfileSetup() {
     );
   }
 
-  const availabilityNote = (() => {
-    switch (availability) {
-      case 'checking':
-        return <span className="text-xs text-[var(--c-text-2)]">Checking…</span>;
-      case 'available':
-        return <span className="text-xs text-[var(--c-income)]">Available</span>;
-      case 'taken':
-        return <span className="text-xs text-[var(--c-expense)]">Taken</span>;
-      case 'invalid':
-        return (
-          <span className="text-xs text-[var(--c-text-2)]">
-            3-20 chars: lowercase, numbers, or underscore
-          </span>
-        );
-      default:
-        return null;
-    }
-  })();
-
   return (
     <div className="h-screen overflow-hidden bg-[var(--c-bg)] flex flex-col">
       <header className="z-40 backdrop-blur bg-[color-mix(in_srgb,var(--c-bg)_85%,transparent)] border-b border-[var(--c-border)]">
@@ -153,33 +133,35 @@ export default function ProfileSetup() {
           Finish setting up your profile
         </h1>
         <p className="text-sm text-[var(--c-text-2)] text-center mb-6">
-          Pick a username and a few basics so friends can find you.
+          Add a few basics so friends can find you.
         </p>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <div className={fieldCls}>
-            <div className="flex justify-between items-baseline">
-              <label htmlFor="username" className={labelCls}>
-                Username
-              </label>
-              {availabilityNote}
+            <label htmlFor="username" className={labelCls}>
+              Username <span className="text-[var(--c-text-2)] font-normal">(permanent, starts with @)</span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--c-text-2)] text-sm select-none">@</span>
+              <input
+                id="username"
+                type="text"
+                className={`${inputCls} pl-7 ${usernameNote && !usernameNote.ok ? 'border-red-400' : usernameNote?.ok ? 'border-green-500' : ''}`}
+                value={username}
+                onChange={(e) => setUsername(e.target.value.replace(/^@/, '').replace(/\s/g, '').toLowerCase())}
+                placeholder="yourname"
+                maxLength={20}
+                autoComplete="off"
+              />
             </div>
-            <input
-              id="username"
-              type="text"
-              className={inputCls}
-              value={username}
-              onChange={(e) => setUsername(e.target.value.toLowerCase())}
-              placeholder="atulbox"
-              autoComplete="username"
-              required
-              minLength={3}
-              maxLength={20}
-            />
+            {checkingUsername && <p className="text-xs text-[var(--c-text-2)]">Checking…</p>}
+            {usernameNote && !checkingUsername && (
+              <p className={`text-xs ${usernameNote.ok ? 'text-green-600' : 'text-red-500'}`}>{usernameNote.msg}</p>
+            )}
           </div>
 
           <div className={fieldCls}>
             <label htmlFor="display-name" className={labelCls}>
-              Display name
+              Display name <span className="text-[var(--c-text-2)] font-normal">(changeable later)</span>
             </label>
             <input
               id="display-name"
@@ -187,7 +169,7 @@ export default function ProfileSetup() {
               className={inputCls}
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Atul Kodla"
+              placeholder="Your name"
               required
               maxLength={50}
             />
@@ -233,7 +215,7 @@ export default function ProfileSetup() {
           <button
             type="submit"
             className="px-5 py-2.5 rounded-[20px] bg-[var(--c-text)] text-[var(--c-bg)] border border-[var(--c-text)] text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            disabled={submitting || availability === 'checking' || availability === 'taken'}
+            disabled={submitting}
           >
             {submitting ? 'Saving…' : 'Continue'}
           </button>

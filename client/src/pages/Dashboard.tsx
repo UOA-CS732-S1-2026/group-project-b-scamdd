@@ -16,6 +16,7 @@ import MonthlyWrapped from '../components/MonthlyWrapped';
 import type { WrappedMonth } from '../types/wrapped';
 import Highlight from '../components/Highlight';
 import { useTheme } from '../hooks/useTheme';
+import { useCurrency } from '../context/CurrencyContext';
 import { useCategories } from '../hooks/useCategories';
 import type { Transaction } from '../types/transaction';
 import type { Budget } from '../types/budget';
@@ -175,11 +176,7 @@ function PieChart({ slices }: { slices: { value: number; color: string }[] }) {
   );
 }
 
-function fmtY(v: number): string {
-  const abs = Math.abs(v);
-  const s = abs >= 1000 ? `${abs % 1000 === 0 ? abs / 1000 : (abs / 1000).toFixed(1)}k` : String(abs);
-  return v < 0 ? `-$${s}` : `$${s}`;
-}
+
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
@@ -187,6 +184,7 @@ export default function Dashboard() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
+  const { fmt, fmtY } = useCurrency();
   const { getCategoryColor } = useCategories();
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
@@ -600,7 +598,7 @@ export default function Dashboard() {
                       return (
                         <div key={lbl} className="flex-1 h-full flex items-end">
                           <div
-                            title={`$${amount.toFixed(2)}`}
+                            title={`${fmt(amount)}`}
                             style={{ backgroundColor: MOOD_COLORS[i], height: amount > 0 ? `${Math.max((amount / maxMood) * 100, 2)}%` : '0%' }}
                             className="w-full rounded-t-lg transition-all"
                           />
@@ -680,7 +678,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div className="text-sm font-semibold flex-shrink-0 ml-4 text-[var(--c-tint-text-2)]">
-                        {t.type === 'income' ? '+' : '−'}${Math.abs(t.amount).toFixed(2)}
+                        {t.type === 'income' ? '+' : '−'}{fmt(t.amount)}
                       </div>
                     </div>
                   ))}
@@ -714,7 +712,7 @@ export default function Dashboard() {
                           {slices.map(sl => (
                             <div
                               key={sl.label}
-                              title={`${sl.label}: $${sl.value.toFixed(2)} (${Math.round((sl.value / total) * 100)}%)`}
+                              title={`${sl.label}: ${fmt(sl.value)} (${Math.round((sl.value / total) * 100)}%)`}
                               style={{ width: `${(sl.value / total) * 100}%`, backgroundColor: sl.color }}
                               className="h-full"
                             />
@@ -881,7 +879,7 @@ export default function Dashboard() {
                 <div className="text-xs text-[var(--c-text-2)]">Cumulative income − expenses · {label}</div>
               </div>
               <span className={`text-xl font-bold flex-shrink-0 ${nsLastVal >= 0 ? 'text-[var(--c-income)]' : 'text-[var(--c-expense)]'}`}>
-                {nsLastVal >= 0 ? '+' : '−'}${Math.abs(nsLastVal).toFixed(0)}
+                {nsLastVal >= 0 ? '+' : '−'}{fmt(Math.abs(nsLastVal))}
               </span>
             </div>
             <svg width="100%" viewBox={`0 0 ${SVG_W} ${NS_H}`} style={{ display: 'block', overflow: 'visible' }}>
@@ -929,11 +927,11 @@ export default function Dashboard() {
                 <h3 className="font-semibold text-base mb-1 text-[var(--c-text)]">Period spending</h3>
                 <div className="text-xs text-[var(--c-text-2)]">Per {viewPeriod === 'daily' ? 'hour' : viewPeriod === 'weekly' ? 'day' : viewPeriod === 'monthly' ? 'day' : 'month'} (not cumulative) · {label}</div>
               </div>
-              <span className="text-sm font-semibold text-[var(--c-text)]">${totalSpent.toFixed(0)} total</span>
+              <span className="text-sm font-semibold text-[var(--c-text)]">{fmt(totalSpent)} total</span>
             </div>
             <div className="flex items-end gap-px" style={{ height: '96px' }}>
               {visibleSegs.map((val, i) => (
-                <div key={i} className="flex-1 h-full flex items-end" title={`$${val.toFixed(2)}`}>
+                <div key={i} className="flex-1 h-full flex items-end" title={`${fmt(val)}`}>
                   <div
                     style={{ height: val > 0 ? `${Math.max((val / maxSegSpend) * 100, 2)}%` : '0%', backgroundColor: 'var(--c-accent)', opacity: 0.85 }}
                     className="w-full rounded-t transition-all"
@@ -970,7 +968,7 @@ export default function Dashboard() {
                       />
                     </div>
                     <div className="w-14 text-xs text-right font-medium text-[var(--c-text)] flex-shrink-0">
-                      ${cat.value.toFixed(0)}
+                      {fmt(cat.value)}
                     </div>
                   </div>
                 ))}
@@ -1002,7 +1000,7 @@ export default function Dashboard() {
                       <div className="flex justify-between text-xs mb-1.5">
                         <span className="capitalize font-medium text-[var(--c-text)]">{b.category}</span>
                         <span className={over ? 'text-[var(--c-negative)] font-medium' : 'text-[var(--c-text-2)]'}>
-                          ${b.spent.toFixed(0)} / ${b.limit.toFixed(0)}{' '}
+                          {fmt(b.spent)} / {fmt(b.limit)}{' '}
                           <span className="font-semibold">({b.pct}%)</span>
                         </span>
                       </div>
@@ -1156,11 +1154,11 @@ export default function Dashboard() {
               <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Spent</div>
               <div className="text-xs mb-3 text-[var(--c-tint-text-2)]">Excluding emergency</div>
               <div className="text-2xl font-bold text-[var(--c-tint-text)]">
-                ${nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0).toFixed(2)}
+                {fmt(nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0))}
               </div>
               {hasEmergency && (
                 <div className="text-[11px] mt-1 text-[var(--c-tint-text-2)]">
-                  ${totalSpent.toFixed(2)} (incl. emergency)
+                  {fmt(totalSpent)} (incl. emergency)
                 </div>
               )}
             </div>
@@ -1192,7 +1190,7 @@ export default function Dashboard() {
                       {isOverall ? `Overall · ${PERIOD_DISPLAY[viewPeriod].toLowerCase()}` : `Tightest · ${tightest.b.category}`}
                     </div>
                     <div className={`text-2xl font-bold ${tightest.remaining < 0 ? 'text-[var(--c-negative)]' : 'text-[var(--c-tint-text)]'}`}>
-                      {tightest.remaining < 0 ? '-' : ''}${Math.abs(tightest.remaining).toFixed(2)}
+                      {tightest.remaining < 0 ? '-' : ''}{fmt(Math.abs(tightest.remaining))}
                     </div>
                   </>
                 );
@@ -1201,7 +1199,7 @@ export default function Dashboard() {
             <div className={`${cardBase} bg-[var(--c-tint-yellow)]`}>
               <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Income</div>
               <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">{PERIOD_DISPLAY[viewPeriod]}</div>
-              <div className="text-2xl font-bold text-[var(--c-tint-text)]">${totalIncome.toFixed(2)}</div>
+              <div className="text-2xl font-bold text-[var(--c-tint-text)]">{fmt(totalIncome)}</div>
             </div>
             <div className={`${cardBase} bg-[var(--c-tint-mood)]`}>
               <div className="text-sm font-semibold mb-1 text-[var(--c-tint-mood-text)]">Mood avg</div>
@@ -1215,9 +1213,9 @@ export default function Dashboard() {
               <div>
                 <h3 className="font-semibold text-base mb-1 text-[var(--c-text)]">Cumulative spending</h3>
                 <div className="text-xs mb-1.5 text-[var(--c-text-2)]">
-                  {label} · ${nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0).toFixed(2)} spent
-                  {hasEmergency && ` · $${(totalSpent - nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0)).toFixed(2)} emergency`}
-                  {overallBudget && ` · $${overallBudget.monthlyLimit.toFixed(2)} overall budget`}
+                  {label} · {fmt(nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0))} spent
+                  {hasEmergency && ` · ${fmt(totalSpent - nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0))} emergency`}
+                  {overallBudget && ` · ${fmt(overallBudget.monthlyLimit)} overall budget`}
                 </div>
                 <div className="flex items-center gap-4">
                   {overallBudget && (
@@ -1254,9 +1252,7 @@ export default function Dashboard() {
                 return (
                   <g key={tick}>
                     <line x1={PAD_L} y1={y} x2={PAD_L + PLOT_W} y2={y} stroke="var(--c-grid)" strokeWidth="1" />
-                    <text x={PAD_L - 4} y={y + 3} textAnchor="end" fontSize="9" fill="var(--c-text-2)">
-                      ${tick >= 1000 ? `${tick % 1000 === 0 ? tick / 1000 : (tick / 1000).toFixed(1)}k` : tick}
-                    </text>
+                    <text x={PAD_L - 4} y={y + 3} textAnchor="end" fontSize="9" fill="var(--c-text-2)">{fmtY(tick)}</text>
                   </g>
                 );
               })}
@@ -1264,7 +1260,7 @@ export default function Dashboard() {
                 <>
                   <line x1={PAD_L} y1={budgetLineY} x2={PAD_L + PLOT_W} y2={budgetLineY} stroke="var(--c-text-2)" strokeWidth="1.5" strokeDasharray="5 4" />
                   <text x={PAD_L + PLOT_W - 3} y={budgetLineY - 3} textAnchor="end" fontSize="9" fill="var(--c-text-2)">
-                    Overall: ${overallBudget.monthlyLimit.toFixed(0)}
+                    Overall: {fmt(overallBudget.monthlyLimit)}
                   </text>
                 </>
               )}
@@ -1276,6 +1272,18 @@ export default function Dashboard() {
               {spendPtsNonEmerg.length > 1 && (
                 <polyline points={spendPtsNonEmerg.join(' ')} fill="none" stroke="#C68BE1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               )}
+              {spendPtsNonEmerg.length > 0 && (() => {
+                const [lx, ly] = spendPtsNonEmerg[spendPtsNonEmerg.length - 1].split(',').map(Number);
+                const lbl = fmt(nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0));
+                const bw = lbl.length * 7 + 12;
+                return (
+                  <>
+                    <rect x={lx - bw / 2} y={ly - 18} width={bw} height={13} rx="3" fill="var(--c-accent)" />
+                    <text x={lx} y={ly - 8} textAnchor="middle" fontSize="9" fill="white" fontWeight="600">{lbl}</text>
+                    <circle cx={lx} cy={ly} r="3" fill="var(--c-accent)" />
+                  </>
+                );
+              })()}
               {xTicks.map(({ idx, label: xl }) => (
                 <text key={idx} x={cxFn(idx)} y={SVG_H - 3} textAnchor="middle" fontSize="9" fill="var(--c-text-2)">{xl}</text>
               ))}

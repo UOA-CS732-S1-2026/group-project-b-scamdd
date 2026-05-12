@@ -8,6 +8,7 @@ import Highlight from '../components/Highlight';
 import TransactionForm from '../components/TransactionForm';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useTheme } from '../hooks/useTheme';
+import { useCurrency } from '../context/CurrencyContext';
 import type { Transaction } from '../types/transaction';
 import { useCategories } from '../hooks/useCategories';
 
@@ -59,6 +60,7 @@ export default function Transactions() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
+  const { fmt } = useCurrency();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -224,13 +226,13 @@ export default function Transactions() {
 
         {/* 4 stat cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <StatCard bg="#FFBDC2" label="Spent" sub="So far, this month" value={`$${stats.spent.toFixed(2)}`} />
+          <StatCard bg="#FFBDC2" label="Spent" sub="So far, this month" value={fmt(stats.spent)} />
           <StatCard bg="#FDFBD4" label="Transactions" sub="So far, this month" value={`${stats.count}`} />
           <StatCard
             bg="#C5FFD8"
             label="Biggest hit"
             sub={stats.biggest?.title || 'This month'}
-            value={stats.biggest ? `$${Math.abs(stats.biggest.amount).toFixed(0)}` : '—'}
+            value={stats.biggest ? fmt(Math.abs(stats.biggest.amount)) : '—'}
           />
           <StatCard
             bg="#C68BE1"
@@ -248,7 +250,7 @@ export default function Transactions() {
           ) : (
             <>
               <div className="text-xs text-[var(--c-text-2)] mb-4">
-                {dailySpend.monthLabel} · ${dailySpend.bars.reduce((s, b) => s + b.total, 0).toFixed(2)} spent
+                {dailySpend.monthLabel} · {fmt(dailySpend.bars.reduce((s, b) => s + b.total, 0))} spent
               </div>
               <div className="flex items-end gap-1 h-36">
                 {dailySpend.bars.map(b => (
@@ -259,7 +261,7 @@ export default function Transactions() {
                         height: `${b.total > 0 ? Math.max((b.total / dailySpend.max) * 100, 2) : 0}%`,
                         background: '#C68BE1',
                       }}
-                      title={`Day ${b.day}: $${b.total.toFixed(2)}`}
+                      title={`Day ${b.day}: ${fmt(b.total)}`}
                     />
                   </div>
                 ))}
@@ -517,7 +519,7 @@ export default function Transactions() {
                       <td className={`${TD} text-right font-semibold whitespace-nowrap ${
                         t.type === 'income' ? 'text-[var(--c-income)]' : 'text-[var(--c-expense)]'
                       }`}>
-                        {t.type === 'income' ? '+' : '-'}${Math.abs(t.amount).toFixed(2)}
+                        {t.type === 'income' ? '+' : '-'}{fmt(t.amount)}
                       </td>
 
                       {/* Actions */}

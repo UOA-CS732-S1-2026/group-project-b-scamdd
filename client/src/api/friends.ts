@@ -4,9 +4,8 @@ const API = (import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL ?? 'http:
 const BASE = `${API}/api/friends`;
 const opts: RequestInit = { credentials: 'include' };
 
-export async function searchUser(username: string): Promise<SearchResult> {
-  const res = await fetch(`${BASE}/search?username=${encodeURIComponent(username)}`, opts);
-  if (res.status === 404) throw new Error('User not found');
+export async function searchUser(query: string): Promise<SearchResult[]> {
+  const res = await fetch(`${BASE}/search?q=${encodeURIComponent(query)}`, opts);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message ?? 'Search failed');
