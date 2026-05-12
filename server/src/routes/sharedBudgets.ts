@@ -5,6 +5,7 @@ import { Transaction } from '../models/Transaction';
 import { Friendship } from '../models/Friendship';
 import { User } from '../models/User';
 import { requireAuth } from '../middleware/auth';
+import { notify } from '../lib/notificationBus';
 
 const router = Router();
 router.use(requireAuth);
@@ -228,6 +229,7 @@ router.post('/', async (req: Request, res: Response) => {
     });
     const out = await enrich(doc.toObject());
     res.status(201).json(out);
+    for (const id of invitees) notify(id, { type: 'shared-budget-invite' });
   } catch {
     res.status(500).json({ message: 'Failed to create shared budget' });
   }
@@ -329,6 +331,7 @@ router.post('/:id/invite', async (req: Request, res: Response) => {
     await doc.save();
     const out = await enrich(doc.toObject());
     res.json(out);
+    for (const id of newInvites) notify(id, { type: 'shared-budget-invite' });
   } catch {
     res.status(500).json({ message: 'Failed to invite' });
   }
@@ -352,6 +355,11 @@ router.post('/:id/accept', async (req: Request, res: Response) => {
     await doc.save();
     const out = await enrich(doc.toObject());
     res.json(out);
+    for (const m of doc.members) {
+      if (m.userId !== meId && m.status === 'accepted') {
+        notify(m.userId, { type: 'shared-budget-updated' });
+      }
+    }
   } catch {
     res.status(500).json({ message: 'Failed to accept invite' });
   }

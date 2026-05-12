@@ -36,9 +36,12 @@ export interface FriendGoal {
   deadline: string;
 }
 
+import type { BudgetPeriod } from './budget';
+
 export interface FriendBudget {
   id: string;
   category: string;
+  period: BudgetPeriod;
   monthlyLimit: number;
   spent: number;
 }

@@ -136,6 +136,37 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
     refreshNotifications();
   }, [location.pathname]);
 
+  // Server-sent events: the server pushes a message whenever a friend request,
+  // cheer, or shared-budget invite is created — no polling needed.
+  useEffect(() => {
+    const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+    let es: EventSource | null = null;
+    let reconnect: number | null = null;
+
+    const open = () => {
+      es = new EventSource(`${apiUrl}/api/notifications/stream`, { withCredentials: true });
+      es.onmessage = () => refreshNotifications();
+      es.onerror = () => {
+        es?.close();
+        es = null;
+        // Browser auto-reconnects via `retry:` directive, but if it gave up
+        // (e.g. server restart) schedule a manual reopen.
+        if (reconnect === null) {
+          reconnect = window.setTimeout(() => {
+            reconnect = null;
+            open();
+          }, 5000);
+        }
+      };
+    };
+    open();
+
+    return () => {
+      if (reconnect !== null) window.clearTimeout(reconnect);
+      es?.close();
+    };
+  }, []);
+
   useEffect(() => {
     if (!bellOpen) return;
     const onClick = (e: MouseEvent) => {
