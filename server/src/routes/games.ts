@@ -19,7 +19,7 @@ router.post('/score', async (req: Request, res: Response) => {
 
 router.get('/leaderboard/:game', async (req: Request, res: Response) => {
   const meId = req.user!._id;
-  const { game } = req.params;
+  const game = String(req.params.game);
   if (!['price', 'budget'].includes(game)) {
     return res.status(400).json({ error: 'Unknown game' });
   }

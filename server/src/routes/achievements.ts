@@ -20,7 +20,7 @@ router.get('/me', async (req: Request, res: Response) => {
 router.get('/users/:id', async (req: Request, res: Response) => {
   try {
     const meId = req.user!._id;
-    const otherId = req.params.id;
+    const otherId = String(req.params.id);
     if (otherId !== meId) {
       const friendship = await Friendship.findOne({
         status: 'accepted',
