@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import mongoose from 'mongoose';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './auth.js';
 import transactionRoutes from './routes/transactions.js';
@@ -16,9 +17,52 @@ import wrappedRoutes from './routes/wrapped.js';
 
 export const app = express();
 
+// Connect mongoose lazily on first request. Important: this uses server/'s
+// mongoose copy, which is the same instance the models in server/src/models
+// import — so queries actually flow through this connection. Doing the
+// connect from api/index.ts instead would connect a different mongoose copy
+// (root node_modules) and queries via models would hang forever.
+let dbConnecting: Promise<typeof mongoose> | null = null;
+async function ensureDb() {
+  if (mongoose.connection.readyState === 1) return;
+  if (!dbConnecting) {
+    console.log('[server-mongoose] connecting...');
+    const t0 = Date.now();
+    dbConnecting = mongoose
+      .connect(process.env.MONGO_URI!, {
+        serverSelectionTimeoutMS: 5000,
+        autoIndex: false,
+        bufferCommands: false,
+      })
+      .then((m) => {
+        console.log(`[server-mongoose] connected in ${Date.now() - t0}ms`);
+        return m;
+      })
+      .catch((err) => {
+        dbConnecting = null;
+        console.error('[server-mongoose] connect failed:', err);
+        throw err;
+      });
+  }
+  await dbConnecting;
+}
+
+app.use(async (_req, _res, next) => {
+  try {
+    await ensureDb();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 const allowedOrigins = [
   process.env.CLIENT_URL ?? 'http://localhost:5173',
   ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+  ...(process.env.VERCEL_BRANCH_URL ? [`https://${process.env.VERCEL_BRANCH_URL}`] : []),
+  ...(process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`]
+    : []),
 ];
 
 app.use(
