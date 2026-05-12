@@ -9,8 +9,20 @@ router.use(requireAuth);
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const transactions = await Transaction.find({ userId: req.user!._id }).sort({ date: -1 });
-    res.json(transactions);
+    const { page, limit } = req.query;
+
+    const query = Transaction.find({ userId: req.user!._id }).sort({ date: -1 });
+
+    if (page && limit) {
+      const p = Math.max(1, parseInt(page as string, 10));
+      const l = Math.max(1, parseInt(limit as string, 10));
+      const total = await Transaction.countDocuments({ userId: req.user!._id });
+      const transactions = await query.skip((p - 1) * l).limit(l);
+      res.json({ transactions, total, page: p, limit: l, pages: Math.ceil(total / l) });
+    } else {
+      const transactions = await query;
+      res.json(transactions);
+    }
   } catch {
     res.status(500).json({ message: 'Failed to fetch transactions' });
   }
