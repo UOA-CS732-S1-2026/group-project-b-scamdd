@@ -1,6 +1,6 @@
 {
-  "installCommand": "pnpm -C server install --frozen-lockfile=false && pnpm -C client install --frozen-lockfile=false",
-  "buildCommand": "pnpm -C client build",
+  "installCommand": "npm install --prefix server --no-package-lock && npm install --prefix client --no-package-lock",
+  "buildCommand": "npm --prefix client run build",
   "outputDirectory": "client/dist",
   "framework": null,
   "rewrites": [
