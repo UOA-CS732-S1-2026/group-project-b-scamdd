@@ -67,7 +67,7 @@ export function RequireProfile() {
 
   useEffect(() => {
     if (isPending) return;
-    if (!session) { navigate('/auth'); return; }
+    if (ok) return;
     let cancelled = false;
     (async () => {
       try {
@@ -85,7 +85,7 @@ export function RequireProfile() {
       }
     })();
     return () => { cancelled = true; };
-  }, [session, isPending, navigate]);
+  }, [session, isPending, navigate, ok]);
 
   if (isPending || checking) {
     return (

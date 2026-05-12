@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
-import { getMyProfile, updateMyProfile } from '../api/profile';
+import { checkUsername, getMyProfile, updateMyProfile } from '../api/profile';
 import FeltWordmark from '../components/FeltWordmark';
 
 const CURRENCIES = ['NZD', 'USD', 'AUD', 'EUR', 'GBP'];
+const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 const inputCls =
   'px-4 py-2.5 border border-[var(--c-border)] rounded-xl bg-[var(--c-card)] text-[var(--c-text)] text-sm transition-colors focus:outline-none focus:border-[var(--c-text)] placeholder:text-[var(--c-text-2)]';
@@ -15,6 +16,10 @@ export default function ProfileSetup() {
   const navigate = useNavigate();
   const { data: session, isPending } = useSession();
 
+  const [username, setUsername] = useState('');
+  const [usernameNote, setUsernameNote] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const usernameDebounceRef = useRef<number | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [currency, setCurrency] = useState('NZD');
@@ -37,6 +42,7 @@ export default function ProfileSetup() {
         }
         if (me.displayName) setDisplayName(me.displayName);
         else if (me.name) setDisplayName(me.name);
+        if (me.username) setUsername(me.username);
         if (me.bio) setBio(me.bio);
         if (me.currency) setCurrency(me.currency);
       } catch {
@@ -47,6 +53,26 @@ export default function ProfileSetup() {
     })();
   }, [session, navigate]);
 
+  // Debounced username availability check
+  useEffect(() => {
+    if (usernameDebounceRef.current) window.clearTimeout(usernameDebounceRef.current);
+    const u = username.trim().toLowerCase();
+    if (!u) { setUsernameNote(null); return; }
+    if (!USERNAME_RE.test(u)) {
+      setUsernameNote({ ok: false, msg: 'Use 3–20 lowercase letters, numbers, or _' });
+      return;
+    }
+    setCheckingUsername(true);
+    usernameDebounceRef.current = window.setTimeout(async () => {
+      try {
+        const { available, reason } = await checkUsername(u);
+        setUsernameNote(available ? { ok: true, msg: '@' + u + ' is available' } : { ok: false, msg: reason ?? 'Username is taken' });
+      } catch { setUsernameNote(null); }
+      finally { setCheckingUsername(false); }
+    }, 400);
+    return () => { if (usernameDebounceRef.current) window.clearTimeout(usernameDebounceRef.current); };
+  }, [username]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -54,9 +80,23 @@ export default function ProfileSetup() {
       setError('Display name is required.');
       return;
     }
+    const u = username.trim().toLowerCase();
+    if (!u) {
+      setError('Username is required.');
+      return;
+    }
+    if (!USERNAME_RE.test(u)) {
+      setError('Username must be 3–20 lowercase letters, numbers, or _');
+      return;
+    }
+    if (usernameNote && !usernameNote.ok) {
+      setError(usernameNote.msg);
+      return;
+    }
     setSubmitting(true);
     try {
       await updateMyProfile({
+        username: u,
         displayName: displayName.trim(),
         bio: bio.trim(),
         currency,
@@ -97,8 +137,31 @@ export default function ProfileSetup() {
         </p>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <div className={fieldCls}>
+            <label htmlFor="username" className={labelCls}>
+              Username <span className="text-[var(--c-text-2)] font-normal">(permanent, starts with @)</span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--c-text-2)] text-sm select-none">@</span>
+              <input
+                id="username"
+                type="text"
+                className={`${inputCls} pl-7 ${usernameNote && !usernameNote.ok ? 'border-red-400' : usernameNote?.ok ? 'border-green-500' : ''}`}
+                value={username}
+                onChange={(e) => setUsername(e.target.value.replace(/^@/, '').replace(/\s/g, '').toLowerCase())}
+                placeholder="yourname"
+                maxLength={20}
+                autoComplete="off"
+              />
+            </div>
+            {checkingUsername && <p className="text-xs text-[var(--c-text-2)]">Checking…</p>}
+            {usernameNote && !checkingUsername && (
+              <p className={`text-xs ${usernameNote.ok ? 'text-green-600' : 'text-red-500'}`}>{usernameNote.msg}</p>
+            )}
+          </div>
+
+          <div className={fieldCls}>
             <label htmlFor="display-name" className={labelCls}>
-              Display name
+              Display name <span className="text-[var(--c-text-2)] font-normal">(changeable later)</span>
             </label>
             <input
               id="display-name"

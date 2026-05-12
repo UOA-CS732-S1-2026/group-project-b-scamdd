@@ -46,7 +46,8 @@ export default function Auth() {
         const { error: authError } = await signIn.email({ email, password });
         if (authError) { setLoading(false); setError(authError.message || 'Invalid email or password'); return; }
       }
-      // On success: keep loading=true; the session useEffect will navigate when ready
+      // Navigate directly — don't rely on useSession() reactively updating after logout+login
+      navigate('/dashboard', { replace: true });
     } catch {
       setLoading(false);
       setError('Unable to connect. Check your connection and try again.');

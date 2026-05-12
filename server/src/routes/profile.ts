@@ -57,6 +57,12 @@ router.patch('/me', requireAuth, async (req: Request, res: Response) => {
         res.status(400).json({ message: 'Username must be 3-20 chars, lowercase letters, numbers, or underscore' });
         return;
       }
+      // Fetch existing user to check if username is already set (immutable once set)
+      const existingUser = await User.findById(req.user!._id).select('username').lean();
+      if (existingUser?.username) {
+        res.status(400).json({ message: 'Username cannot be changed once set' });
+        return;
+      }
       const existing = await User.findOne({ username: u, _id: { $ne: req.user!._id } }).lean();
       if (existing) {
         res.status(409).json({ message: 'Username is taken' });
@@ -135,7 +141,7 @@ router.patch('/me', requireAuth, async (req: Request, res: Response) => {
     const user = await User.findByIdAndUpdate(
       req.user!._id,
       { $set: updates },
-      { returnDocument: 'after' },
+      { new: true },
     ).lean();
     if (!user) {
       res.status(404).json({ message: 'User not found' });

@@ -50,6 +50,7 @@ export interface Friend {
   displayName: string | null;
   bio: string | null;
   avatarColor: string | null;
+  avatarImage: string | null;
   streak: number;
   goals: FriendGoal[];
   budgets: FriendBudget[];

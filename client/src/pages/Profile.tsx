@@ -1,7 +1,7 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
-import { getMyProfile, updateMyProfile, checkUsername } from '../api/profile';
+import { getMyProfile, updateMyProfile } from '../api/profile';
 import { getTransactions } from '../api/transactions';
 import { getBudgets } from '../api/budgets';
 import { getRequests, respondToRequest, getFriends } from '../api/friends';
@@ -87,9 +87,8 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
 
   // Account form state
-  const [username, setUsername] = useState('');
-  const [usernameError, setUsernameError] = useState('');
-  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [username, setUsername] = useState('');          // read-only after profile setup
+  const [displayName, setDisplayName] = useState('');
   const [phone, setPhone] = useState('');
   const [currency, setCurrency] = useState('NZD');
   const [avatarColor, setAvatarColor] = useState('#C68BE1');
@@ -117,7 +116,8 @@ export default function Profile() {
       setRawBudgets(budgets);
       setRequests(reqs);
       setFriends(friendList);
-      setUsername(prof.username ?? prof.displayName ?? '');
+      setUsername(prof.username ?? '');
+      setDisplayName(prof.displayName ?? prof.name ?? '');
       setPhone(prof.phone ?? '');
       setCurrency(prof.currency ?? 'NZD');
       setAvatarColor(prof.avatarColor ?? '#C68BE1');
@@ -149,11 +149,8 @@ export default function Profile() {
     setSaving(true); setSaveError(''); setSaveSuccess(false);
     try {
       const update: ProfileUpdate = {};
-      const u = username.trim().toLowerCase();
-      const usernameValid = /^[a-z0-9_]{3,20}$/.test(u);
-      // only attempt username if it passes server validation; otherwise just set displayName
-      if (u && usernameValid && u !== profile?.username) update.username = u;
-      if (username.trim() && username.trim() !== (profile?.displayName ?? '')) update.displayName = username.trim();
+      const dn = displayName.trim();
+      if (dn && dn !== (profile?.displayName ?? '')) update.displayName = dn;
       if (currency !== profile?.currency) update.currency = currency;
       if (phone !== (profile?.phone ?? '')) update.phone = phone;
       // always save avatarColor so it always persists
@@ -174,17 +171,6 @@ export default function Profile() {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleUsernameBlur = async () => {
-    const u = username.trim().toLowerCase();
-    if (!u || u === profile?.username) { setUsernameError(''); return; }
-    setCheckingUsername(true);
-    try {
-      const { available, reason } = await checkUsername(u);
-      setUsernameError(available ? '' : (reason ?? 'Display name not available'));
-    } catch { setUsernameError(''); }
-    finally { setCheckingUsername(false); }
   };
 
   const handleSetTab = (t: ProfileTab) => {
@@ -249,7 +235,7 @@ export default function Profile() {
   }
 
   // Derive live from form state so greeting/avatar update as user types
-  const displayedName = username.trim() || profile.username || profile.displayName || profile.name || 'User';
+  const displayedName = displayName.trim() || profile.displayName || profile.name || 'User';
   const userInitials = initials(displayedName);
 
   // ── Stats: current month computations ────────────────────────────────────────
@@ -612,15 +598,22 @@ export default function Profile() {
 
       {/* Editable fields */}
       <div className="border border-[var(--c-border)] rounded-2xl p-6 bg-[var(--c-card)] flex flex-col gap-5">
+        {username && (
+          <div>
+            <label className="block text-sm font-semibold text-[var(--c-text)] mb-1.5">Username</label>
+            <div className="w-full px-4 py-2.5 border border-[var(--c-border)] rounded-xl text-sm bg-[var(--c-surface)] text-[var(--c-text-2)] cursor-not-allowed select-none">
+              @{username}
+            </div>
+            <p className="text-xs text-[var(--c-text-2)] mt-1">Username cannot be changed</p>
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-semibold text-[var(--c-text)] mb-1.5">Display Name</label>
-          <input type="text" value={username}
-            onChange={e => setUsername(e.target.value)}
-            onBlur={handleUsernameBlur}
-            className={`${inputClass} ${usernameError ? '!border-red-400' : ''}`}
+          <input type="text" value={displayName}
+            onChange={e => setDisplayName(e.target.value)}
+            className={inputClass}
             placeholder="Your display name" />
-          {checkingUsername && <p className="text-xs text-[var(--c-text-2)] mt-1">Checking…</p>}
-          {usernameError && <p className="text-xs text-red-500 mt-1">{usernameError}</p>}
         </div>
 
         <div>
@@ -694,7 +687,7 @@ export default function Profile() {
         {saveError   && <p className="text-sm text-red-500">{saveError}</p>}
         {saveSuccess && <p className="text-sm text-[var(--c-income)]">Saved successfully!</p>}
 
-        <button onClick={handleSaveProfile} disabled={saving || !!usernameError}
+        <button onClick={handleSaveProfile} disabled={saving}
           className="self-start px-6 py-2.5 rounded-xl text-sm font-semibold bg-[var(--c-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
           {saving ? 'Saving…' : 'Save changes'}
         </button>

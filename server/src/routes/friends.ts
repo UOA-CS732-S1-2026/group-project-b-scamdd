@@ -75,34 +75,35 @@ async function statusBetween(meId: string, otherId: string): Promise<Status> {
 
 router.get('/search', async (req: Request, res: Response) => {
   try {
-    const u = String(req.query.username ?? '').toLowerCase().trim();
-    if (!USERNAME_RE.test(u)) {
-      res.status(400).json({ message: 'Invalid username' });
-      return;
-    }
-    const user = await User.findOne({ username: u }).lean();
-    if (!user) {
-      res.status(404).json({ message: 'User not found' });
+    const q = String(req.query.q ?? '').trim();
+    if (!q || q.length < 2) {
+      res.status(400).json({ message: 'Query must be at least 2 characters' });
       return;
     }
     const meId = req.user!._id;
-    const otherId = String(user._id);
-    if (otherId === meId) {
-      res.json({
-        id: otherId,
-        username: user.username,
-        displayName: user.displayName ?? null,
-        status: 'self',
-      });
-      return;
-    }
-    const status = await statusBetween(meId, otherId);
-    res.json({
-      id: otherId,
-      username: user.username,
-      displayName: user.displayName ?? null,
-      status,
-    });
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escaped, 'i');
+    const users = await User.find({
+      _id: { $ne: meId },
+      profileComplete: true,
+      $or: [{ displayName: regex }, { username: regex }],
+    })
+      .limit(8)
+      .lean();
+
+    const results = await Promise.all(
+      users.map(async (user) => {
+        const otherId = String(user._id);
+        const status = await statusBetween(meId, otherId);
+        return {
+          id: otherId,
+          username: user.username ?? null,
+          displayName: user.displayName ?? null,
+          status,
+        };
+      }),
+    );
+    res.json(results);
   } catch {
     res.status(500).json({ message: 'Search failed' });
   }
@@ -311,6 +312,7 @@ router.get('/', async (req: Request, res: Response) => {
         displayName: u.displayName ?? null,
         bio: u.bio ?? null,
         avatarColor: u.avatarColor ?? null,
+        avatarImage: u.avatarImage ?? null,
         streak: streakFromDates(friendDateSets.get(id) ?? new Set()),
         goals: (goalsByUser.get(id) ?? []).map((g) => ({
           id: String(g._id),
