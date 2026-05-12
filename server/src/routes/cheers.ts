@@ -120,7 +120,8 @@ router.post('/mark-seen', async (req: Request, res: Response) => {
 router.get('/for/:userId/:key', async (req: Request, res: Response) => {
   try {
     const meId = req.user!._id;
-    const { userId, key } = req.params;
+    const userId = String(req.params.userId);
+    const key = String(req.params.key);
     if (userId !== meId && !(await areFriends(meId, userId))) {
       res.status(403).json({ message: 'Not friends with that user' });
       return;

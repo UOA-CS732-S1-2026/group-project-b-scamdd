@@ -1033,7 +1033,7 @@ export default function Dashboard() {
         if (wrappedMonths.length === 0) return null;
         return (
           <div className={panelClass} style={{ height: '100%' }}>
-            <MonthlyWrapped months={wrappedMonths} onRegenerate={setWrappedMonths} />
+            <MonthlyWrapped months={wrappedMonths} />
           </div>
         );
     }

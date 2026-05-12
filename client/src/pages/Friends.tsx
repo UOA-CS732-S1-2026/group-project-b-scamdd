@@ -18,6 +18,7 @@ import Highlight from '../components/Highlight';
 import { useTheme } from '../hooks/useTheme';
 import { achievementMessage } from '../lib/achievementMeta';
 import type { Friend, Requests, SearchResult } from '../types/friend';
+import { PERIOD_LABELS } from '../types/budget';
 
 const AVATAR_PALETTE = ['#FFBDC2', '#FDFBD4', '#C5FFD8', '#C68BE1', '#C5ECF9', '#CBCBCB'];
 
@@ -354,7 +355,88 @@ export default function Friends() {
           );
         })()}
 
-
+        {/* Friends' public budget progress */}
+        {(() => {
+          const withBudgets = friends.filter((f) => (f.budgets ?? []).length > 0);
+          return (
+            <section className="mb-8">
+              <h2 className="font-semibold text-[var(--c-text)] mb-4">Friends' budget progress</h2>
+              {withBudgets.length === 0 ? (
+                <div className="border border-[rgba(109,109,109,0.8)] rounded-3xl p-8 text-center bg-[var(--c-card)]">
+                  <p className="text-sm text-[var(--c-text-2)]">
+                    {friends.length === 0
+                      ? 'Add some friends first to see their budget progress.'
+                      : 'None of your friends have made a budget public yet.'}
+                  </p>
+                </div>
+              ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {withBudgets.map((f, i) => {
+                  const name = f.displayName ?? f.username ?? 'Friend';
+                  const color = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
+                  return (
+                    <div
+                      key={f.id}
+                      className="border border-[rgba(109,109,109,0.8)] rounded-3xl p-5 bg-[var(--c-card)]"
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <div
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0"
+                          style={{ backgroundColor: color }}
+                        >
+                          {initials(name)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-[var(--c-text)] truncate">{name}</p>
+                          <p className="text-xs text-[var(--c-text-2)]">
+                            {f.budgets.length} public budget{f.budgets.length === 1 ? '' : 's'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        {f.budgets.map((b) => {
+                          const pct = b.monthlyLimit > 0
+                            ? Math.min(100, Math.round((b.spent / b.monthlyLimit) * 100))
+                            : 0;
+                          const over = b.monthlyLimit > 0 && b.spent > b.monthlyLimit;
+                          const barColor = over
+                            ? 'bg-[var(--c-negative)]'
+                            : pct >= 90
+                              ? 'bg-[#F59E0B]'
+                              : 'bg-[var(--c-accent)]';
+                          return (
+                            <div key={b.id}>
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-xs font-medium text-[var(--c-text)] capitalize truncate">
+                                    {b.category}
+                                  </span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-[rgba(109,109,109,0.5)] text-[var(--c-text-2)] flex-shrink-0">
+                                    {PERIOD_LABELS[b.period]}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-[var(--c-text-2)] flex-shrink-0">
+                                  {over ? 'Over budget' : `${pct}%`}
+                                </span>
+                              </div>
+                              <div className="w-full h-2 rounded-full overflow-hidden bg-[var(--c-border)]">
+                                <div
+                                  style={{ width: `${pct}%` }}
+                                  className={`h-full rounded-full transition-all ${barColor}`}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              )}
+            </section>
+          );
+        })()}
 
       </main>
 
