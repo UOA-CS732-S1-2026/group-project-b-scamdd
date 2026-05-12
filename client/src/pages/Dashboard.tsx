@@ -8,9 +8,12 @@ import { getMyProfile } from '../api/profile';
 import { getFriends } from '../api/friends';
 import { getMyAchievements, type Achievement } from '../api/achievements';
 import { cheer as apiCheer, uncheer as apiUncheer, getSentCheers } from '../api/cheers';
+import { getWrapped } from '../api/wrapped';
 import { achievementMessage } from '../lib/achievementMeta';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import MonthlyWrapped from '../components/MonthlyWrapped';
+import type { WrappedMonth } from '../types/wrapped';
 import Highlight from '../components/Highlight';
 import { useTheme } from '../hooks/useTheme';
 import { useCategories } from '../hooks/useCategories';
@@ -118,13 +121,14 @@ const PANEL_DEFS = [
   { id: 'top-categories'     as const, title: 'Top categories',      desc: 'Ranked horizontal bars of spending per category',             width: 5, height: 5,  defaultOn: false },
   { id: 'budget-utilization' as const, title: 'Budget utilisation',  desc: 'Budget used versus limit for each budget category',           width: 5, height: 5,  defaultOn: false },
   { id: 'txn-count'          as const, title: 'Transaction count',   desc: 'Number of transactions logged per time segment',              width: 5, height: 3,  defaultOn: false },
+  { id: 'monthly-wrapped'   as const, title: 'Monthly Wrapped',      desc: 'End-of-month snapshot with key spending insights',             width: 10, height: 5, defaultOn: true  },
 ];
 
 type PanelId = typeof PANEL_DEFS[number]['id'];
 type PanelConfig = { id: PanelId; visible: boolean; width?: number; height?: number };
 
 const DEFAULT_CONFIG: PanelConfig[] = PANEL_DEFS.map(p => ({ id: p.id, visible: p.defaultOn }));
-const LS_KEY = 'dashboard-panels-v13';
+const LS_KEY = 'dashboard-panels-v14';
 
 function loadPanelConfig(): PanelConfig[] {
   try {
@@ -220,6 +224,7 @@ export default function Dashboard() {
       });
     }
   }, [likedAchievements]);
+  const [wrappedMonths, setWrappedMonths] = useState<WrappedMonth[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewPeriod, setViewPeriod] = useState<DashPeriod>('monthly');
   const [periodAnchor, setPeriodAnchor] = useState<Date>(new Date());
@@ -232,7 +237,8 @@ export default function Dashboard() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [transactions, budgets, prof, friendList, ach, shared, invites] = await Promise.all([
+
+      const [transactions, budgets, prof, friendList, ach, shared, invites, wrapped] = await Promise.all([
         getTransactions(),
         getBudgets(),
         getMyProfile(),
@@ -240,12 +246,14 @@ export default function Dashboard() {
         getMyAchievements().catch(() => [] as Achievement[]),
         getSharedBudgets().catch(() => [] as SharedBudget[]),
         getSharedBudgetInvites().catch(() => [] as SharedBudget[]),
+        getWrapped().catch(() => [] as WrappedMonth[]),
       ]);
       setAllTransactions(transactions);
       setRawBudgets(budgets);
       setProfile(prof);
       setFriends(friendList);
       setMyAchievements(ach);
+      setWrappedMonths(wrapped);
       setSharedBudgets(shared);
       setSharedInvites(invites);
     } finally {
@@ -448,7 +456,7 @@ export default function Dashboard() {
   // "Personal" = the rest of my expenses in the current view period.
   const meId = session?.user?.id ?? '';
   const mySharedSpent = sharedBudgets.reduce((sum, sb) => {
-    const mine = sb.members.find(m => m.userId === meId);
+    const mine = sb.members?.find(m => m.userId === meId);
     return sum + (mine?.amount ?? 0);
   }, 0);
   const personalSpent = Math.max(0, totalSpent - mySharedSpent);
@@ -1044,6 +1052,21 @@ export default function Dashboard() {
           </div>
         );
       }
+
+      case 'monthly-wrapped':
+        return (
+          <div className={panelClass} style={{ height: '100%' }}>
+            {wrappedMonths.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center gap-2">
+                <div className="text-2xl">📦</div>
+                <div className="text-sm font-semibold text-[var(--c-text)]">No wrapped data yet</div>
+                <div className="text-xs text-[var(--c-text-2)]">Generated automatically at the end of each month</div>
+              </div>
+            ) : (
+              <MonthlyWrapped months={wrappedMonths} />
+            )}
+          </div>
+        );
     }
   };
 
