@@ -145,8 +145,13 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
 
     const open = () => {
       es = new EventSource(`${apiUrl}/api/notifications/stream`, { withCredentials: true });
-      es.onmessage = () => refreshNotifications();
-      es.onerror = () => {
+      es.onopen = () => console.log('[notifications] SSE open');
+      es.onmessage = (e) => {
+        console.log('[notifications] push', e.data);
+        refreshNotifications();
+      };
+      es.onerror = (e) => {
+        console.warn('[notifications] SSE error', e, 'readyState=', es?.readyState);
         es?.close();
         es = null;
         // Browser auto-reconnects via `retry:` directive, but if it gave up
