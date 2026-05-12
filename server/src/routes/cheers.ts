@@ -4,7 +4,6 @@ import { Achievement } from '../models/Achievement';
 import { Friendship } from '../models/Friendship';
 import { User } from '../models/User';
 import { requireAuth } from '../middleware/auth';
-import { notify } from '../lib/notificationBus';
 
 const router = Router();
 router.use(requireAuth);
@@ -42,13 +41,12 @@ router.post('/', async (req: Request, res: Response) => {
       res.status(404).json({ message: 'Achievement not found' });
       return;
     }
-    const result = await Cheer.updateOne(
+    await Cheer.updateOne(
       { toUserId, fromUserId: meId, achievementKey },
       { $setOnInsert: { toUserId, fromUserId: meId, achievementKey, seenByRecipient: false } },
       { upsert: true },
     );
     res.status(201).json({ ok: true });
-    if (result.upsertedCount > 0) notify(toUserId, { type: 'cheer' });
   } catch {
     res.status(500).json({ message: 'Failed to cheer' });
   }

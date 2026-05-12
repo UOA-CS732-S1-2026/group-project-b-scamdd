@@ -7,7 +7,6 @@ import { Transaction } from '../models/Transaction';
 import { requireAuth } from '../middleware/auth';
 import { computeBudgetStreak } from '../lib/streaks';
 import { listAchievements } from '../lib/achievements';
-import { notify } from '../lib/notificationBus';
 import type { BudgetPeriod } from '../models/Budget';
 
 const router = Router();
@@ -156,7 +155,6 @@ router.post('/requests', async (req: Request, res: Response) => {
       existing.status = 'pending';
       await existing.save();
       res.status(201).json(existing);
-      notify(addresseeId, { type: 'friend-request' });
       return;
     }
     const created = await Friendship.create({
@@ -165,7 +163,6 @@ router.post('/requests', async (req: Request, res: Response) => {
       status: 'pending',
     });
     res.status(201).json(created);
-    notify(addresseeId, { type: 'friend-request' });
   } catch {
     res.status(500).json({ message: 'Failed to create friend request' });
   }
@@ -236,7 +233,6 @@ router.patch('/requests/:id', async (req: Request, res: Response) => {
     f.seenByRequester = action === 'accept' ? false : true;
     await f.save();
     res.json(f);
-    notify(f.requesterId, { type: 'friend-request-responded' });
   } catch {
     res.status(500).json({ message: 'Failed to update request' });
   }

@@ -145,39 +145,36 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
     refreshNotifications();
   }, [location.pathname]);
 
-  // Server-sent events: the server pushes a message whenever a friend request,
-  // cheer, or shared-budget invite is created — no polling needed.
+  // Poll every 5s while the tab is open; pause when hidden, refresh on focus.
+  // Works regardless of whether the other user has the app open.
   useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
-    let es: EventSource | null = null;
-    let reconnect: number | null = null;
-
-    const open = () => {
-      es = new EventSource(`${apiUrl}/api/notifications/stream`, { withCredentials: true });
-      es.onopen = () => console.log('[notifications] SSE open');
-      es.onmessage = (e) => {
-        console.log('[notifications] push', e.data);
-        refreshNotifications();
-      };
-      es.onerror = (e) => {
-        console.warn('[notifications] SSE error', e, 'readyState=', es?.readyState);
-        es?.close();
-        es = null;
-        // Browser auto-reconnects via `retry:` directive, but if it gave up
-        // (e.g. server restart) schedule a manual reopen.
-        if (reconnect === null) {
-          reconnect = window.setTimeout(() => {
-            reconnect = null;
-            open();
-          }, 5000);
-        }
-      };
+    let id: number | null = null;
+    const start = () => {
+      if (id !== null) return;
+      id = window.setInterval(refreshNotifications, 5000);
     };
-    open();
+    const stop = () => {
+      if (id !== null) {
+        window.clearInterval(id);
+        id = null;
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshNotifications();
+        start();
+      } else {
+        stop();
+      }
+    };
 
+    start();
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', refreshNotifications);
     return () => {
-      if (reconnect !== null) window.clearTimeout(reconnect);
-      es?.close();
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', refreshNotifications);
     };
   }, []);
 
