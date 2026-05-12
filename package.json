@@ -1,7 +1,6 @@
 {
   "name": "bscamdd",
   "private": true,
-  "packageManager": "pnpm@11.1.0",
   "scripts": {
     "build": "pnpm -C client build"
   },
