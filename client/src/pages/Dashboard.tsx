@@ -1030,10 +1030,17 @@ export default function Dashboard() {
       }
 
       case 'monthly-wrapped':
-        if (wrappedMonths.length === 0) return null;
         return (
           <div className={panelClass} style={{ height: '100%' }}>
-            <MonthlyWrapped months={wrappedMonths} />
+            {wrappedMonths.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center gap-2">
+                <div className="text-2xl">📦</div>
+                <div className="text-sm font-semibold text-[var(--c-text)]">No wrapped data yet</div>
+                <div className="text-xs text-[var(--c-text-2)]">Generated automatically at the end of each month</div>
+              </div>
+            ) : (
+              <MonthlyWrapped months={wrappedMonths} />
+            )}
           </div>
         );
     }
