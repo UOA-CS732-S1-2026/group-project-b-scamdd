@@ -11,9 +11,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "seed": "tsx src/seed.ts",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "seed": "tsx src/seed.ts"
   },
   "keywords": [],
   "author": "",
