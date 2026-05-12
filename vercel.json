@@ -1,0 +1,13 @@
+{
+  "installCommand": "pnpm -C server install --frozen-lockfile=false && pnpm -C client install --frozen-lockfile=false",
+  "buildCommand": "pnpm -C client build",
+  "outputDirectory": "client/dist",
+  "framework": null,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "functions": {
+    "api/index.ts": { "maxDuration": 10 }
+  }
+}
