@@ -4,8 +4,14 @@ import { User } from './models/User.js';
 import { Transaction } from './models/Transaction.js';
 import { Budget } from './models/Budget.js';
 import { Goal } from './models/Goal.js';
+import { MonthlyWrapped } from './models/MonthlyWrapped.js';
+import { computeWrappedStats, completedMonths } from './lib/computeWrapped.js';
 
-const EMAIL = process.argv[2] ?? 'bgib630@aucklanduni.ac.nz';
+const EMAIL = process.argv[2];
+if (!EMAIL) {
+  console.error('Usage: pnpm seed <email>');
+  process.exit(1);
+}
 
 function d(day: number, month = 4 /* 0-indexed, 4 = May */, year = 2026) {
   return new Date(year, month, day);
@@ -42,6 +48,12 @@ const TRANSACTIONS: SeedTx[] = [
   { title: 'Music streaming',       amount: 11.99,  type: 'expense', category: 'entertainment', essential: false, mood: 'glad',     paymentMethod: 'Credit',       date: d(1) },
   { title: 'Video game',            amount: 24.99,  type: 'expense', category: 'entertainment', essential: false, mood: 'regret',   paymentMethod: 'Debit',        date: d(6) },
   { title: 'Drinks with friends',   amount: 22.00,  type: 'expense', category: 'entertainment', essential: false, mood: 'worth-it', paymentMethod: 'Cash',         date: d(9) },
+  { title: 'Concert tickets',       amount: 89.00,  type: 'expense', category: 'entertainment', essential: false, mood: 'worth-it', paymentMethod: 'Credit',       date: d(10) },
+  { title: 'Lunch',                 amount: 14.50,  type: 'expense', category: 'food',          essential: false, mood: 'okay',     paymentMethod: 'Cash',         date: d(10) },
+  { title: 'Coffee',                amount: 6.50,   type: 'expense', category: 'food',          essential: false, mood: 'worth-it', paymentMethod: 'Debit',        date: d(11) },
+  { title: 'Grocery top-up',        amount: 28.40,  type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',        date: d(11) },
+  { title: 'Rideshare',             amount: 15.00,  type: 'expense', category: 'transport',     essential: false, mood: 'meh',      paymentMethod: 'Credit',       date: d(12) },
+  { title: 'Lunch',                 amount: 13.00,  type: 'expense', category: 'food',          essential: false, mood: 'okay',     paymentMethod: 'Cash',         date: d(12) },
 
   // ── Transport ────────────────────────────────────────────────────────
   { title: 'Public transport',      amount: 40.00,  type: 'expense', category: 'transport',     essential: true,  mood: 'okay',     paymentMethod: 'Debit',        date: d(1) },
@@ -91,12 +103,13 @@ async function seed() {
   const userId = String(user._id);
   console.log(`Seeding for: ${user.email} (${userId})`);
 
-  const [txDel, budgetDel, goalDel] = await Promise.all([
+  const [txDel, budgetDel, goalDel, wrappedDel] = await Promise.all([
     Transaction.deleteMany({ userId }),
     Budget.deleteMany({ userId }),
     Goal.deleteMany({ userId }),
+    MonthlyWrapped.deleteMany({ userId }),
   ]);
-  console.log(`Cleared ${txDel.deletedCount} transactions, ${budgetDel.deletedCount} budgets, ${goalDel.deletedCount} goals`);
+  console.log(`Cleared ${txDel.deletedCount} transactions, ${budgetDel.deletedCount} budgets, ${goalDel.deletedCount} goals, ${wrappedDel.deletedCount} wrapped`);
 
   const txDocs = TRANSACTIONS.map((t) => ({ ...t, userId, amount: Number(t.amount) }));
   const [txs, budgets, goals] = await Promise.all([
@@ -105,9 +118,22 @@ async function seed() {
     Goal.insertMany(GOALS.map((g) => ({ ...g, userId }))),
   ]);
 
+  // Generate wrapped for all completed months from seeded transactions
+  const allTxns = await Transaction.find({ userId });
+  const months = completedMonths(allTxns);
+  const wrappedDocs = months.map(({ year, month }) => {
+    const monthTxns = allTxns.filter((t) => {
+      const d = new Date(t.date);
+      return d.getFullYear() === year && d.getMonth() + 1 === month;
+    });
+    return { userId, year, month, stats: computeWrappedStats(monthTxns), generatedAt: new Date() };
+  });
+  const wrapped = await MonthlyWrapped.insertMany(wrappedDocs);
+
   console.log(`✓ Created ${txs.length} transactions`);
   console.log(`✓ Created ${budgets.length} budgets`);
   console.log(`✓ Created ${goals.length} goals`);
+  console.log(`✓ Generated ${wrapped.length} wrapped months`);
   console.log('Done!');
 
   await mongoose.disconnect();
