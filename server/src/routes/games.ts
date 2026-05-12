@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { GameScore } from '../models/GameScore';
-import { Friendship } from '../models/Friendship';
-import { User } from '../models/User';
-import { requireAuth } from '../middleware/auth';
+import { GameScore } from '../models/GameScore.js';
+import { Friendship } from '../models/Friendship.js';
+import { User } from '../models/User.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 router.use(requireAuth);

@@ -1,18 +1,18 @@
 import express from 'express';
 import cors from 'cors';
 import { toNodeHandler } from 'better-auth/node';
-import { auth } from './auth';
-import transactionRoutes from './routes/transactions';
-import profileRoutes from './routes/profile';
-import goalRoutes from './routes/goals';
-import budgetRoutes from './routes/budgets';
-import sharedBudgetRoutes from './routes/sharedBudgets';
-import friendRoutes from './routes/friends';
-import gameRoutes from './routes/games';
-import categoryRoutes from './routes/categories';
-import achievementRoutes from './routes/achievements';
-import cheerRoutes from './routes/cheers';
-import wrappedRoutes from './routes/wrapped';
+import { auth } from './auth.js';
+import transactionRoutes from './routes/transactions.js';
+import profileRoutes from './routes/profile.js';
+import goalRoutes from './routes/goals.js';
+import budgetRoutes from './routes/budgets.js';
+import sharedBudgetRoutes from './routes/sharedBudgets.js';
+import friendRoutes from './routes/friends.js';
+import gameRoutes from './routes/games.js';
+import categoryRoutes from './routes/categories.js';
+import achievementRoutes from './routes/achievements.js';
+import cheerRoutes from './routes/cheers.js';
+import wrappedRoutes from './routes/wrapped.js';
 
 export const app = express();
 

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { MonthlyWrapped } from '../models/MonthlyWrapped';
-import { requireAuth } from '../middleware/auth';
+import { MonthlyWrapped } from '../models/MonthlyWrapped.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 

@@ -1,5 +1,5 @@
-import { Budget, type BudgetPeriod } from '../models/Budget';
-import { Transaction } from '../models/Transaction';
+import { Budget, type BudgetPeriod } from '../models/Budget.js';
+import { Transaction } from '../models/Transaction.js';
 
 function startOfDay(d: Date): Date {
   const out = new Date(d);

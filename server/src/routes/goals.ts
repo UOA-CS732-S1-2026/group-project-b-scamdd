@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { Goal } from '../models/Goal';
-import { requireAuth } from '../middleware/auth';
-import { checkAndAwardAchievements } from '../lib/achievements';
+import { Goal } from '../models/Goal.js';
+import { requireAuth } from '../middleware/auth.js';
+import { checkAndAwardAchievements } from '../lib/achievements.js';
 
 const router = Router();
 

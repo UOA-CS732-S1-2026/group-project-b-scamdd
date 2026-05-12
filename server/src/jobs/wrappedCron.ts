@@ -1,8 +1,8 @@
 import cron from 'node-cron';
-import { User } from '../models/User';
-import { Transaction } from '../models/Transaction';
-import { MonthlyWrapped } from '../models/MonthlyWrapped';
-import { computeWrappedStats } from '../lib/computeWrapped';
+import { User } from '../models/User.js';
+import { Transaction } from '../models/Transaction.js';
+import { MonthlyWrapped } from '../models/MonthlyWrapped.js';
+import { computeWrappedStats } from '../lib/computeWrapped.js';
 
 async function generatePreviousMonthWrapped() {
   const now = new Date();

@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { User } from '../models/User';
-import { UserAvatar } from '../models/UserAvatar';
-import { requireAuth } from '../middleware/auth';
-import { computeBudgetStreak } from '../lib/streaks';
+import { User } from '../models/User.js';
+import { UserAvatar } from '../models/UserAvatar.js';
+import { requireAuth } from '../middleware/auth.js';
+import { computeBudgetStreak } from '../lib/streaks.js';
 
 const router = Router();
 

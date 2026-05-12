@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { Transaction } from '../models/Transaction';
-import { requireAuth } from '../middleware/auth';
-import { checkAndAwardAchievements } from '../lib/achievements';
+import { Transaction } from '../models/Transaction.js';
+import { requireAuth } from '../middleware/auth.js';
+import { checkAndAwardAchievements } from '../lib/achievements.js';
 
 const router = Router();
 

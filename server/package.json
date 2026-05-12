@@ -2,6 +2,7 @@
   "name": "server",
   "version": "1.0.0",
   "description": "B Scamdd backend - Express + TS + MongoDB",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

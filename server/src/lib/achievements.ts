@@ -1,8 +1,8 @@
-import { Achievement } from '../models/Achievement';
-import { Transaction } from '../models/Transaction';
-import { Budget } from '../models/Budget';
-import { Goal } from '../models/Goal';
-import { computeBudgetStreak } from './streaks';
+import { Achievement } from '../models/Achievement.js';
+import { Transaction } from '../models/Transaction.js';
+import { Budget } from '../models/Budget.js';
+import { Goal } from '../models/Goal.js';
+import { computeBudgetStreak } from './streaks.js';
 
 export const ACHIEVEMENT_KEYS = [
   'first_transaction',
