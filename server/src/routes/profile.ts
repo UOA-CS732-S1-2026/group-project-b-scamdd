@@ -26,15 +26,20 @@ function publicProfile(u: {
 router.get('/me', requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = req.user!._id;
+    console.log(`[/me] start userId=${userId}`);
+    const t0 = Date.now();
     const [user, userAvatar] = await Promise.all([
       User.findById(userId).lean(),
       UserAvatar.findOne({ userId }).lean(),
     ]);
+    console.log(`[/me] User+UserAvatar queries done in ${Date.now() - t0}ms, userFound=${!!user}`);
     if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
     }
+    const t1 = Date.now();
     const streak = await computeBudgetStreak(String(user._id));
+    console.log(`[/me] computeBudgetStreak done in ${Date.now() - t1}ms`);
     res.json({
       id: String(user._id),
       email: user.email,
