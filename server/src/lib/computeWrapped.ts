@@ -72,7 +72,7 @@ export function computeWrappedStats(txns: ITransaction[]): IWrappedStats {
     happiestAmount:       happiest?.amount ?? 0,
     busiestDayOfMonth:    Number(busiestEntry[0]),
     busiestDayAmount:     busiestEntry[1],
-    avgDailySpend,
+    avgDailySpend:        totalSpent / activeDays,
     moodAvg,
   };
 }
