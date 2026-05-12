@@ -456,7 +456,7 @@ export default function Dashboard() {
   // "Personal" = the rest of my expenses in the current view period.
   const meId = session?.user?.id ?? '';
   const mySharedSpent = sharedBudgets.reduce((sum, sb) => {
-    const mine = sb.members.find(m => m.userId === meId);
+    const mine = sb.members?.find(m => m.userId === meId);
     return sum + (mine?.amount ?? 0);
   }, 0);
   const personalSpent = Math.max(0, totalSpent - mySharedSpent);
