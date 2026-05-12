@@ -10,6 +10,7 @@ export interface Profile {
   avatarColor: string | null;
   avatarImage: string | null;
   profileComplete: boolean;
+  streak?: number;
 }
 
 export interface PublicProfile {

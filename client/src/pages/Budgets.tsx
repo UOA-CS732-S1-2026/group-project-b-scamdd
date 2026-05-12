@@ -6,22 +6,24 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Highlight from '../components/Highlight';
 import BudgetForm from '../components/BudgetForm';
+import SharedBudgetForm from '../components/SharedBudgetForm';
+import SharedBudgetCard from '../components/SharedBudgetCard';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useTheme } from '../hooks/useTheme';
 import { useCurrency } from '../context/CurrencyContext';
+import { useCategories } from '../hooks/useCategories';
 import type { Budget, BudgetPeriod } from '../types/budget';
 import { PERIOD_LABELS } from '../types/budget';
+import type { SharedBudget } from '../types/sharedBudget';
+import {
+  acceptSharedBudgetInvite,
+  declineSharedBudgetInvite,
+  deleteSharedBudget,
+  getSharedBudgetInvites,
+  getSharedBudgets,
+  leaveSharedBudget,
+} from '../api/sharedBudgets';
 
-const CAT_COLORS: Record<string, string> = {
-  food:          '#FFBDC2',
-  rent:          '#FDFBD4',
-  transport:     '#C5FFD8',
-  entertainment: '#C68BE1',
-  utilities:     '#C5ECF9',
-  shopping:      '#CBCBCB',
-  health:        '#FFBDC2',
-  other:         '#CBCBCB',
-};
 
 const ALL_PERIODS: Array<BudgetPeriod | 'all'> = ['all', 'daily', 'weekly', 'monthly', 'yearly'];
 const FILTER_LABELS: Record<string, string> = { all: 'All', ...PERIOD_LABELS };
@@ -110,12 +112,19 @@ export default function Budgets() {
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
   const { fmt } = useCurrency();
+  const { getCategoryColor } = useCategories();
 
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [sharedBudgets, setSharedBudgets] = useState<SharedBudget[]>([]);
+  const [sharedInvites, setSharedInvites] = useState<SharedBudget[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | undefined>();
+  const [showSharedForm, setShowSharedForm] = useState(false);
+  const [editingShared, setEditingShared] = useState<SharedBudget | undefined>();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmSharedDeleteId, setConfirmSharedDeleteId] = useState<string | null>(null);
+  const [confirmSharedLeaveId, setConfirmSharedLeaveId] = useState<string | null>(null);
   const [filter, setFilter] = useState<BudgetPeriod | 'all'>('all');
   const [profile, setProfile] = useState<any>(null);
 
@@ -125,8 +134,14 @@ export default function Budgets() {
 
   const fetchBudgets = useCallback(async () => {
     try {
-      const data = await getBudgets();
-      setBudgets(data);
+      const [personal, shared, invites] = await Promise.all([
+        getBudgets(),
+        getSharedBudgets().catch(() => []),
+        getSharedBudgetInvites().catch(() => []),
+      ]);
+      setBudgets(personal);
+      setSharedBudgets(shared);
+      setSharedInvites(invites);
     } finally {
       setLoading(false);
     }
@@ -140,6 +155,52 @@ export default function Budgets() {
       });
     }
   }, [session, fetchBudgets]);
+
+  const meId = session?.user?.id ?? '';
+
+  const handleSharedFormSuccess = () => {
+    setShowSharedForm(false);
+    setEditingShared(undefined);
+    fetchBudgets();
+  };
+
+  const handleAcceptShared = async (id: string) => {
+    try {
+      await acceptSharedBudgetInvite(id);
+      fetchBudgets();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeclineShared = async (id: string) => {
+    try {
+      await declineSharedBudgetInvite(id);
+      fetchBudgets();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteShared = async (id: string) => {
+    try {
+      await deleteSharedBudget(id);
+      setSharedBudgets((bs) => bs.filter((b) => b._id !== id));
+      setConfirmSharedDeleteId(null);
+    } catch {
+      setConfirmSharedDeleteId(null);
+    }
+  };
+
+  const handleLeaveShared = async (id: string) => {
+    try {
+      await leaveSharedBudget(id);
+      setSharedBudgets((bs) => bs.filter((b) => b._id !== id));
+      setConfirmSharedLeaveId(null);
+    } catch {
+      setConfirmSharedLeaveId(null);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -166,7 +227,7 @@ export default function Budgets() {
   }
 
   const filtered = filter === 'all' ? budgets : budgets.filter((b) => (b.period ?? 'monthly') === filter);
-  const existingCategories = budgets.map((b) => b.category);
+  const existingBudgets = budgets.map((b) => ({ category: b.category, period: (b.period ?? 'monthly') as BudgetPeriod }));
 
   // Summary stats (across filtered set)
   const totalAllocated = filtered.reduce((s, b) => s + b.monthlyLimit, 0);
@@ -183,12 +244,20 @@ export default function Budgets() {
           <h1 className="text-4xl font-bold m-0 text-[var(--c-text)]">
             <Highlight className="px-3 py-1">Budgets</Highlight>
           </h1>
-          <button
-            onClick={() => { setEditingBudget(undefined); setShowForm(true); }}
-            className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity"
-          >
-            + Add a budget
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setEditingShared(undefined); setShowSharedForm(true); }}
+              className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-card)] text-[var(--c-text)] hover:bg-[var(--c-nav-active)] transition-colors"
+            >
+              + Shared budget
+            </button>
+            <button
+              onClick={() => { setEditingBudget(undefined); setShowForm(true); }}
+              className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity"
+            >
+              + Add a budget
+            </button>
+          </div>
         </div>
 
         {budgets.length === 0 ? (
@@ -280,6 +349,7 @@ export default function Budgets() {
                       spentPct={spentPct}
                       elapsed={elapsed}
                       pace={pace}
+                      getCategoryColor={getCategoryColor}
                       onEdit={() => { setEditingBudget(budget); setShowForm(true); }}
                       onDelete={() => setConfirmDeleteId(budget._id)}
                     />
@@ -289,14 +359,78 @@ export default function Budgets() {
             )}
           </>
         )}
+
+        {/* ── Shared budgets section ── */}
+        <section id="shared" className="mt-12">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-[var(--c-text)]">Shared budgets</h2>
+            {(sharedBudgets.length > 0 || sharedInvites.length > 0) && (
+              <button
+                onClick={() => { setEditingShared(undefined); setShowSharedForm(true); }}
+                className="px-4 py-1.5 rounded-full text-sm font-medium border border-[var(--c-text)] text-[var(--c-text)] hover:bg-[var(--c-nav-active)] transition-colors"
+              >
+                + New shared budget
+              </button>
+            )}
+          </div>
+
+          {sharedInvites.length > 0 && (
+            <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-5">
+              {sharedInvites.map((sb) => (
+                <SharedBudgetCard
+                  key={sb._id}
+                  budget={sb}
+                  meId={meId}
+                  onAccept={() => handleAcceptShared(sb._id)}
+                  onDecline={() => handleDeclineShared(sb._id)}
+                />
+              ))}
+            </div>
+          )}
+
+          {sharedBudgets.length === 0 && sharedInvites.length === 0 ? (
+            <div className="border border-[rgba(109,109,109,0.8)] rounded-3xl p-12 text-center bg-[var(--c-card)]">
+              <p className="text-[var(--c-text-2)] mb-3">
+                Pool spending with friends or family — pick a category and invite people.
+              </p>
+              <button
+                onClick={() => { setEditingShared(undefined); setShowSharedForm(true); }}
+                className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity"
+              >
+                Create a shared budget
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {sharedBudgets.map((sb) => (
+                <SharedBudgetCard
+                  key={sb._id}
+                  budget={sb}
+                  meId={meId}
+                  onEdit={() => { setEditingShared(sb); setShowSharedForm(true); }}
+                  onLeave={() => setConfirmSharedLeaveId(sb._id)}
+                  onDelete={() => setConfirmSharedDeleteId(sb._id)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </main>
 
       {showForm && (
         <BudgetForm
           budget={editingBudget}
-          existingCategories={existingCategories}
+          existingBudgets={existingBudgets}
           onSuccess={handleFormSuccess}
           onCancel={() => { setShowForm(false); setEditingBudget(undefined); }}
+        />
+      )}
+
+      {showSharedForm && (
+        <SharedBudgetForm
+          budget={editingShared}
+          onSuccess={handleSharedFormSuccess}
+          onCancel={() => { setShowSharedForm(false); setEditingShared(undefined); }}
         />
       )}
 
@@ -305,6 +439,22 @@ export default function Budgets() {
           message="Delete this budget? This can't be undone."
           onConfirm={() => handleDelete(confirmDeleteId)}
           onCancel={() => setConfirmDeleteId(null)}
+        />
+      )}
+
+      {confirmSharedDeleteId && (
+        <ConfirmDialog
+          message="Delete this shared budget for everyone? This can't be undone."
+          onConfirm={() => handleDeleteShared(confirmSharedDeleteId)}
+          onCancel={() => setConfirmSharedDeleteId(null)}
+        />
+      )}
+
+      {confirmSharedLeaveId && (
+        <ConfirmDialog
+          message="Leave this shared budget? The others can keep using it."
+          onConfirm={() => handleLeaveShared(confirmSharedLeaveId)}
+          onCancel={() => setConfirmSharedLeaveId(null)}
         />
       )}
 
@@ -319,12 +469,13 @@ interface CardProps {
   spentPct: number;
   elapsed: number;
   pace: PaceStatus;
+  getCategoryColor: (name: string) => string;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-function BudgetCard({ budget, period, spentPct, elapsed, pace, onEdit, onDelete }: CardProps) {
-  const catColor = CAT_COLORS[budget.category] || '#B6B6B6';
+function BudgetCard({ budget, period, spentPct, elapsed, pace, getCategoryColor, onEdit, onDelete }: CardProps) {
+  const catColor = getCategoryColor(budget.category);
   const { fmt } = useCurrency();
   const barFillPct = Math.min(spentPct, 100);
   const paceMarkerPct = Math.min(elapsed * 100, 100);

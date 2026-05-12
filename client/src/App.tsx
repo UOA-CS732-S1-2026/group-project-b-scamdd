@@ -113,26 +113,14 @@ function HeroCtas() {
   const ghost =
     'px-5 py-2 rounded-[20px] text-sm font-medium border border-[#8D8D8D] text-[var(--c-text)] bg-[var(--c-card)] hover:bg-[var(--c-nav-active)] cursor-pointer transition-colors';
 
-  if (session) {
-    return (
-      <div className="flex flex-wrap gap-3">
-        <button type="button" className={primary} onClick={() => navigate('/dashboard')}>
-          Open the app
-        </button>
-        <button type="button" className={ghost} onClick={() => navigate('/about')}>
-          Learn more
-        </button>
-      </div>
-    );
-  }
   return (
     <div className="flex flex-wrap gap-3">
       <button
         type="button"
         className={primary}
-        onClick={() => navigate('/auth?tab=signup')}
+        onClick={() => navigate(session ? '/dashboard' : '/auth')}
       >
-        Get started — it&apos;s free
+        Open the app
       </button>
       <button type="button" className={ghost} onClick={() => navigate('/about')}>
         Learn more

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { Transaction } from '../models/Transaction';
 import { requireAuth } from '../middleware/auth';
+import { checkAndAwardAchievements } from '../lib/achievements';
 
 const router = Router();
 
@@ -47,6 +48,7 @@ router.post('/', async (req: Request, res: Response) => {
       paymentMethod,
     });
     res.status(201).json(transaction);
+    checkAndAwardAchievements(req.user!._id).catch(() => { /* ignore */ });
   } catch {
     res.status(500).json({ message: 'Failed to create transaction' });
   }
@@ -88,6 +90,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
       return;
     }
     res.json(transaction);
+    checkAndAwardAchievements(req.user!._id).catch(() => { /* ignore */ });
   } catch {
     res.status(500).json({ message: 'Failed to update transaction' });
   }

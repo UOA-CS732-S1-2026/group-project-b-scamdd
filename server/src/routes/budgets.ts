@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { Budget, type BudgetPeriod } from '../models/Budget';
 import { Transaction } from '../models/Transaction';
 import { requireAuth } from '../middleware/auth';
+import { checkAndAwardAchievements } from '../lib/achievements';
 
 const router = Router();
 router.use(requireAuth);
@@ -39,11 +40,23 @@ function periodRange(period: BudgetPeriod): { start: Date; end: Date } {
 async function spentForPeriod(userId: string, period: BudgetPeriod): Promise<Record<string, number>> {
   const { start, end } = periodRange(period);
   const rows = await Transaction.aggregate<{ _id: string; total: number }>([
-    { $match: { userId, type: 'expense', date: { $gte: start, $lt: end } } },
+    {
+      $match: {
+        userId,
+        type: 'expense',
+        category: { $ne: 'emergency' },
+        date: { $gte: start, $lt: end },
+      },
+    },
     { $group: { _id: '$category', total: { $sum: '$amount' } } },
   ]);
   const map: Record<string, number> = {};
-  for (const r of rows) map[r._id] = r.total;
+  let overall = 0;
+  for (const r of rows) {
+    map[r._id] = r.total;
+    overall += r.total;
+  }
+  map['overall'] = overall;
   return map;
 }
 
@@ -79,6 +92,10 @@ router.post('/', async (req: Request, res: Response) => {
       res.status(400).json({ message: 'category is required' });
       return;
     }
+    if (category === 'emergency') {
+      res.status(400).json({ message: 'Emergency cannot have a budget' });
+      return;
+    }
     if (typeof monthlyLimit !== 'number' || monthlyLimit <= 0) {
       res.status(400).json({ message: 'limit must be a positive number' });
       return;
@@ -94,9 +111,10 @@ router.post('/', async (req: Request, res: Response) => {
       isPublic: Boolean(isPublic),
     });
     res.status(201).json(budget);
+    checkAndAwardAchievements(req.user!._id).catch(() => { /* ignore */ });
   } catch (err: unknown) {
     if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
-      res.status(409).json({ message: 'A budget for that category already exists' });
+      res.status(409).json({ message: 'A budget for that category and period already exists' });
       return;
     }
     res.status(500).json({ message: 'Failed to create budget' });
@@ -105,9 +123,10 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.patch('/:id', async (req: Request, res: Response) => {
   try {
-    const { monthlyLimit, period, isPublic } = req.body ?? {};
+    const { category, monthlyLimit, period, isPublic } = req.body ?? {};
     const updates: Record<string, unknown> = {};
 
+    if (category !== undefined) updates.category = category;
     if (monthlyLimit !== undefined) {
       if (typeof monthlyLimit !== 'number' || monthlyLimit <= 0) {
         res.status(400).json({ message: 'limit must be a positive number' });
@@ -129,7 +148,11 @@ router.patch('/:id', async (req: Request, res: Response) => {
       return;
     }
     res.json(budget);
-  } catch {
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
+      res.status(409).json({ message: 'A budget for that category and period already exists' });
+      return;
+    }
     res.status(500).json({ message: 'Failed to update budget' });
   }
 });

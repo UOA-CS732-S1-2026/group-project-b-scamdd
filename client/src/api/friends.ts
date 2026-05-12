@@ -1,4 +1,4 @@
-import type { Friend, Requests, SearchResult } from '../types/friend';
+import type { Friend, FriendAcceptance, Requests, SearchResult } from '../types/friend';
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
 const BASE = `${API}/api/friends`;
@@ -56,4 +56,15 @@ export async function getFriends(): Promise<Friend[]> {
 export async function unfriend(friendId: string): Promise<void> {
   const res = await fetch(`${BASE}/${friendId}`, { ...opts, method: 'DELETE' });
   if (!res.ok) throw new Error('Failed to unfriend');
+}
+
+export async function getAcceptances(): Promise<FriendAcceptance[]> {
+  const res = await fetch(`${BASE}/acceptances`, opts);
+  if (!res.ok) throw new Error('Failed to load acceptances');
+  return res.json();
+}
+
+export async function markAcceptancesSeen(): Promise<void> {
+  const res = await fetch(`${BASE}/acceptances/seen`, { ...opts, method: 'POST' });
+  if (!res.ok) throw new Error('Failed to mark acceptances seen');
 }

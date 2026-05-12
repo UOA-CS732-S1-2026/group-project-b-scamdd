@@ -3,16 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
 import { getTransactions } from '../api/transactions';
 import { getBudgets } from '../api/budgets';
+import { getSharedBudgets, getSharedBudgetInvites } from '../api/sharedBudgets';
 import { getMyProfile } from '../api/profile';
 import { getFriends } from '../api/friends';
+import { getMyAchievements, type Achievement } from '../api/achievements';
+import { cheer as apiCheer, uncheer as apiUncheer, getSentCheers } from '../api/cheers';
+import { achievementMessage } from '../lib/achievementMeta';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Highlight from '../components/Highlight';
 import { useTheme } from '../hooks/useTheme';
 import { useCurrency } from '../context/CurrencyContext';
+import { useCategories } from '../hooks/useCategories';
 import type { Transaction } from '../types/transaction';
 import type { Budget } from '../types/budget';
 import type { Friend } from '../types/friend';
+import type { SharedBudget } from '../types/sharedBudget';
+import { sharedBudgetPace } from '../components/SharedBudgetCard';
 
 // ── Period helpers ────────────────────────────────────────────────────────────
 
@@ -135,45 +142,10 @@ function loadPanelConfig(): PanelConfig[] {
 
 // ── Chart constants ───────────────────────────────────────────────────────────
 
-const CAT_COLORS: Record<string, string> = {
-  food:          '#FFBDC2',
-  rent:          '#FDFBD4',
-  transport:     '#C5FFD8',
-  entertainment: '#C68BE1',
-  utilities:     '#C5ECF9',
-  shopping:      '#CBCBCB',
-  health:        '#FFBDC2',
-  other:         '#CBCBCB',
-};
 
 const MOOD_KEYS   = ['regret', 'meh', 'okay', 'glad', 'worth-it'] as const;
 const MOOD_LABELS = ['Regret', 'Meh', 'Okay', 'Glad', 'Worth It'] as const;
 const MOOD_COLORS = ['#FFBDC2', '#CBCBCB', '#FDFBD4', '#C5FFD8', '#C68BE1'];
-
-function computeStreak(transactions: Transaction[]): number {
-  if (transactions.length === 0) return 0;
-  const dateSet = new Set(
-    transactions.map((t) => {
-      const d = new Date(t.date);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }),
-  );
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const cur = new Date(today);
-  const todayKey = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
-  if (!dateSet.has(todayKey)) cur.setDate(cur.getDate() - 1);
-  let n = 0;
-  while (true) {
-    const k = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
-    if (!dateSet.has(k)) break;
-    n++;
-    cur.setDate(cur.getDate() - 1);
-    if (n > 3650) break;
-  }
-  return n;
-}
-
 
 function PieChart({ slices }: { slices: { value: number; color: string }[] }) {
   const cx = 60, cy = 60, r = 56;
@@ -209,19 +181,42 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
   const { fmt, fmtY } = useCurrency();
+  const { getCategoryColor } = useCategories();
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [rawBudgets, setRawBudgets] = useState<Budget[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [likedAchievements, setLikedAchievements] = useState<Set<string>>(() => {
-    try {
-      const raw = localStorage.getItem('liked-achievements-v1');
-      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
-    } catch { return new Set(); }
-  });
+  const [myAchievements, setMyAchievements] = useState<Achievement[]>([]);
+  const [sharedBudgets, setSharedBudgets] = useState<SharedBudget[]>([]);
+  const [sharedInvites, setSharedInvites] = useState<SharedBudget[]>([]);
+  const [likedAchievements, setLikedAchievements] = useState<Set<string>>(new Set());
+
   useEffect(() => {
-    try { localStorage.setItem('liked-achievements-v1', JSON.stringify([...likedAchievements])); } catch { /* ignore */ }
+    if (!session) return;
+    getSentCheers()
+      .then(list => setLikedAchievements(new Set(list.map(c => `${c.toUserId}|${c.achievementKey}`))))
+      .catch(() => {});
+  }, [session]);
+
+  const toggleCheer = useCallback(async (toUserId: string, key: string) => {
+    const id = `${toUserId}|${key}`;
+    const wasLiked = likedAchievements.has(id);
+    setLikedAchievements(s => {
+      const next = new Set(s);
+      if (wasLiked) next.delete(id); else next.add(id);
+      return next;
+    });
+    try {
+      if (wasLiked) await apiUncheer(toUserId, key);
+      else await apiCheer(toUserId, key);
+    } catch {
+      setLikedAchievements(s => {
+        const next = new Set(s);
+        if (wasLiked) next.add(id); else next.delete(id);
+        return next;
+      });
+    }
   }, [likedAchievements]);
   const [loading, setLoading] = useState(true);
   const [viewPeriod, setViewPeriod] = useState<DashPeriod>('monthly');
@@ -235,16 +230,22 @@ export default function Dashboard() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [transactions, budgets, prof, friendList] = await Promise.all([
+      const [transactions, budgets, prof, friendList, ach, shared, invites] = await Promise.all([
         getTransactions(),
         getBudgets(),
         getMyProfile(),
         getFriends().catch(() => [] as Friend[]),
+        getMyAchievements().catch(() => [] as Achievement[]),
+        getSharedBudgets().catch(() => [] as SharedBudget[]),
+        getSharedBudgetInvites().catch(() => [] as SharedBudget[]),
       ]);
       setAllTransactions(transactions);
       setRawBudgets(budgets);
       setProfile(prof);
       setFriends(friendList);
+      setMyAchievements(ach);
+      setSharedBudgets(shared);
+      setSharedInvites(invites);
     } finally {
       setLoading(false);
     }
@@ -316,9 +317,12 @@ export default function Dashboard() {
   const totalSpent  = expenses.reduce((s, t) => s + Math.abs(t.amount), 0);
   const totalIncome = incomes.reduce((s, t) => s + t.amount, 0);
 
-  const periodBudgetTotal = rawBudgets
-    .filter(b => (b.period ?? 'monthly') === viewPeriod)
-    .reduce((s, b) => s + b.monthlyLimit, 0);
+  const periodBudgets = rawBudgets.filter(b => (b.period ?? 'monthly') === viewPeriod);
+  const overallBudget = periodBudgets.find(b => b.category === 'overall');
+  const categoryBudgets = periodBudgets.filter(b => b.category !== 'overall');
+  const periodBudgetTotal = overallBudget
+    ? overallBudget.monthlyLimit
+    : categoryBudgets.reduce((s, b) => s + b.monthlyLimit, 0);
 
   const MOOD_VALUES: Record<string, number> = { regret: 1, meh: 2, okay: 3, glad: 4, 'worth-it': 5 };
   const moodTxns = periodTxns.filter(t => t.essential === false && t.mood && MOOD_VALUES[t.mood] !== undefined);
@@ -338,13 +342,19 @@ export default function Dashboard() {
   const PLOT_W = SVG_W - PAD_L - PAD_R;
   const PLOT_H = SVG_H - PAD_T - PAD_B;
 
+  const nonEmergencyExpenses = expenses.filter(t => t.category !== 'emergency');
+
   let cumulativePoints: number[] = [];
+  let cumulativeNonEmerg: number[] = [];
   let xTicks: Array<{ idx: number; label: string }> = [];
   const N_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   if (viewPeriod === 'daily') {
     cumulativePoints = Array.from({ length: 24 }, (_, h) =>
       expenses.filter(t => new Date(t.date).getHours() <= h).reduce((s, t) => s + Math.abs(t.amount), 0),
+    );
+    cumulativeNonEmerg = Array.from({ length: 24 }, (_, h) =>
+      nonEmergencyExpenses.filter(t => new Date(t.date).getHours() <= h).reduce((s, t) => s + Math.abs(t.amount), 0),
     );
     xTicks = [0, 6, 12, 18, 23].map(h => ({
       idx: h, label: h === 0 ? '12am' : h === 12 ? '12pm' : h < 12 ? `${h}am` : `${h - 12}pm`,
@@ -354,11 +364,18 @@ export default function Dashboard() {
       expenses.filter(t => { const d = new Date(t.date).getDay(); return (d === 0 ? 6 : d - 1) <= i; })
               .reduce((s, t) => s + Math.abs(t.amount), 0),
     );
+    cumulativeNonEmerg = Array.from({ length: 7 }, (_, i) =>
+      nonEmergencyExpenses.filter(t => { const d = new Date(t.date).getDay(); return (d === 0 ? 6 : d - 1) <= i; })
+              .reduce((s, t) => s + Math.abs(t.amount), 0),
+    );
     xTicks = ['M','T','W','T','F','S','S'].map((l, i) => ({ idx: i, label: l }));
   } else if (viewPeriod === 'monthly') {
     const dim = new Date(pStart.getFullYear(), pStart.getMonth() + 1, 0).getDate();
     cumulativePoints = Array.from({ length: dim }, (_, i) =>
       expenses.filter(t => new Date(t.date).getDate() <= i + 1).reduce((s, t) => s + Math.abs(t.amount), 0),
+    );
+    cumulativeNonEmerg = Array.from({ length: dim }, (_, i) =>
+      nonEmergencyExpenses.filter(t => new Date(t.date).getDate() <= i + 1).reduce((s, t) => s + Math.abs(t.amount), 0),
     );
     xTicks = [1, 5, 10, 15, 20, 25, dim]
       .filter((d, i, a) => a.indexOf(d) === i && d <= dim)
@@ -367,11 +384,15 @@ export default function Dashboard() {
     cumulativePoints = Array.from({ length: 12 }, (_, m) =>
       expenses.filter(t => new Date(t.date).getMonth() <= m).reduce((s, t) => s + Math.abs(t.amount), 0),
     );
+    cumulativeNonEmerg = Array.from({ length: 12 }, (_, m) =>
+      nonEmergencyExpenses.filter(t => new Date(t.date).getMonth() <= m).reduce((s, t) => s + Math.abs(t.amount), 0),
+    );
     xTicks = N_MONTHS.map((l, i) => ({ idx: i, label: l }));
   }
 
   const N = cumulativePoints.length;
   const drawUpToIdx = isCurrent ? Math.min(currentPointIdx(viewPeriod), N - 1) : N - 1;
+  const hasEmergency = cumulativePoints.some((v, i) => v !== cumulativeNonEmerg[i]);
 
   const rawYMax = Math.max(...cumulativePoints, periodBudgetTotal, 10);
   const approxStep = rawYMax / 4;
@@ -386,9 +407,14 @@ export default function Dashboard() {
 
   const spendPts = cumulativePoints.slice(0, drawUpToIdx + 1)
     .map((v, i) => `${cxFn(i).toFixed(1)},${cyFn(v).toFixed(1)}`);
-  const budgetLineY = periodBudgetTotal > 0 ? cyFn(periodBudgetTotal) : null;
-  const areaD = spendPts.length > 0
+  const spendPtsNonEmerg = cumulativeNonEmerg.slice(0, drawUpToIdx + 1)
+    .map((v, i) => `${cxFn(i).toFixed(1)},${cyFn(v).toFixed(1)}`);
+  const budgetLineY = overallBudget ? cyFn(overallBudget.monthlyLimit) : null;
+  const areaInclD = spendPts.length > 0
     ? `M ${cxFn(0).toFixed(1)},${chartBottom} L ${spendPts.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${chartBottom} Z`
+    : '';
+  const areaExclD = spendPtsNonEmerg.length > 0
+    ? `M ${cxFn(0).toFixed(1)},${chartBottom} L ${spendPtsNonEmerg.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${chartBottom} Z`
     : '';
 
   // ── Mood & category ───────────────────────────────────────────────────────────
@@ -406,15 +432,24 @@ export default function Dashboard() {
   }, {} as Record<string, number>);
   const catSlices = Object.entries(catSpending)
     .sort((a, b) => b[1] - a[1]).slice(0, 6)
-    .map(([cat, amount]) => ({ label: cat, value: amount, color: CAT_COLORS[cat] || '#EF9F27' }));
+    .map(([cat, amount]) => ({ label: cat, value: amount, color: getCategoryColor(cat) }));
   const catTotal = catSlices.reduce((s, d) => s + d.value, 0);
   const catAllSlices = Object.entries(catSpending)
     .sort((a, b) => b[1] - a[1])
-    .map(([cat, amount]) => ({ label: cat, value: amount, color: CAT_COLORS[cat] || '#B6B6B6' }));
+    .map(([cat, amount]) => ({ label: cat, value: amount, color: getCategoryColor(cat) }));
 
   // ── Breakdown rows ────────────────────────────────────────────────────────────
   const essentialSpent    = expenses.filter(t => t.essential === true) .reduce((s, t) => s + Math.abs(t.amount), 0);
   const nonEssentialSpent = expenses.filter(t => t.essential === false).reduce((s, t) => s + Math.abs(t.amount), 0);
+  // Personal vs Shared: "Shared" = my own contribution to shared budgets as
+  // reported by the server (matches what each Shared Budget card shows for me).
+  // "Personal" = the rest of my expenses in the current view period.
+  const meId = session?.user?.id ?? '';
+  const mySharedSpent = sharedBudgets.reduce((sum, sb) => {
+    const mine = sb.members.find(m => m.userId === meId);
+    return sum + (mine?.amount ?? 0);
+  }, 0);
+  const personalSpent = Math.max(0, totalSpent - mySharedSpent);
   const breakdownRows = [
     { label: 'By category', slices: catAllSlices },
     { label: 'Essential vs Non-essential', slices: [
@@ -425,14 +460,19 @@ export default function Dashboard() {
         { label: 'Income', value: totalIncome, color: '#C5FFD8' },
         { label: 'Expenses', value: totalSpent, color: '#C68BE1' },
       ].filter(s => s.value > 0) },
-    { label: 'Personal vs Shared expenses', slices: [
-        { label: 'Personal', value: totalSpent * 0.6, color: '#FDFBD4' },
-        { label: 'Shared expenses', value: totalSpent * 0.4, color: '#FFBDC2' },
-      ].filter(s => s.value > 0) },
+    ...(sharedBudgets.length > 0
+      ? [{
+          label: 'Personal vs Shared expenses',
+          slices: [
+            { label: 'Personal', value: personalSpent, color: '#FDFBD4' },
+            { label: 'Shared', value: mySharedSpent, color: '#C68BE1' },
+          ].filter(s => s.value > 0),
+        }]
+      : []),
   ];
 
   // ── Leaderboard ───────────────────────────────────────────────────────────────
-  const myStreak = computeStreak(allTransactions);
+  const myStreak = profile?.streak ?? 0;
   const AVATAR_PALETTE = ['#C68BE1','#1D9E75','#D85A30','#3B82F6','#F59E0B','#EC4899','#8B5CF6'];
   const leaderboard = [
     { id: 'me', name: profile?.displayName || profile?.name || 'You', streak: myStreak, isMe: true, color: 'var(--c-accent)' },
@@ -619,7 +659,7 @@ export default function Dashboard() {
                       <div className="flex items-center gap-3 min-w-0">
                         <span
                           className="w-7 h-7 rounded-full flex-shrink-0 border-[3px] border-white"
-                          style={{ background: CAT_COLORS[t.category ?? ''] || '#CBCBCB' }}
+                          style={{ background: getCategoryColor(t.category ?? '') }}
                           aria-hidden
                         />
                         <div className="min-w-0">
@@ -702,22 +742,41 @@ export default function Dashboard() {
 
       // ── Friends (streaks + achievements) ──
       case 'leaderboard': {
-        const SAMPLE_MSGS = [
-          'Stayed under budget for two months!',
-          'Hit 100 logged transactions!',
-          'No regret tags in 2 weeks!',
-          'Stayed under budget for ten weeks!',
-          'Income increased by 10%!',
-          'Completed their budget this week!',
-        ];
-        const achievementSamples = leaderboard.slice(0, 3).map((e, i) => ({
-          id: e.id,
-          color: e.isMe ? '#C68BE1' : e.color,
-          initials: getInitials(e.name),
-          name: e.isMe ? 'You' : e.name,
-          isMe: e.isMe,
-          message: e.isMe ? 'You just hit a new streak high!' : SAMPLE_MSGS[i % SAMPLE_MSGS.length],
-        }));
+        type AchRow = { id: string; key: string; toUserId: string; color: string; initials: string; name: string; isMe: boolean; message: string; earnedAt: string };
+        const achRows: AchRow[] = [];
+        for (const a of myAchievements) {
+          const meName = profile?.displayName || profile?.name || 'You';
+          achRows.push({
+            id: `me-${a.key}`,
+            key: a.key,
+            toUserId: profile?.id ?? '',
+            color: '#C68BE1',
+            initials: getInitials(meName),
+            name: 'You',
+            isMe: true,
+            message: achievementMessage(a.key, true),
+            earnedAt: a.earnedAt,
+          });
+        }
+        for (let i = 0; i < friends.length; i++) {
+          const f = friends[i];
+          const fname = f.displayName ?? f.username ?? 'Friend';
+          for (const a of f.achievements ?? []) {
+            achRows.push({
+              id: `${f.id}-${a.key}`,
+              key: a.key,
+              toUserId: f.id,
+              color: AVATAR_PALETTE[i % AVATAR_PALETTE.length],
+              initials: getInitials(fname),
+              name: fname,
+              isMe: false,
+              message: achievementMessage(a.key, false),
+              earnedAt: a.earnedAt,
+            });
+          }
+        }
+        achRows.sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime());
+        const achievementSamples = achRows.slice(0, 3);
         const FireIcon = (
           <svg width="14" height="14" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M7.5 13.5c2.6 0 4.5-1.9 4.5-4.2 0-1.6-.9-2.7-2-3.6-.4 1.1-1.3 1.6-2 1.6 0-1.6-.6-3.7-2.8-6 0 4.2-2.7 5.3-2.7 8.4 0 2.3 1.9 3.8 5 3.8z" />
@@ -766,7 +825,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   {achievementSamples.map(a => {
-                    const liked = likedAchievements.has(a.id);
+                    const liked = likedAchievements.has(`${a.toUserId}|${a.key}`);
                     return (
                       <div
                         key={a.id}
@@ -777,18 +836,14 @@ export default function Dashboard() {
                           {a.initials}
                         </div>
                         <div className="text-xs text-[var(--c-tint-text)] truncate flex-1 min-w-0">
-                          <span className="font-semibold">{a.name}</span> {a.message}
+                          {a.isMe ? a.message : (<><span className="font-semibold">{a.name}</span> {a.message}</>)}
                         </div>
                         {a.isMe ? (
                           <span className="flex-shrink-0 text-[#E11D48]"><HeartIcon filled /></span>
                         ) : (
                           <button
                             type="button"
-                            onClick={() => setLikedAchievements(s => {
-                              const next = new Set(s);
-                              if (next.has(a.id)) next.delete(a.id); else next.add(a.id);
-                              return next;
-                            })}
+                            onClick={() => toggleCheer(a.toUserId, a.key)}
                             aria-label={liked ? 'Unlike' : 'Like'}
                             aria-pressed={liked}
                             className={`flex-shrink-0 cursor-pointer hover:scale-110 transition-transform ${liked ? 'text-[#E11D48]' : 'text-[var(--c-tint-text-2)]'}`}
@@ -1001,8 +1056,8 @@ export default function Dashboard() {
         <div className="grid grid-cols-[2fr_3fr] gap-6 items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-[var(--c-text)]" style={{ margin: 0 }}>
-              <Highlight className="px-3 py-1">Welcome</Highlight>,{' '}
-              <span className="text-[var(--c-text)]">{profile?.displayName || profile?.name || 'there'}</span>
+              <Highlight className="px-3 py-1">Welcome</Highlight>
+              <span className="text-[var(--c-text)]">, {profile?.displayName || profile?.name || 'there'}</span>
             </h1>
             <p className="text-sm mt-2 text-[var(--c-text-2)]">Here's your spending overview for {label}.</p>
           </div>
@@ -1037,26 +1092,86 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* ── Shared budgets summary tile ── */}
+        {(sharedBudgets.length > 0 || sharedInvites.length > 0) && (() => {
+          const overCount = sharedBudgets.filter((b) => sharedBudgetPace(b) === 'exceeded').length;
+          const overPacingCount = sharedBudgets.filter((b) => sharedBudgetPace(b) === 'over-pacing').length;
+          const onTrackCount = sharedBudgets.length - overCount - overPacingCount;
+          return (
+            <button
+              type="button"
+              onClick={() => navigate('/budgets#shared')}
+              className="w-full mb-6 flex items-center justify-between gap-4 px-5 py-4 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-mood)] hover:opacity-90 transition-opacity text-left cursor-pointer"
+            >
+              <div className="flex items-center gap-4 min-w-0">
+                <div>
+                  <div className="text-sm font-semibold text-[var(--c-tint-mood-text)]">Shared with you</div>
+                  <div className="text-xs text-[var(--c-tint-mood-sub)]">
+                    {sharedBudgets.length} shared budget{sharedBudgets.length !== 1 ? 's' : ''}
+                    {sharedInvites.length > 0 && ` · ${sharedInvites.length} pending invite${sharedInvites.length !== 1 ? 's' : ''}`}
+                  </div>
+                </div>
+                {sharedBudgets.length > 0 && (
+                  <div className="hidden sm:flex items-center gap-2 text-xs text-[var(--c-tint-mood-sub)]">
+                    {onTrackCount > 0 && <span>{onTrackCount} on track</span>}
+                    {overPacingCount > 0 && <span>· {overPacingCount} over-pacing</span>}
+                    {overCount > 0 && <span className="text-[var(--c-negative)]">· {overCount} over</span>}
+                  </div>
+                )}
+              </div>
+              <span className="text-sm font-semibold text-[var(--c-tint-mood-text)]">View →</span>
+            </button>
+          );
+        })()}
+
         {/* ── Row 1: 2×2 stat cards + cumulative chart (always visible) ── */}
         <div className="grid grid-cols-[2fr_3fr] gap-6 mb-6">
           <div className="grid grid-cols-2 gap-4">
             <div className={`${cardBase} bg-[var(--c-tint-pink)]`}>
               <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Spent</div>
-              <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">{PERIOD_DISPLAY[viewPeriod]}</div>
-              <div className="text-2xl font-bold text-[var(--c-tint-text)]">{fmt(totalSpent)}</div>
-            </div>
-            <div className={`${cardBase} bg-[var(--c-tint-green)]`}>
-              <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Remaining</div>
-              <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">Budget for {PERIOD_DISPLAY[viewPeriod].toLowerCase()}</div>
-              {periodBudgetTotal === 0 ? (
-                <button onClick={() => navigate('/budgets')} className="text-sm font-semibold text-[var(--c-accent)] hover:opacity-70 transition-opacity text-left">
-                  Create {PERIOD_DISPLAY[viewPeriod].toLowerCase()} budget →
-                </button>
-              ) : (
-                <div className={`text-2xl font-bold ${periodBudgetTotal - totalSpent < 0 ? 'text-[var(--c-negative)]' : 'text-[var(--c-tint-text)]'}`}>
-                  {periodBudgetTotal - totalSpent < 0 ? '-' : ''}{fmt(Math.abs(periodBudgetTotal - totalSpent))}
+              <div className="text-xs mb-3 text-[var(--c-tint-text-2)]">Excluding emergency</div>
+              <div className="text-2xl font-bold text-[var(--c-tint-text)]">
+                {fmt(nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0))}
+              </div>
+              {hasEmergency && (
+                <div className="text-[11px] mt-1 text-[var(--c-tint-text-2)]">
+                  {fmt(totalSpent)} (incl. emergency)
                 </div>
               )}
+            </div>
+            <div className={`${cardBase} bg-[var(--c-tint-green)]`}>
+              {periodBudgets.length === 0 ? (
+                <>
+                  <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Remaining</div>
+                  <div className="text-xs mb-3 text-[var(--c-tint-text-2)]">Budget for {PERIOD_DISPLAY[viewPeriod].toLowerCase()}</div>
+                  <button onClick={() => navigate('/budgets')} className="text-sm font-semibold text-[var(--c-accent)] hover:opacity-70 transition-opacity text-left">
+                    Create {PERIOD_DISPLAY[viewPeriod].toLowerCase()} budget →
+                  </button>
+                </>
+              ) : (() => {
+                const nonEmergSpentTotal = nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0);
+                const ranked = periodBudgets.map(b => {
+                  const spent = b.category === 'overall'
+                    ? nonEmergSpentTotal
+                    : nonEmergencyExpenses.filter(t => t.category === b.category).reduce((s, t) => s + Math.abs(t.amount), 0);
+                  const remaining = b.monthlyLimit - spent;
+                  const pct = b.monthlyLimit > 0 ? remaining / b.monthlyLimit : 0;
+                  return { b, spent, remaining, pct };
+                }).sort((a, b) => a.pct - b.pct);
+                const tightest = ranked[0];
+                const isOverall = tightest.b.category === 'overall';
+                return (
+                  <>
+                    <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Remaining</div>
+                    <div className="text-xs mb-3 text-[var(--c-tint-text-2)] capitalize">
+                      {isOverall ? `Overall · ${PERIOD_DISPLAY[viewPeriod].toLowerCase()}` : `Tightest · ${tightest.b.category}`}
+                    </div>
+                    <div className={`text-2xl font-bold ${tightest.remaining < 0 ? 'text-[var(--c-negative)]' : 'text-[var(--c-tint-text)]'}`}>
+                      {tightest.remaining < 0 ? '-' : ''}{fmt(Math.abs(tightest.remaining))}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
             <div className={`${cardBase} bg-[var(--c-tint-yellow)]`}>
               <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Income</div>
@@ -1075,24 +1190,33 @@ export default function Dashboard() {
               <div>
                 <h3 className="font-semibold text-base mb-1 text-[var(--c-text)]">Cumulative spending</h3>
                 <div className="text-xs mb-1.5 text-[var(--c-text-2)]">
-                  {label} · {fmt(totalSpent)} spent
-                  {periodBudgetTotal > 0 && ` · ${fmt(periodBudgetTotal)} budget`}
+                  {label} · {fmt(nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0))} spent
+                  {hasEmergency && ` · ${fmt(totalSpent - nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0))} emergency`}
+                  {overallBudget && ` · ${fmt(overallBudget.monthlyLimit)} overall budget`}
                 </div>
                 <div className="flex items-center gap-4">
-                  {periodBudgetTotal > 0 && (
+                  {overallBudget && (
                     <span className="flex items-center gap-1.5">
                       <svg width="18" height="8" style={{ display: 'block' }}>
                         <line x1="0" y1="4" x2="18" y2="4" stroke="var(--c-text-2)" strokeDasharray="4 3" strokeWidth="1.5" />
                       </svg>
-                      <span className="text-xs text-[var(--c-text-2)]">Budget</span>
+                      <span className="text-xs text-[var(--c-text-2)]">Overall budget</span>
                     </span>
                   )}
                   <span className="flex items-center gap-1.5">
                     <svg width="18" height="8" style={{ display: 'block' }}>
-                      <line x1="0" y1="4" x2="18" y2="4" stroke="var(--c-accent)" strokeWidth="2" />
+                      <line x1="0" y1="4" x2="18" y2="4" stroke="#C68BE1" strokeWidth="2" />
                     </svg>
-                    <span className="text-xs text-[var(--c-text-2)]">Spent</span>
+                    <span className="text-xs text-[var(--c-text-2)]">Spent (excl. emergency)</span>
                   </span>
+                  {hasEmergency && (
+                    <span className="flex items-center gap-1.5">
+                      <svg width="18" height="8" style={{ display: 'block' }}>
+                        <line x1="0" y1="4" x2="18" y2="4" stroke="#FDFBD4" strokeWidth="2" />
+                      </svg>
+                      <span className="text-xs text-[var(--c-text-2)]">Spent (incl. emergency)</span>
+                    </span>
+                  )}
                 </div>
               </div>
               <button onClick={() => navigate('/transactions')} className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-text)] hover:opacity-90 transition-opacity">
@@ -1109,19 +1233,25 @@ export default function Dashboard() {
                   </g>
                 );
               })}
-              {budgetLineY !== null && (
+              {budgetLineY !== null && overallBudget && (
                 <>
                   <line x1={PAD_L} y1={budgetLineY} x2={PAD_L + PLOT_W} y2={budgetLineY} stroke="var(--c-text-2)" strokeWidth="1.5" strokeDasharray="5 4" />
-                  <text x={PAD_L + PLOT_W - 3} y={budgetLineY - 3} textAnchor="end" fontSize="9" fill="var(--c-text-2)">Budget: {fmt(periodBudgetTotal)}</text>
+                  <text x={PAD_L + PLOT_W - 3} y={budgetLineY - 3} textAnchor="end" fontSize="9" fill="var(--c-text-2)">
+                    Overall: {fmt(overallBudget.monthlyLimit)}
+                  </text>
                 </>
               )}
-              {areaD && <path d={areaD} fill="var(--c-accent)" opacity="0.18" />}
-              {spendPts.length > 1 && (
-                <polyline points={spendPts.join(' ')} fill="none" stroke="var(--c-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              {hasEmergency && areaInclD && <path d={areaInclD} fill="#FDFBD4" opacity="0.2" />}
+              {areaExclD && <path d={areaExclD} fill="#C68BE1" opacity="0.3" />}
+              {hasEmergency && spendPts.length > 1 && (
+                <polyline points={spendPts.join(' ')} fill="none" stroke="#FDFBD4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               )}
-              {spendPts.length > 0 && (() => {
-                const [lx, ly] = spendPts[spendPts.length - 1].split(',').map(Number);
-                const lbl = fmt(totalSpent);
+              {spendPtsNonEmerg.length > 1 && (
+                <polyline points={spendPtsNonEmerg.join(' ')} fill="none" stroke="#C68BE1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              )}
+              {spendPtsNonEmerg.length > 0 && (() => {
+                const [lx, ly] = spendPtsNonEmerg[spendPtsNonEmerg.length - 1].split(',').map(Number);
+                const lbl = fmt(nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0));
                 const bw = lbl.length * 7 + 12;
                 return (
                   <>

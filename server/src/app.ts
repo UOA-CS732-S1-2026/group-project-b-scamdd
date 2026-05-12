@@ -6,8 +6,12 @@ import transactionRoutes from './routes/transactions';
 import profileRoutes from './routes/profile';
 import goalRoutes from './routes/goals';
 import budgetRoutes from './routes/budgets';
+import sharedBudgetRoutes from './routes/sharedBudgets';
 import friendRoutes from './routes/friends';
 import gameRoutes from './routes/games';
+import categoryRoutes from './routes/categories';
+import achievementRoutes from './routes/achievements';
+import cheerRoutes from './routes/cheers';
 
 export const app = express();
 
@@ -31,7 +35,11 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/budgets', budgetRoutes);
+app.use('/api/shared-budgets', sharedBudgetRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/games', gameRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/achievements', achievementRoutes);
+app.use('/api/cheers', cheerRoutes);
 
 app.get('/favicon.ico', (_req, res) => res.status(204).end());
