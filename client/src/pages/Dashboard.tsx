@@ -443,12 +443,15 @@ export default function Dashboard() {
   // ── Breakdown rows ────────────────────────────────────────────────────────────
   const essentialSpent    = expenses.filter(t => t.essential === true) .reduce((s, t) => s + Math.abs(t.amount), 0);
   const nonEssentialSpent = expenses.filter(t => t.essential === false).reduce((s, t) => s + Math.abs(t.amount), 0);
-  // Personal vs Shared: categorise the caller's own expenses by whether the
-  // category is covered by one of their accepted shared budgets.
-  const sharedCategorySet = new Set(sharedBudgets.map(b => b.category));
-  const sharedSpent  = expenses.filter(t => t.category && sharedCategorySet.has(t.category))
-                               .reduce((s, t) => s + Math.abs(t.amount), 0);
-  const personalSpent = Math.max(0, totalSpent - sharedSpent);
+  // Personal vs Shared: "Shared" = my own contribution to shared budgets as
+  // reported by the server (matches what each Shared Budget card shows for me).
+  // "Personal" = the rest of my expenses in the current view period.
+  const meId = session?.user?.id ?? '';
+  const mySharedSpent = sharedBudgets.reduce((sum, sb) => {
+    const mine = sb.members.find(m => m.userId === meId);
+    return sum + (mine?.amount ?? 0);
+  }, 0);
+  const personalSpent = Math.max(0, totalSpent - mySharedSpent);
   const breakdownRows = [
     { label: 'By category', slices: catAllSlices },
     { label: 'Essential vs Non-essential', slices: [
@@ -459,10 +462,15 @@ export default function Dashboard() {
         { label: 'Income', value: totalIncome, color: '#C5FFD8' },
         { label: 'Expenses', value: totalSpent, color: '#C68BE1' },
       ].filter(s => s.value > 0) },
-    { label: 'Personal vs Shared expenses', slices: [
-        { label: 'Personal', value: personalSpent, color: '#FDFBD4' },
-        { label: 'Shared', value: sharedSpent, color: '#C68BE1' },
-      ].filter(s => s.value > 0) },
+    ...(sharedBudgets.length > 0
+      ? [{
+          label: 'Personal vs Shared expenses',
+          slices: [
+            { label: 'Personal', value: personalSpent, color: '#FDFBD4' },
+            { label: 'Shared', value: mySharedSpent, color: '#C68BE1' },
+          ].filter(s => s.value > 0),
+        }]
+      : []),
   ];
 
   // ── Leaderboard ───────────────────────────────────────────────────────────────
