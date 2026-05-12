@@ -111,6 +111,16 @@ function IconBell() {
   );
 }
 
+function IconLogOut() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M9 1.5H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h6" />
+      <path d="M10.5 4.5L13.5 7.5L10.5 10.5" />
+      <path d="M6 7.5h7.5" />
+    </svg>
+  );
+}
+
 export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -244,41 +254,45 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
   const isActive = (path: string) => location.pathname === path;
 
   const ghostBtn =
-    'px-4 py-1.5 rounded-[20px] text-sm font-medium text-[var(--c-text)] bg-transparent hover:bg-[var(--c-nav-active)] transition-colors cursor-pointer';
+    'px-2.5 sm:px-4 py-1.5 rounded-[20px] text-xs sm:text-sm font-medium text-[var(--c-text)] bg-transparent hover:bg-[var(--c-nav-active)] transition-colors cursor-pointer';
   const iconBtn =
     'w-8 h-8 flex items-center justify-center rounded-[20px] text-[var(--c-text-2)] hover:bg-[var(--c-nav-active)] hover:text-[var(--c-text)] transition-colors cursor-pointer';
 
   return (
+    <>
     <nav className="sticky top-0 z-40 backdrop-blur bg-[color-mix(in_srgb,var(--c-bg)_85%,transparent)] border-b border-[var(--c-border)]">
-      <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between min-h-[32px]">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 lg:px-6 py-3 flex items-center justify-between gap-2 min-h-[32px]">
         <Link
           to="/dashboard"
-          className="flex items-center cursor-pointer hover:opacity-75 transition-opacity"
+          aria-label="Felt — Dashboard"
+          className="flex items-center cursor-pointer hover:opacity-75 transition-opacity flex-shrink-0"
         >
           <FeltWordmark size="md" />
         </Link>
 
-        <div className="flex items-center gap-1">
+        <div className="hidden sm:flex items-center gap-0.5 sm:gap-1 flex-shrink min-w-0">
           {navLinks.map(({ label, path, Icon }) => {
             const active = isActive(path);
             return (
               <button
                 key={path}
                 onClick={() => navigate(path)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[20px] text-sm font-medium transition-colors cursor-pointer ${
+                aria-label={label}
+                title={label}
+                className={`flex items-center gap-1.5 px-1.5 sm:px-2.5 lg:px-3 py-1.5 rounded-[20px] text-sm font-medium transition-colors cursor-pointer ${
                   active
                     ? 'text-[var(--c-text)] bg-[var(--c-nav-active)]'
                     : 'text-[var(--c-text-2)] hover:text-[var(--c-text)] hover:bg-[var(--c-nav-active)]'
                 }`}
               >
                 <Icon />
-                {label}
+                <span className="hidden lg:inline">{label}</span>
               </button>
             );
           })}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           <button
             onClick={() => navigate('/profile')}
             aria-label="Your profile"
@@ -307,7 +321,7 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
               )}
             </button>
             {bellOpen && (
-              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-card)] shadow-xl z-50 overflow-hidden">
+              <div className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] max-w-sm sm:w-80 rounded-2xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-card)] shadow-xl z-50 overflow-hidden">
                 <div className="absolute -top-1.5 right-3 w-3 h-3 rotate-45 bg-[var(--c-card)] border-l border-t border-[rgba(109,109,109,0.8)]" aria-hidden />
                 <div className="px-4 py-3 border-b border-[var(--c-border)]">
                   <p className="text-sm font-semibold text-[var(--c-text)]">Notifications</p>
@@ -485,12 +499,43 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
 
           <button
             onClick={() => signOut().then(() => navigate('/'))}
-            className={ghostBtn}
+            aria-label="Log out"
+            title="Log out"
+            className={`${ghostBtn} flex items-center gap-1.5`}
           >
-            Log out
+            <span className="sm:hidden" aria-hidden><IconLogOut /></span>
+            <span className="hidden sm:inline">Log out</span>
           </button>
         </div>
       </div>
     </nav>
+
+    {/* Mobile bottom dock — Instagram-style, hidden on sm+ */}
+    <nav
+      aria-label="Mobile navigation"
+      className="sm:hidden fixed bottom-0 inset-x-0 z-40 backdrop-blur bg-[color-mix(in_srgb,var(--c-bg)_92%,transparent)] border-t border-[var(--c-border)]"
+    >
+      <div className="flex items-center justify-around px-2 py-1.5">
+        {navLinks.map(({ label, path, Icon }) => {
+          const active = isActive(path);
+          return (
+            <button
+              key={path}
+              onClick={() => navigate(path)}
+              aria-label={label}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[10px] font-medium transition-colors cursor-pointer min-w-[3rem] ${
+                active
+                  ? 'text-[var(--c-text)] bg-[var(--c-nav-active)]'
+                  : 'text-[var(--c-text-2)] hover:text-[var(--c-text)]'
+              }`}
+            >
+              <span className="scale-125 origin-center"><Icon /></span>
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+    </>
   );
 }

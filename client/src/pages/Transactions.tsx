@@ -211,15 +211,15 @@ export default function Transactions() {
     <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
 
-      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-3 sm:px-4 lg:px-6 py-6 sm:py-8">
         {/* Title row */}
-        <div className="flex justify-between items-center mb-2">
-          <h1 className="text-4xl font-bold m-0 text-[var(--c-text)]">
+        <div className="flex justify-between items-center gap-3 flex-wrap mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold m-0 text-[var(--c-text)]">
             <Highlight className="px-3 py-1">Transactions</Highlight>
           </h1>
           <button
             onClick={() => { setEditingTransaction(undefined); setShowForm(true); }}
-            className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity"
+            className="px-4 sm:px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity"
           >
             + Log a transaction
           </button>
@@ -427,7 +427,7 @@ export default function Transactions() {
               const PAGE_SIZE_OPTIONS = [20, 40, 60, 100];
 
               return (<>
-            <div className="flex justify-between items-center mb-3">
+            <div className="flex justify-between items-center gap-2 flex-wrap mb-3">
               <span className="text-xs text-[var(--c-text-2)]">
                 {filteredTransactions.length} of {transactions.length} transactions
               </span>
@@ -570,11 +570,11 @@ export default function Transactions() {
 
             {/* Pagination controls */}
             {filteredTransactions.length > 0 && totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center justify-between gap-2 mt-4 flex-wrap">
                 <span className="text-xs text-[var(--c-text-2)]">
                   Page {safePage} of {totalPages}
                 </span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-wrap">
                   <button
                     onClick={() => setCurrentPage(1)}
                     disabled={safePage === 1}

@@ -103,9 +103,9 @@ export default function BudgetForm({ budget, existingBudgets, onSuccess, onCance
           />
         ) : (
           <>
-          <div className="px-7 pt-6 pb-3 flex justify-between items-start flex-shrink-0">
+          <div className="px-5 sm:px-7 pt-5 sm:pt-6 pb-3 flex justify-between items-start flex-shrink-0">
             <div>
-              <h2 className="text-2xl font-bold text-[var(--c-text)]">
+              <h2 className="text-xl sm:text-2xl font-bold text-[var(--c-text)]">
                 {budget ? 'Edit budget' : 'New budget'}
               </h2>
               <p className="text-sm text-[var(--c-text-2)] mt-1">
@@ -122,7 +122,7 @@ export default function BudgetForm({ budget, existingBudgets, onSuccess, onCance
             </button>
           </div>
 
-          <form className="flex flex-col gap-5 overflow-y-auto px-7 pb-7" onSubmit={handleSubmit}>
+          <form className="flex flex-col gap-5 overflow-y-auto px-5 sm:px-7 pb-6 sm:pb-7" onSubmit={handleSubmit}>
           {/* Category — pill grid */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">

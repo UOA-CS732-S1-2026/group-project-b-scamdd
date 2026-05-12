@@ -71,15 +71,15 @@ export default function Goals() {
     <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold m-0 text-[var(--c-text)]">Goals</h1>
+      <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 lg:px-6 py-6 sm:py-8">
+        <div className="flex justify-between items-center gap-3 flex-wrap mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold m-0 text-[var(--c-text)]">Goals</h1>
           <button
             onClick={() => {
               setEditingGoal(undefined);
               setShowForm(true);
             }}
-            className="px-6 py-3 rounded-lg font-medium hover:opacity-80 transition-opacity bg-[var(--c-accent)] text-white"
+            className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium hover:opacity-80 transition-opacity bg-[var(--c-accent)] text-white"
           >
             + Add Goal
           </button>

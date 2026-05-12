@@ -323,12 +323,12 @@ export default function Profile() {
   const regretThisMonth = monthTxns.filter(t => t.mood === 'regret').length;
   if (regretThisMonth === 0 && monthTxns.length > 0) milestones.push('This is your best month yet — no regret tags!');
 
-  const panelClass = 'p-6 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-card)] flex flex-col overflow-hidden';
+  const panelClass = 'p-4 sm:p-6 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-card)] flex flex-col overflow-hidden';
   const inputClass = 'w-full px-4 py-2.5 border border-[var(--c-border)] rounded-xl text-sm focus:outline-none focus:border-[var(--c-accent)] bg-[var(--c-bg)] text-[var(--c-text)]';
 
   // ── Tab renderers ─────────────────────────────────────────────────────────────
   const renderHome = () => (
-    <div className="border border-[var(--c-border)] rounded-2xl p-6 bg-[var(--c-card)]">
+    <div className="border border-[var(--c-border)] rounded-2xl p-4 sm:p-6 bg-[var(--c-card)]">
       <h2 className="text-base font-bold text-[var(--c-text)] mb-4">Recent notifications</h2>
       <div className="flex flex-col divide-y divide-[var(--c-border)]">
 
@@ -558,7 +558,7 @@ export default function Profile() {
   const renderAccount = () => (
     <div className="flex flex-col gap-5">
       {/* Avatar / photo picker */}
-      <div className="border border-[var(--c-border)] rounded-2xl p-6 bg-[var(--c-card)]">
+      <div className="border border-[var(--c-border)] rounded-2xl p-4 sm:p-6 bg-[var(--c-card)]">
         <h2 className="text-base font-bold text-[var(--c-text)] mb-4">Profile picture</h2>
         <div className="flex items-start gap-6 flex-wrap">
           {/* Avatar circle */}
@@ -606,7 +606,7 @@ export default function Profile() {
       </div>
 
       {/* Editable fields */}
-      <div className="border border-[var(--c-border)] rounded-2xl p-6 bg-[var(--c-card)] flex flex-col gap-5">
+      <div className="border border-[var(--c-border)] rounded-2xl p-4 sm:p-6 bg-[var(--c-card)] flex flex-col gap-5">
         {username && (
           <div>
             <label className="block text-sm font-semibold text-[var(--c-text)] mb-1.5">Username</label>
@@ -714,25 +714,25 @@ export default function Profile() {
     <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={displayedName} />
 
-      <div className="flex-1 flex max-w-5xl mx-auto w-full">
+      <div className="flex-1 flex flex-col md:flex-row max-w-5xl mx-auto w-full">
         {/* Main content */}
-        <main className="flex-1 px-6 py-8 min-w-0">
+        <main className="flex-1 px-3 sm:px-4 lg:px-6 py-6 md:py-8 min-w-0 order-2 md:order-1">
           <HeroTitle
             highlight="Hello,"
             rest={displayedName}
             subtitle="Welcome to your profile! Access all your information and detailed graphs in this page."
           />
-          <div className="mt-8">
+          <div className="mt-6 md:mt-8">
             {tab === 'home'    && renderHome()}
             {tab === 'stats'   && renderStats()}
             {tab === 'account' && renderAccount()}
           </div>
         </main>
 
-        {/* Right sidebar */}
-        <aside className="w-52 py-8 pr-6 flex flex-col items-center gap-3 flex-shrink-0">
-          {/* Overlapping circles logo – matches brand mark */}
-          <div className="relative flex-shrink-0" style={{ width: 76, height: 76 }}>
+        {/* Right sidebar — desktop column, mobile horizontal tab strip */}
+        <aside className="w-full md:w-52 px-3 sm:px-4 md:px-0 py-4 md:py-8 md:pr-6 flex md:flex-col items-center md:gap-3 gap-2 flex-shrink-0 order-1 md:order-2 border-b md:border-b-0 border-[var(--c-border)]">
+          {/* Overlapping circles logo – matches brand mark (desktop only) */}
+          <div className="relative flex-shrink-0 hidden md:block" style={{ width: 76, height: 76 }}>
             {/* purple – top-left */}
             <div className="absolute rounded-full" style={{ width: 46, height: 46, background: '#C68BE1', top: 0, left: 0 }} />
             {/* cream – top-right */}
@@ -741,10 +741,10 @@ export default function Profile() {
             <div className="absolute rounded-full" style={{ width: 52, height: 52, background: '#C5FFD8', bottom: 0, left: '50%', transform: 'translateX(-50%)' }} />
           </div>
 
-          <span className="text-lg font-bold text-[var(--c-text)]">felt</span>
+          <span className="text-lg font-bold text-[var(--c-text)] hidden md:inline">felt</span>
 
           {/* User avatar */}
-          <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+          <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
             style={{ backgroundColor: imageUrl ? 'transparent' : avatarColor }}>
             {imageUrl
               ? <img src={imageUrl} alt="avatar" className="w-full h-full object-cover" />
@@ -752,12 +752,12 @@ export default function Profile() {
           </div>
 
           {/* Tab nav */}
-          <nav className="w-full flex flex-col gap-0.5 mt-1">
+          <nav className="flex md:flex-col md:w-full gap-1 md:gap-0.5 md:mt-1 flex-1 md:flex-none overflow-x-auto">
             {TAB_ITEMS.map(({ id, label }) => (
               <button
                 key={id}
                 onClick={() => handleSetTab(id)}
-                className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                className={`flex-shrink-0 md:w-full text-left px-3 md:px-4 py-1.5 md:py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
                   tab === id
                     ? 'bg-[var(--c-accent)]/20 text-[var(--c-text)] font-semibold'
                     : 'text-[var(--c-text-2)] hover:text-[var(--c-text)] hover:bg-[var(--c-surface)]'

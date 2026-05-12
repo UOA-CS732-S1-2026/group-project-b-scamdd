@@ -99,7 +99,7 @@ export default function ManageCategoriesModal({ userCategories, onBack, onChange
   return (
     <>
       {/* Header */}
-      <div className="px-7 pt-6 pb-3 flex items-center gap-3 flex-shrink-0">
+      <div className="px-5 sm:px-7 pt-5 sm:pt-6 pb-3 flex items-center gap-3 flex-shrink-0">
         <button
           type="button"
           onClick={onBack}
@@ -112,7 +112,7 @@ export default function ManageCategoriesModal({ userCategories, onBack, onChange
       </div>
 
       {/* Body */}
-      <div className="overflow-y-auto px-7 pb-7 flex flex-col gap-5">
+      <div className="overflow-y-auto px-5 sm:px-7 pb-6 sm:pb-7 flex flex-col gap-5">
         {userCategories.length > 0 && (
           <div className="flex flex-col gap-2">
             {userCategories.map((cat) => (

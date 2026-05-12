@@ -1086,18 +1086,18 @@ export default function Dashboard() {
     <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
 
-      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-3 sm:px-4 lg:px-6 py-6 sm:py-8">
 
         {/* Header */}
-        <div className="grid grid-cols-[2fr_3fr] gap-6 items-center mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-6 items-center mb-6 sm:mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-[var(--c-text)]" style={{ margin: 0 }}>
+            <h1 className="text-3xl sm:text-4xl font-bold text-[var(--c-text)]" style={{ margin: 0 }}>
               <Highlight className="px-3 py-1">Welcome</Highlight>
               <span className="text-[var(--c-text)]">, {profile?.displayName || profile?.name || 'there'}</span>
             </h1>
             <p className="text-sm mt-2 text-[var(--c-text-2)]">Here's your spending overview for {label}.</p>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="flex flex-col gap-2 items-center bg-[#FDFBD4] border border-[rgba(109,109,109,0.8)] rounded-2xl px-3 py-3">
               <select
                 value={viewPeriod}
@@ -1108,12 +1108,12 @@ export default function Dashboard() {
                   <option key={p} value={p}>{PERIOD_DISPLAY[p]}</option>
                 ))}
               </select>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 max-w-full">
                 <button onClick={() => setPeriodAnchor(shiftAnchor(viewPeriod, periodAnchor, -1))}
-                  className="w-6 h-6 flex items-center justify-center rounded-full bg-white/40 text-[var(--c-tint-text)] hover:bg-white/70 text-base leading-none">‹</button>
-                <span className="text-sm font-medium text-[var(--c-tint-text)] min-w-[140px] text-center">{label}</span>
+                  className="w-6 h-6 flex items-center justify-center rounded-full bg-white/40 text-[var(--c-tint-text)] hover:bg-white/70 text-base leading-none flex-shrink-0">‹</button>
+                <span className="text-sm font-medium text-[var(--c-tint-text)] min-w-0 sm:min-w-[140px] text-center truncate">{label}</span>
                 <button onClick={() => setPeriodAnchor(shiftAnchor(viewPeriod, periodAnchor, 1))} disabled={isCurrent}
-                  className="w-6 h-6 flex items-center justify-center rounded-full bg-white/40 text-[var(--c-tint-text)] hover:bg-white/70 disabled:opacity-25 disabled:cursor-not-allowed text-base leading-none">›</button>
+                  className="w-6 h-6 flex items-center justify-center rounded-full bg-white/40 text-[var(--c-tint-text)] hover:bg-white/70 disabled:opacity-25 disabled:cursor-not-allowed text-base leading-none flex-shrink-0">›</button>
               </div>
             </div>
             <button
@@ -1161,8 +1161,8 @@ export default function Dashboard() {
         })()}
 
         {/* ── Row 1: 2×2 stat cards + cumulative chart (always visible) ── */}
-        <div className="grid grid-cols-[2fr_3fr] gap-6 mb-6">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-4 sm:gap-6 mb-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div className={`${cardBase} bg-[var(--c-tint-pink)]`}>
               <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Spent</div>
               <div className="text-xs mb-3 text-[var(--c-tint-text-2)]">Excluding emergency</div>
@@ -1230,7 +1230,7 @@ export default function Dashboard() {
                   {hasEmergency && ` · ${fmt(totalSpent - nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0))} emergency`}
                   {overallBudget && ` · ${fmt(overallBudget.monthlyLimit)} overall budget`}
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-x-4 gap-y-1 flex-wrap">
                   {overallBudget && (
                     <span className="flex items-center gap-1.5">
                       <svg width="18" height="8" style={{ display: 'block' }}>
@@ -1305,13 +1305,21 @@ export default function Dashboard() {
         </div>
 
         {/* ── Customisable panels ── */}
-        <div className="grid grid-cols-10 gap-6" style={{ gridAutoRows: '60px' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 sm:gap-6 lg:[grid-auto-rows:60px]">
           {panelConfig.filter(p => p.visible).map(p => {
             const def = PANEL_DEFS.find(d => d.id === p.id)!;
             const h = p.height ?? def.height;
             const w = p.width ?? def.width;
             return (
-              <div key={p.id} className="min-h-0" style={{ gridRow: `span ${h}`, gridColumn: `span ${w}` }}>
+              <div
+                key={p.id}
+                className="min-h-0 h-[calc(var(--dash-h)*60px+(var(--dash-h)-1)*24px)] lg:h-auto lg:[grid-row:var(--dash-row)] lg:[grid-column:var(--dash-col)]"
+                style={{
+                  '--dash-row': `span ${h}`,
+                  '--dash-col': `span ${w}`,
+                  '--dash-h': String(h),
+                } as React.CSSProperties}
+              >
                 {renderPanel(p.id)}
               </div>
             );

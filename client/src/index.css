@@ -111,6 +111,12 @@ body {
   margin: 0;
 }
 
+@media (max-width: 639px) {
+  body {
+    padding-bottom: 4.5rem;
+  }
+}
+
 @layer base {
   h1,
   h2 {
