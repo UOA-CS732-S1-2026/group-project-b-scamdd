@@ -3,6 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from '../lib/auth-client';
 import { getRequests, getFriends, respondToRequest } from '../api/friends';
 import { getReceivedCheers, markCheersSeen, type ReceivedCheer } from '../api/cheers';
+import {
+  acceptSharedBudgetInvite,
+  declineSharedBudgetInvite,
+  getSharedBudgetInvites,
+} from '../api/sharedBudgets';
+import type { SharedBudget } from '../types/sharedBudget';
 import { achievementMessage } from '../lib/achievementMeta';
 import FeltWordmark from './FeltWordmark';
 import type { Friend, Requests } from '../types/friend';
@@ -114,6 +120,7 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
   const [requests, setRequests] = useState<Requests>({ incoming: [], outgoing: [] });
   const [friends, setFriends] = useState<Friend[]>([]);
   const [cheers, setCheers] = useState<ReceivedCheer[]>([]);
+  const [sharedInvites, setSharedInvites] = useState<SharedBudget[]>([]);
   const [bellOpen, setBellOpen] = useState(false);
   const [newAtOpen, setNewAtOpen] = useState<Set<string>>(new Set());
   const bellWrapRef = useRef<HTMLDivElement>(null);
@@ -122,6 +129,7 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
     getRequests().then(setRequests).catch(() => {});
     getFriends().then(setFriends).catch(() => {});
     getReceivedCheers().then(setCheers).catch(() => {});
+    getSharedBudgetInvites().then(setSharedInvites).catch(() => {});
   };
 
   useEffect(() => {
@@ -144,8 +152,17 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
     } catch { /* ignore */ }
   };
 
-  const notifications: Array<{ id: string; kind: 'request' | 'like'; isNew: boolean; data: any }> = [
+  const handleSharedRespond = async (id: string, action: 'accept' | 'decline') => {
+    try {
+      if (action === 'accept') await acceptSharedBudgetInvite(id);
+      else await declineSharedBudgetInvite(id);
+      refreshNotifications();
+    } catch { /* ignore */ }
+  };
+
+  const notifications: Array<{ id: string; kind: 'request' | 'like' | 'shared-invite'; isNew: boolean; data: any }> = [
     ...requests.incoming.map((r) => ({ id: `req-${r.id}`, kind: 'request' as const, isNew: true, data: r })),
+    ...sharedInvites.map((sb) => ({ id: `shared-${sb._id}`, kind: 'shared-invite' as const, isNew: true, data: sb })),
     ...cheers.map((c) => ({ id: `cheer-${c.id}`, kind: 'like' as const, isNew: !c.seen, data: c })),
   ];
   const unseenCount = notifications.filter((n) => n.isNew).length;
@@ -169,6 +186,11 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
   const goToNotification = () => {
     setBellOpen(false);
     navigate('/friends');
+  };
+
+  const goToSharedBudgets = () => {
+    setBellOpen(false);
+    navigate('/budgets#shared');
   };
 
   const navLinks = [
@@ -270,6 +292,44 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
                                 </button>
                                 <button
                                   onClick={() => handleBellRespond(r.id, 'reject')}
+                                  className="px-2 py-1 rounded-full border border-[rgba(109,109,109,0.5)] bg-[var(--c-card)] text-[10px] text-[var(--c-text-2)] hover:text-[var(--c-expense)] hover:border-[var(--c-expense)] transition-colors"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </li>
+                          );
+                        }
+                        if (n.kind === 'shared-invite') {
+                          const sb = n.data as SharedBudget;
+                          const inviter = sb.members.find((m) => m.userId === sb.ownerId)
+                            ?? sb.members.find((m) => m.status === 'accepted');
+                          const inviterName = inviter?.displayName ?? inviter?.username ?? 'Someone';
+                          const label = sb.name?.trim() || sb.category;
+                          return (
+                            <li
+                              key={n.id}
+                              className={`px-4 py-3 border-b border-[var(--c-border)] last:border-b-0 flex items-center gap-3 cursor-pointer hover:bg-[var(--c-nav-active)] ${wasNew ? 'bg-[var(--c-tint-yellow)]' : ''}`}
+                              onClick={goToSharedBudgets}
+                            >
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[#1a1a1a] flex-shrink-0 bg-[#C5FFD8]">
+                                {initials(inviterName)}
+                              </div>
+                              <p className="text-xs text-[var(--c-text)] flex-1 min-w-0 truncate">
+                                <span className="font-semibold">{inviterName}</span>{' '}
+                                <span className="text-[var(--c-text-2)]">
+                                  invited you to share a <span className="capitalize">{label}</span> budget
+                                </span>
+                              </p>
+                              <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={() => handleSharedRespond(sb._id, 'accept')}
+                                  className="px-2 py-1 rounded-full text-[10px] font-semibold bg-[var(--c-accent)] text-[var(--c-text)] border border-[var(--c-text)] hover:opacity-90 transition-opacity"
+                                >
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={() => handleSharedRespond(sb._id, 'decline')}
                                   className="px-2 py-1 rounded-full border border-[rgba(109,109,109,0.5)] bg-[var(--c-card)] text-[10px] text-[var(--c-text-2)] hover:text-[var(--c-expense)] hover:border-[var(--c-expense)] transition-colors"
                                 >
                                   ✕
