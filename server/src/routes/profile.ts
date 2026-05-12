@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { User } from '../models/User';
 import { requireAuth } from '../middleware/auth';
+import { computeBudgetStreak } from '../lib/streaks';
 
 const router = Router();
 
@@ -28,6 +29,7 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
       res.status(404).json({ message: 'User not found' });
       return;
     }
+    const streak = await computeBudgetStreak(String(user._id));
     res.json({
       id: String(user._id),
       email: user.email,
@@ -37,6 +39,7 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
       bio: user.bio ?? null,
       currency: user.currency ?? 'NZD',
       profileComplete: Boolean(user.profileComplete),
+      streak,
     });
   } catch {
     res.status(500).json({ message: 'Failed to load profile' });

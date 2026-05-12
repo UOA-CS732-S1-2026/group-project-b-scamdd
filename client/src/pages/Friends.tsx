@@ -10,25 +10,16 @@ import {
   unfriend,
 } from '../api/friends';
 import { getMyProfile } from '../api/profile';
-import { getTransactions } from '../api/transactions';
+import { getMyAchievements, type Achievement } from '../api/achievements';
+import { cheer as apiCheer, uncheer as apiUncheer, getSentCheers, getCheersFor, type CheerUser } from '../api/cheers';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Highlight from '../components/Highlight';
 import { useTheme } from '../hooks/useTheme';
+import { achievementMessage } from '../lib/achievementMeta';
 import type { Friend, Requests, SearchResult } from '../types/friend';
 
 const AVATAR_PALETTE = ['#FFBDC2', '#FDFBD4', '#C5FFD8', '#C68BE1', '#C5ECF9', '#CBCBCB'];
-
-const SAMPLE_ACHIEVEMENTS = [
-  'Stayed under budget for two months!',
-  'Hit 100 logged transactions!',
-  'No regret tags in 2 weeks!',
-  'Stayed under budget for ten weeks!',
-  'Income increased by 10%!',
-  'Completed their budget this week!',
-  'Completed their budget last month!',
-  'Spent 47% less on entertainment last week!',
-];
 
 const initials = (name: string) =>
   name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
@@ -70,23 +61,6 @@ function IconFire() {
   );
 }
 
-function computeStreak(dates: string[]): number {
-  if (dates.length === 0) return 0;
-  const dayKey = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const set = new Set(dates.map((d) => dayKey(new Date(d))));
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const cur = new Date(today);
-  if (!set.has(dayKey(cur))) cur.setDate(cur.getDate() - 1);
-  let n = 0;
-  while (set.has(dayKey(cur))) {
-    n++;
-    cur.setDate(cur.getDate() - 1);
-    if (n > 3650) break;
-  }
-  return n;
-}
 
 export default function Friends() {
   const { data: session, isPending } = useSession();
@@ -98,6 +72,7 @@ export default function Friends() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [myStreak, setMyStreak] = useState(0);
+  const [myAchievements, setMyAchievements] = useState<Achievement[]>([]);
 
   const [query, setQuery] = useState('');
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
@@ -105,16 +80,44 @@ export default function Friends() {
   const [searching, setSearching] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showFriendsModal, setShowFriendsModal] = useState(false);
-  const [likedAchievements, setLikedAchievements] = useState<Set<string>>(() => {
-    try {
-      const raw = localStorage.getItem('liked-achievements-v1');
-      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
-    } catch { return new Set(); }
-  });
-  const [showMyLikes, setShowMyLikes] = useState(false);
+  const [likedAchievements, setLikedAchievements] = useState<Set<string>>(new Set());
+  const [likedByModal, setLikedByModal] = useState<{ key: string; users: CheerUser[]; loading: boolean } | null>(null);
 
-  useEffect(() => {
-    try { localStorage.setItem('liked-achievements-v1', JSON.stringify([...likedAchievements])); } catch { /* ignore */ }
+  const openLikedBy = useCallback(async (key: string) => {
+    if (!profile?.id) return;
+    setLikedByModal({ key, users: [], loading: true });
+    try {
+      const users = await getCheersFor(profile.id, key);
+      setLikedByModal({ key, users, loading: false });
+    } catch {
+      setLikedByModal({ key, users: [], loading: false });
+    }
+  }, [profile?.id]);
+
+  const refreshSentCheers = useCallback(() => {
+    getSentCheers()
+      .then(list => setLikedAchievements(new Set(list.map(c => `${c.toUserId}|${c.achievementKey}`))))
+      .catch(() => {});
+  }, []);
+
+  const toggleCheer = useCallback(async (toUserId: string, key: string) => {
+    const id = `${toUserId}|${key}`;
+    const alreadyLiked = likedAchievements.has(id);
+    setLikedAchievements(s => {
+      const next = new Set(s);
+      if (alreadyLiked) next.delete(id); else next.add(id);
+      return next;
+    });
+    try {
+      if (alreadyLiked) await apiUncheer(toUserId, key);
+      else await apiCheer(toUserId, key);
+    } catch {
+      setLikedAchievements(s => {
+        const next = new Set(s);
+        if (alreadyLiked) next.add(id); else next.delete(id);
+        return next;
+      });
+    }
   }, [likedAchievements]);
 
   useEffect(() => {
@@ -134,12 +137,16 @@ export default function Friends() {
   useEffect(() => {
     if (session) {
       load();
-      getMyProfile().then(setProfile).catch(console.error);
-      getTransactions()
-        .then((txns) => setMyStreak(computeStreak(txns.map((t) => t.date))))
+      getMyProfile()
+        .then((p) => {
+          setProfile(p);
+          setMyStreak(p.streak ?? 0);
+        })
         .catch(console.error);
+      getMyAchievements().then(setMyAchievements).catch(console.error);
+      refreshSentCheers();
     }
-  }, [session, load]);
+  }, [session, load, refreshSentCheers]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -236,7 +243,30 @@ export default function Friends() {
             color: AVATAR_PALETTE[i % AVATAR_PALETTE.length],
           }));
           const everyone = [myEntry, ...friendEntries];
-          const achievementsFeed = everyone.slice(0, 8);
+
+          type Row = { id: string; key: string; toUserId: string; name: string; isMe: boolean; color: string; earnedAt: string; message: string };
+          const feedRows: Row[] = [];
+          for (const a of myAchievements) {
+            feedRows.push({
+              id: `me-${a.key}`, key: a.key, toUserId: profile?.id ?? '', name: myName, isMe: true,
+              color: '#C68BE1', earnedAt: a.earnedAt,
+              message: achievementMessage(a.key, true),
+            });
+          }
+          for (let i = 0; i < friends.length; i++) {
+            const f = friends[i];
+            const fname = f.displayName ?? f.username ?? 'Friend';
+            for (const a of f.achievements ?? []) {
+              feedRows.push({
+                id: `${f.id}-${a.key}`, key: a.key, toUserId: f.id, name: fname, isMe: false,
+                color: AVATAR_PALETTE[i % AVATAR_PALETTE.length], earnedAt: a.earnedAt,
+                message: achievementMessage(a.key, false),
+              });
+            }
+          }
+          feedRows.sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime());
+          const achievementsFeed = feedRows.slice(0, 8);
+
           const streakBoard = [...everyone].sort((a, b) => b.streak - a.streak).slice(0, 5);
           return (
             <div className="grid md:grid-cols-[2fr_1fr] gap-6 mb-8">
@@ -244,11 +274,13 @@ export default function Friends() {
                 <h2 className="font-semibold text-[var(--c-text)] mb-1">Recent achievements</h2>
                 <p className="text-xs text-[var(--c-text-2)] mb-4">Cheer a friend on!</p>
                 <div className="flex flex-col gap-3">
-                  {achievementsFeed.map((e, i) => {
-                    const message = e.isMe
-                      ? 'You just hit a new streak high!'
-                      : SAMPLE_ACHIEVEMENTS[i % SAMPLE_ACHIEVEMENTS.length];
-                    const liked = likedAchievements.has(e.id);
+                  {achievementsFeed.length === 0 && (
+                    <p className="text-sm text-[var(--c-text-2)] py-4 text-center">
+                      No achievements yet — log a transaction or set a budget to unlock one.
+                    </p>
+                  )}
+                  {achievementsFeed.map((e) => {
+                    const liked = likedAchievements.has(`${e.toUserId}|${e.key}`);
                     return (
                       <div key={e.id} className="flex items-center gap-3">
                         <div
@@ -258,13 +290,19 @@ export default function Friends() {
                           {initials(e.name)}
                         </div>
                         <p className="text-sm text-[var(--c-text)] truncate flex-1 min-w-0">
-                          <span className="font-semibold">{e.isMe ? 'You' : e.name}</span>{' '}
-                          <span className="text-[var(--c-text-2)]">{message}</span>
+                          {e.isMe ? (
+                            <span className="text-[var(--c-text)]">{e.message}</span>
+                          ) : (
+                            <>
+                              <span className="font-semibold">{e.name}</span>{' '}
+                              <span className="text-[var(--c-text-2)]">{e.message}</span>
+                            </>
+                          )}
                         </p>
                         {e.isMe ? (
                           <button
                             type="button"
-                            onClick={() => setShowMyLikes(true)}
+                            onClick={() => openLikedBy(e.key)}
                             className="flex-shrink-0 cursor-pointer hover:scale-110 transition-transform text-[#E11D48]"
                             aria-label="See who liked this"
                           >
@@ -273,11 +311,7 @@ export default function Friends() {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => setLikedAchievements(s => {
-                              const next = new Set(s);
-                              if (next.has(e.id)) next.delete(e.id); else next.add(e.id);
-                              return next;
-                            })}
+                            onClick={() => toggleCheer(e.toUserId, e.key)}
                             aria-label={liked ? 'Unlike' : 'Like'}
                             aria-pressed={liked}
                             className={`flex-shrink-0 cursor-pointer hover:scale-110 transition-transform ${liked ? 'text-[#E11D48]' : 'text-[var(--c-text-2)]'}`}
@@ -463,11 +497,10 @@ export default function Friends() {
         </div>
       )}
 
-      {/* Who liked your achievement modal */}
-      {showMyLikes && (
+      {likedByModal && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowMyLikes(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget) setLikedByModal(null); }}
         >
           <div className="w-full max-w-sm bg-[var(--c-card)] border border-[rgba(109,109,109,0.8)] rounded-3xl">
             <div className="px-7 pt-6 pb-3 flex justify-between items-start">
@@ -477,7 +510,7 @@ export default function Friends() {
               </div>
               <button
                 type="button"
-                onClick={() => setShowMyLikes(false)}
+                onClick={() => setLikedByModal(null)}
                 aria-label="Close"
                 className="text-2xl leading-none text-[var(--c-text-2)] hover:text-[var(--c-text)] cursor-pointer px-2"
               >
@@ -485,15 +518,17 @@ export default function Friends() {
               </button>
             </div>
             <div className="px-7 pb-7">
-              {friends.length === 0 ? (
+              {likedByModal.loading ? (
+                <p className="text-sm text-[var(--c-text-2)] text-center py-6">Loading…</p>
+              ) : likedByModal.users.length === 0 ? (
                 <p className="text-sm text-[var(--c-text-2)] text-center py-6">No likes yet.</p>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {friends.slice(0, 3).map((f, i) => {
-                    const name = f.displayName ?? f.username ?? 'Friend';
+                  {likedByModal.users.map((u, i) => {
+                    const name = u.displayName ?? u.username ?? 'Friend';
                     const color = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
                     return (
-                      <div key={f.id} className="flex items-center gap-3 p-2 rounded-2xl">
+                      <div key={u.id} className="flex items-center gap-3 p-2 rounded-2xl">
                         <div
                           className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0"
                           style={{ backgroundColor: color }}

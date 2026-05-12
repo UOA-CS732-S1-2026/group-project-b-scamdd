@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { Goal } from '../models/Goal';
 import { requireAuth } from '../middleware/auth';
+import { checkAndAwardAchievements } from '../lib/achievements';
 
 const router = Router();
 
@@ -35,6 +36,7 @@ router.post('/', async (req: Request, res: Response) => {
       isPublic: Boolean(isPublic),
     });
     res.status(201).json(goal);
+    checkAndAwardAchievements(req.user!._id).catch(() => { /* ignore */ });
   } catch {
     res.status(500).json({ message: 'Failed to create goal' });
   }
@@ -72,6 +74,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
       return;
     }
     res.json(goal);
+    checkAndAwardAchievements(req.user!._id).catch(() => { /* ignore */ });
   } catch {
     res.status(500).json({ message: 'Failed to update goal' });
   }
@@ -110,6 +113,7 @@ router.post('/:id/contribute', async (req: Request, res: Response) => {
       return;
     }
     res.json(goal);
+    checkAndAwardAchievements(req.user!._id).catch(() => { /* ignore */ });
   } catch {
     res.status(500).json({ message: 'Failed to record contribution' });
   }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Transaction, TransactionInput, TransactionType } from '../types/transaction';
+import { EMERGENCY_CATEGORY, type Transaction, type TransactionInput, type TransactionType } from '../types/transaction';
 import { createTransaction, updateTransaction } from '../api/transactions';
 import { useCategories } from '../hooks/useCategories';
 import ManageCategoriesModal from './ManageCategoriesModal';
@@ -84,7 +84,8 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
   }
 
   const isExpense = form.type === 'expense';
-  const isNonEssential = isExpense && form.essential === false;
+  const isEmergency = isExpense && form.category === EMERGENCY_CATEGORY;
+  const isNonEssential = isExpense && !isEmergency && form.essential === false;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -188,7 +189,13 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
                       <button
                         key={c}
                         type="button"
-                        onClick={() => set('category', c)}
+                        onClick={() => {
+                          if (c === EMERGENCY_CATEGORY) {
+                            setForm((f) => ({ ...f, category: c, essential: true, mood: undefined }));
+                          } else {
+                            set('category', c);
+                          }
+                        }}
                         className={`py-2 px-3 rounded-2xl text-sm font-medium border transition-colors cursor-pointer capitalize ${
                           selected
                             ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
@@ -200,6 +207,12 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {isEmergency && (
+              <div className="px-4 py-3 rounded-2xl border border-[rgba(109,109,109,0.5)] bg-[var(--c-tint-pink)] text-[var(--c-tint-text)] text-xs">
+                Emergency purchases are essential and don&apos;t count toward your budgets, so your streak stays safe.
               </div>
             )}
 
@@ -216,8 +229,8 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
               />
             </div>
 
-            {/* Essential toggle (expense only) */}
-            {isExpense && (
+            {/* Essential toggle (expense only, not emergency) */}
+            {isExpense && !isEmergency && (
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-[var(--c-text)]">Was this essential?</label>
                 <div className="grid grid-cols-2 gap-2">

@@ -27,8 +27,8 @@
   --c-tint-green: #C5FFD8;
   --c-tint-yellow: #FDFBD4;
   --c-tint-mood: #C68BE1;
-  --c-tint-mood-text: #ffffff;
-  --c-tint-mood-sub: rgba(255,255,255,0.75);
+  --c-tint-mood-text: #1a1a1a;
+  --c-tint-mood-sub: rgba(0,0,0,0.55);
   --c-tint-text: #1a1a1a;
   --c-tint-text-2: rgba(0,0,0,0.55);
   --c-text: #1a1a1a;

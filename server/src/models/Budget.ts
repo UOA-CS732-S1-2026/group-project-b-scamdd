@@ -30,3 +30,7 @@ const BudgetSchema = new Schema<IBudget>(
 BudgetSchema.index({ userId: 1, category: 1, period: 1 }, { unique: true });
 
 export const Budget = mongoose.model<IBudget>('Budget', BudgetSchema);
+
+Budget.collection
+  .dropIndex('userId_1_category_1')
+  .catch(() => { /* old index didn't exist — fine */ });
