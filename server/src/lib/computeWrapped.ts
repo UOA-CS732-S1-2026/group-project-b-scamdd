@@ -77,8 +77,10 @@ export function computeWrappedStats(txns: ITransaction[]): IWrappedStats {
   };
 }
 
-/** Returns all completed (year, month) pairs from a list of transactions, excluding the current month. */
-export function completedMonths(txns: ITransaction[]): { year: number; month: number }[] {
+export function completedMonths(
+  txns: ITransaction[],
+  { includeCurrentMonth = false } = {},
+): { year: number; month: number }[] {
   const now = new Date();
   const currentYear  = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
@@ -88,7 +90,8 @@ export function completedMonths(txns: ITransaction[]): { year: number; month: nu
     const d = new Date(t.date);
     const y = d.getFullYear();
     const m = d.getMonth() + 1;
-    if (y < currentYear || (y === currentYear && m < currentMonth)) {
+    const isCurrent = y === currentYear && m === currentMonth;
+    if (!isCurrent || includeCurrentMonth) {
       seen.add(`${y}-${m}`);
     }
   }
