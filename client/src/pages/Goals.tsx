@@ -6,12 +6,14 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import GoalForm from '../components/GoalForm';
 import { useTheme } from '../hooks/useTheme';
+import { useCurrency } from '../context/CurrencyContext';
 import type { Goal } from '../types/goal';
 
 export default function Goals() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
+  const { fmt } = useCurrency();
 
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,7 +105,7 @@ export default function Goals() {
                     <div>
                       <h3 className="text-lg font-semibold">{goal.name}</h3>
                       <p className="text-sm text-[var(--c-text-2)]">
-                        ${goal.currentAmount.toFixed(2)} of ${goal.targetAmount.toFixed(2)}
+                        {fmt(goal.currentAmount)} of {fmt(goal.targetAmount)}
                       </p>
                       <p className="text-xs mt-1 text-[var(--c-text-2)]">
                         {daysLeft > 0 ? `${daysLeft} days left` : 'Deadline passed'}

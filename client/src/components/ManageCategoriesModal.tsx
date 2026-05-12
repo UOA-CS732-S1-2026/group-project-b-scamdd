@@ -33,7 +33,7 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (c: string)
 
 export default function ManageCategoriesModal({ userCategories, onBack, onChanged }: Props) {
   const [newName, setNewName] = useState('');
-  const [newColor, setNewColor] = useState(CATEGORY_COLOR_PALETTE[0]);
+  const [newColor, setNewColor] = useState<string>(CATEGORY_COLOR_PALETTE[0]);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
 

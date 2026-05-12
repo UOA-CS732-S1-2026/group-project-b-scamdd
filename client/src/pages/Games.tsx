@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useSession } from '../lib/auth-client';
 import { useTheme } from '../hooks/useTheme';
+import { useCurrency } from '../context/CurrencyContext';
 import { submitScore, getLeaderboard, type LeaderboardEntry } from '../api/games';
 
 // ── Item database (NZD prices, specific brands/sizes/stores) ──────────────────
@@ -208,6 +209,7 @@ type PGState = 'idle' | 'guessing' | 'revealed' | 'done';
 interface PGRound { item: Item; guess: number; score: number }
 
 function PriceGuesser({ onScore }: { onScore: (score: number) => void }) {
+  const { fmt } = useCurrency();
   const [state, setState] = useState<PGState>('idle');
   const [queue, setQueue] = useState<Item[]>([]);
   const [round, setRound] = useState(0);
@@ -275,7 +277,7 @@ function PriceGuesser({ onScore }: { onScore: (score: number) => void }) {
                 <div key={i} className="flex items-center justify-between py-2 text-sm gap-2">
                   <span className="text-[var(--c-text)] truncate min-w-0">{r.item.emoji} {r.item.name}</span>
                   <span className="text-[var(--c-text-2)] flex-shrink-0 text-right text-xs">
-                    ${r.guess.toFixed(2)} → <span className="text-[var(--c-text)]">${r.item.price.toFixed(2)}</span>
+                    ${r.guess.toFixed(2)} → <span className="text-[var(--c-text)]">{fmt(r.item.price)}</span>
                     {' · '}
                     <span className={r.score >= 70 ? 'text-[var(--c-income)]' : r.score >= 40 ? 'text-[var(--c-accent)]' : 'text-[var(--c-expense)]'}>
                       {r.score} pts
@@ -335,8 +337,8 @@ function PriceGuesser({ onScore }: { onScore: (score: number) => void }) {
         <div className="flex flex-col gap-3">
           <div className="bg-[var(--c-surface)] rounded-xl p-4 flex items-center justify-between">
             <div className="text-sm text-[var(--c-text-2)]">
-              <div>Your guess: <span className="text-[var(--c-text)] font-semibold">${parseFloat(guess).toFixed(2)}</span></div>
-              <div className="mt-1">Actual price: <span className="text-[var(--c-text)] font-semibold">${currentItem.price.toFixed(2)}</span></div>
+              <div>Your guess: <span className="text-[var(--c-text)] font-semibold">{fmt(parseFloat(guess))}</span></div>
+              <div className="mt-1">Actual price: <span className="text-[var(--c-text)] font-semibold">{fmt(currentItem.price)}</span></div>
             </div>
             <div className="text-right">
               <div className={`text-3xl font-bold ${lastScore! >= 70 ? 'text-[var(--c-income)]' : lastScore! >= 40 ? 'text-[var(--c-accent)]' : 'text-[var(--c-expense)]'}`}>
@@ -366,6 +368,7 @@ const BUDGET_AMOUNTS = [25, 30, 35, 40, 45, 50, 60, 75, 100];
 type BCState = 'idle' | 'picking' | 'done';
 
 function BudgetChallenge({ onScore }: { onScore: (score: number) => void }) {
+  const { fmt } = useCurrency();
   const [state, setState] = useState<BCState>('idle');
   const [budget, setBudget] = useState(0);
   const [items, setItems] = useState<Item[]>([]);
@@ -423,12 +426,12 @@ function BudgetChallenge({ onScore }: { onScore: (score: number) => void }) {
                 {finalScore} / 100
               </div>
               <div className="text-sm text-[var(--c-text-2)] mt-1">
-                Budget: <span className="text-[var(--c-text)] font-semibold">${budget.toFixed(2)}</span>
-                {' · '}You spent: <span className={`font-semibold ${over ? 'text-[var(--c-expense)]' : 'text-[var(--c-text)]'}`}>${revealedTotal.toFixed(2)}</span>
+                Budget: <span className="text-[var(--c-text)] font-semibold">{fmt(budget)}</span>
+                {' · '}You spent: <span className={`font-semibold ${over ? 'text-[var(--c-expense)]' : 'text-[var(--c-text)]'}`}>{fmt(revealedTotal)}</span>
                 {' · '}
                 {over
-                  ? <span className="text-[var(--c-expense)]">${(revealedTotal - budget).toFixed(2)} over</span>
-                  : <span className="text-[var(--c-income)]">${(budget - revealedTotal).toFixed(2)} under</span>}
+                  ? <span className="text-[var(--c-expense)]">{fmt(revealedTotal - budget)} over</span>
+                  : <span className="text-[var(--c-income)]">{fmt(budget - revealedTotal)} under</span>}
               </div>
               <div className="text-sm text-[var(--c-text-2)] mt-2">
                 {finalScore >= 90 ? '🏆 Nearly perfect budget management!' :
@@ -444,13 +447,13 @@ function BudgetChallenge({ onScore }: { onScore: (score: number) => void }) {
                   {selectedItems.map((item, i) => (
                     <div key={i} className="flex items-center justify-between py-1.5 text-sm">
                       <span className="text-[var(--c-text)] truncate min-w-0">{item.emoji} {item.name}</span>
-                      <span className="text-[var(--c-text)] font-semibold flex-shrink-0 ml-3">${item.price.toFixed(2)}</span>
+                      <span className="text-[var(--c-text)] font-semibold flex-shrink-0 ml-3">{fmt(item.price)}</span>
                     </div>
                   ))}
                 </div>
                 <div className="flex justify-between text-sm font-bold pt-2 border-t border-[var(--c-border)]">
                   <span className="text-[var(--c-text)]">Total</span>
-                  <span className={over ? 'text-[var(--c-expense)]' : 'text-[var(--c-income)]'}>${revealedTotal.toFixed(2)}</span>
+                  <span className={over ? 'text-[var(--c-expense)]' : 'text-[var(--c-income)]'}>{fmt(revealedTotal)}</span>
                 </div>
               </div>
             )}
@@ -473,7 +476,7 @@ function BudgetChallenge({ onScore }: { onScore: (score: number) => void }) {
         <h2 className="text-lg font-bold text-[var(--c-text)]">Budget Challenge</h2>
         <div className="flex items-center gap-4">
           <div className="text-sm text-[var(--c-text-2)]">
-            Budget: <span className="text-[var(--c-text)] font-bold text-base">${budget.toFixed(2)}</span>
+            Budget: <span className="text-[var(--c-text)] font-bold text-base">{fmt(budget)}</span>
           </div>
           <div className="text-xs px-2 py-1 rounded-lg bg-[var(--c-surface)] text-[var(--c-text-2)]">
             {selected.size} item{selected.size !== 1 ? 's' : ''} selected

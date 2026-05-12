@@ -9,6 +9,9 @@ export interface IUser extends Document {
   displayName?: string;
   bio?: string;
   currency?: string;
+  phone?: string;
+  avatarColor?: string;
+  avatarImage?: string;
   profileComplete?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
@@ -33,6 +36,9 @@ const UserSchema = new Schema<IUser>(
     displayName: { type: String, maxlength: 50, trim: true },
     bio: { type: String, maxlength: 200, trim: true },
     currency: { type: String, default: 'NZD', uppercase: true, minlength: 3, maxlength: 3 },
+    phone: { type: String, maxlength: 30 },
+    avatarColor: { type: String, maxlength: 20 },
+    avatarImage: { type: String },
     profileComplete: { type: Boolean, default: false },
   },
   { collection: 'user', timestamps: true, strict: false },

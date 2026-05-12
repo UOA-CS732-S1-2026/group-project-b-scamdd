@@ -6,6 +6,7 @@ export interface IFriendship extends Document {
   requesterId: string;
   addresseeId: string;
   status: FriendshipStatus;
+  seenByRequester?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -19,6 +20,7 @@ const FriendshipSchema = new Schema<IFriendship>(
       enum: ['pending', 'accepted', 'rejected'],
       default: 'pending',
     },
+    seenByRequester: { type: Boolean, default: true },
   },
   { timestamps: true },
 );

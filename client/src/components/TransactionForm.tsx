@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { EMERGENCY_CATEGORY, type Transaction, type TransactionInput, type TransactionType } from '../types/transaction';
 import { createTransaction, updateTransaction } from '../api/transactions';
+import { useCurrency } from '../context/CurrencyContext';
+import { FROM_NZD, SYMBOLS, convertToNZD } from '../lib/currency';
 import { useCategories } from '../hooks/useCategories';
 import ManageCategoriesModal from './ManageCategoriesModal';
+
+const SUPPORTED_CURRENCIES = Object.keys(FROM_NZD);
 
 interface Props {
   transaction?: Transaction;
@@ -24,6 +28,10 @@ const MOODS: { key: string; label: string; emoji: string }[] = [
 const PAYMENT_METHODS = ['Cash', 'Debit', 'Credit', 'Bank Transfer', 'PayPal', 'Other'];
 
 export default function TransactionForm({ transaction, onSuccess, onCancel }: Props) {
+  const { currency: profileCurrency } = useCurrency();
+  const [inputCurrency, setInputCurrency] = useState(profileCurrency);
+  const [rawAmount, setRawAmount] = useState<number | ''>(0);
+  const inputSymbol = SYMBOLS[inputCurrency] ?? '$';
   const { allCategories, userCategories, refresh } = useCategories();
   const [showManage, setShowManage] = useState(false);
 
@@ -43,6 +51,9 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
 
   useEffect(() => {
     if (transaction) {
+      // When editing, show the stored NZD amount converted to current profile currency
+      setRawAmount(parseFloat((transaction.amount * (FROM_NZD[profileCurrency] ?? 1)).toFixed(2)));
+      setInputCurrency(profileCurrency);
       setForm({
         title: transaction.title,
         amount: transaction.amount,
@@ -64,16 +75,18 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (!form.amount || form.amount <= 0) {
+    if (!rawAmount || rawAmount <= 0) {
       setError('Amount must be greater than 0');
       return;
     }
+    // Convert entered amount to NZD for storage
+    const amountInNZD = parseFloat(convertToNZD(Number(rawAmount), inputCurrency).toFixed(4));
     setLoading(true);
     try {
       if (transaction) {
-        await updateTransaction(transaction._id, form);
+        await updateTransaction(transaction._id, { ...form, amount: amountInNZD });
       } else {
-        await createTransaction(form);
+        await createTransaction({ ...form, amount: amountInNZD });
       }
       onSuccess();
     } catch {
@@ -152,21 +165,37 @@ export default function TransactionForm({ transaction, onSuccess, onCancel }: Pr
             {/* Amount */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-[var(--c-text)]">Amount</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-[var(--c-text-2)] pointer-events-none select-none">
-                  $
-                </span>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  required
-                  value={form.amount || ''}
-                  onChange={(e) => set('amount', e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                  placeholder="0.00"
-                  className={`${inputClass} pl-9 text-lg font-semibold`}
-                />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-[var(--c-text-2)] pointer-events-none select-none">
+                    {inputSymbol}
+                  </span>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    required
+                    value={rawAmount || ''}
+                    onChange={(e) => setRawAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    placeholder="0.00"
+                    className={`${inputClass} pl-9 text-lg font-semibold`}
+                  />
+                </div>
+                <select
+                  value={inputCurrency}
+                  onChange={(e) => setInputCurrency(e.target.value)}
+                  className="px-3 py-2.5 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[var(--c-card)] text-[var(--c-text)] text-sm focus:outline-none focus:border-[var(--c-text)] transition-colors cursor-pointer"
+                >
+                  {SUPPORTED_CURRENCIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </div>
+              {inputCurrency !== profileCurrency && rawAmount ? (
+                <p className="text-xs text-[var(--c-text-2)]">
+                  ≈ {SYMBOLS[profileCurrency] ?? '$'}{convertToNZD(Number(rawAmount), inputCurrency).toFixed(2)} NZD stored
+                </p>
+              ) : null}
             </div>
 
             {/* Category (expense only) */}
