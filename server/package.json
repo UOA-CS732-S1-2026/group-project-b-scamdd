@@ -11,9 +11,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "seed": "tsx src/seed.ts",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "seed": "tsx src/seed.ts"
   },
   "keywords": [],
   "author": "",
@@ -36,15 +34,11 @@
     "@types/node": "^25.6.0",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^8.0.0",
-    "@types/supertest": "^7.2.0",
     "eslint": "^10.2.1",
     "eslint-config-prettier": "^10.1.8",
-    "mongodb-memory-server": "^11.1.0",
     "prettier": "^3.8.3",
-    "supertest": "^7.2.2",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.1",
-    "vitest": "^4.1.5"
+    "typescript-eslint": "^8.59.1"
   }
 }
