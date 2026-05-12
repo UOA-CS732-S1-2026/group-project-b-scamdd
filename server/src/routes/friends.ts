@@ -1,14 +1,14 @@
 import { Router, Request, Response } from 'express';
-import { Friendship } from '../models/Friendship';
-import { User } from '../models/User';
-import { UserAvatar } from '../models/UserAvatar';
-import { Goal } from '../models/Goal';
-import { Budget } from '../models/Budget';
-import { Transaction } from '../models/Transaction';
-import { requireAuth } from '../middleware/auth';
-import { computeBudgetStreak } from '../lib/streaks';
-import { listAchievements } from '../lib/achievements';
-import type { BudgetPeriod } from '../models/Budget';
+import { Friendship } from '../models/Friendship.js';
+import { User } from '../models/User.js';
+import { UserAvatar } from '../models/UserAvatar.js';
+import { Goal } from '../models/Goal.js';
+import { Budget } from '../models/Budget.js';
+import { Transaction } from '../models/Transaction.js';
+import { requireAuth } from '../middleware/auth.js';
+import { computeBudgetStreak } from '../lib/streaks.js';
+import { listAchievements } from '../lib/achievements.js';
+import type { BudgetPeriod } from '../models/Budget.js';
 
 const router = Router();
 

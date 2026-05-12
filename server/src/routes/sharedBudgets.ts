@@ -1,10 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { SharedBudget } from '../models/SharedBudget';
-import type { BudgetPeriod } from '../models/Budget';
-import { Transaction } from '../models/Transaction';
-import { Friendship } from '../models/Friendship';
-import { User } from '../models/User';
-import { requireAuth } from '../middleware/auth';
+import { SharedBudget } from '../models/SharedBudget.js';
+import type { BudgetPeriod } from '../models/Budget.js';
+import { Transaction } from '../models/Transaction.js';
+import { Friendship } from '../models/Friendship.js';
+import { User } from '../models/User.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 router.use(requireAuth);

@@ -1,9 +1,9 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import { User } from './models/User';
-import { Transaction } from './models/Transaction';
-import { Budget } from './models/Budget';
-import { Goal } from './models/Goal';
+import { User } from './models/User.js';
+import { Transaction } from './models/Transaction.js';
+import { Budget } from './models/Budget.js';
+import { Goal } from './models/Goal.js';
 
 const EMAIL = process.argv[2] ?? 'bgib630@aucklanduni.ac.nz';
 

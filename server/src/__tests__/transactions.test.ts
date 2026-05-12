@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import supertest from 'supertest';
-import { app } from '../app';
-import { Transaction } from '../models/Transaction';
+import { app } from '../app.js';
+import { Transaction } from '../models/Transaction.js';
 
 const BASE = '/api/transactions';
 

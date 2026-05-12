@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { UserCategory } from '../models/UserCategory';
-import { requireAuth } from '../middleware/auth';
+import { UserCategory } from '../models/UserCategory.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 router.use(requireAuth);

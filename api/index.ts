@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import mongoose from 'mongoose';
-import { app } from '../server/src/app';
+import { app } from '../server/src/app.js';
 
 let connecting: Promise<typeof mongoose> | null = null;
 

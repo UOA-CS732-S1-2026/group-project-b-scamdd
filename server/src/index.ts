@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import { app } from './app';
-import { startWrappedCron } from './jobs/wrappedCron';
+import { app } from './app.js';
+import { startWrappedCron } from './jobs/wrappedCron.js';
 
 const port = Number(process.env.PORT ?? 4000);
 const mongoUri = process.env.MONGO_URI ?? 'mongodb://localhost:27017/bscamdd';

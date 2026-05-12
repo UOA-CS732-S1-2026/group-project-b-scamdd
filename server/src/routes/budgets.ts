@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { Budget, type BudgetPeriod } from '../models/Budget';
-import { Transaction } from '../models/Transaction';
-import { requireAuth } from '../middleware/auth';
-import { checkAndAwardAchievements } from '../lib/achievements';
+import { Budget, type BudgetPeriod } from '../models/Budget.js';
+import { Transaction } from '../models/Transaction.js';
+import { requireAuth } from '../middleware/auth.js';
+import { checkAndAwardAchievements } from '../lib/achievements.js';
 
 const router = Router();
 router.use(requireAuth);

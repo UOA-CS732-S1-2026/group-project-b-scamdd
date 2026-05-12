@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import type { BudgetPeriod } from './Budget';
+import type { BudgetPeriod } from './Budget.js';
 
 export type SharedBudgetMemberStatus = 'pending' | 'accepted';
 

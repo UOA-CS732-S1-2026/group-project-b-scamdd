@@ -1,5 +1,5 @@
-import type { ITransaction } from '../models/Transaction';
-import type { IWrappedStats } from '../models/MonthlyWrapped';
+import type { ITransaction } from '../models/Transaction.js';
+import type { IWrappedStats } from '../models/MonthlyWrapped.js';
 
 const MOOD_VALUES: Record<string, number> = { regret: 1, meh: 2, okay: 3, glad: 4, 'worth-it': 5 };
 

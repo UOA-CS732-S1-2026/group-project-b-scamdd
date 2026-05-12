@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth } from '../middleware/auth';
-import { Friendship } from '../models/Friendship';
-import { checkAndAwardAchievements, listAchievements } from '../lib/achievements';
+import { requireAuth } from '../middleware/auth.js';
+import { Friendship } from '../models/Friendship.js';
+import { checkAndAwardAchievements, listAchievements } from '../lib/achievements.js';
 
 const router = Router();
 router.use(requireAuth);

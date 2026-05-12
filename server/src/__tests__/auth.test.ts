@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import supertest from 'supertest';
-import { app } from '../app';
+import { app } from '../app.js';
 
 const request = supertest(app);
 
