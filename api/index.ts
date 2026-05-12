@@ -6,7 +6,15 @@ let connecting: Promise<typeof mongoose> | null = null;
 
 async function ensureDb() {
   if (mongoose.connection.readyState === 1) return;
-  if (!connecting) connecting = mongoose.connect(process.env.MONGO_URI!);
+  if (!connecting) {
+    connecting = mongoose
+      .connect(process.env.MONGO_URI!, { serverSelectionTimeoutMS: 5000 })
+      .catch((err) => {
+        connecting = null;
+        console.error('[mongoose] connect failed:', err);
+        throw err;
+      });
+  }
   await connecting;
 }
 
