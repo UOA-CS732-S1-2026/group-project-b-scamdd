@@ -28,6 +28,7 @@ export interface BudgetInput {
 }
 
 export interface BudgetUpdate {
+  category?: string;
   monthlyLimit?: number;
   period?: BudgetPeriod;
   isPublic?: boolean;

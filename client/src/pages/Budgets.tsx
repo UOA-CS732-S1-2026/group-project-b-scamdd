@@ -10,6 +10,7 @@ import SharedBudgetForm from '../components/SharedBudgetForm';
 import SharedBudgetCard from '../components/SharedBudgetCard';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useTheme } from '../hooks/useTheme';
+import { useCategories } from '../hooks/useCategories';
 import type { Budget, BudgetPeriod } from '../types/budget';
 import { PERIOD_LABELS } from '../types/budget';
 import type { SharedBudget } from '../types/sharedBudget';
@@ -22,16 +23,6 @@ import {
   leaveSharedBudget,
 } from '../api/sharedBudgets';
 
-const CAT_COLORS: Record<string, string> = {
-  food:          '#FFBDC2',
-  rent:          '#FDFBD4',
-  transport:     '#C5FFD8',
-  entertainment: '#C68BE1',
-  utilities:     '#C5ECF9',
-  shopping:      '#CBCBCB',
-  health:        '#FFBDC2',
-  other:         '#CBCBCB',
-};
 
 const ALL_PERIODS: Array<BudgetPeriod | 'all'> = ['all', 'daily', 'weekly', 'monthly', 'yearly'];
 const FILTER_LABELS: Record<string, string> = { all: 'All', ...PERIOD_LABELS };
@@ -119,6 +110,7 @@ export default function Budgets() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
+  const { getCategoryColor } = useCategories();
 
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [sharedBudgets, setSharedBudgets] = useState<SharedBudget[]>([]);
@@ -233,7 +225,7 @@ export default function Budgets() {
   }
 
   const filtered = filter === 'all' ? budgets : budgets.filter((b) => (b.period ?? 'monthly') === filter);
-  const existingCategories = budgets.map((b) => b.category);
+  const existingBudgets = budgets.map((b) => ({ category: b.category, period: (b.period ?? 'monthly') as BudgetPeriod }));
 
   // Summary stats (across filtered set)
   const totalAllocated = filtered.reduce((s, b) => s + b.monthlyLimit, 0);
@@ -355,6 +347,7 @@ export default function Budgets() {
                       spentPct={spentPct}
                       elapsed={elapsed}
                       pace={pace}
+                      getCategoryColor={getCategoryColor}
                       onEdit={() => { setEditingBudget(budget); setShowForm(true); }}
                       onDelete={() => setConfirmDeleteId(budget._id)}
                     />
@@ -425,7 +418,7 @@ export default function Budgets() {
       {showForm && (
         <BudgetForm
           budget={editingBudget}
-          existingCategories={existingCategories}
+          existingBudgets={existingBudgets}
           onSuccess={handleFormSuccess}
           onCancel={() => { setShowForm(false); setEditingBudget(undefined); }}
         />
@@ -474,12 +467,13 @@ interface CardProps {
   spentPct: number;
   elapsed: number;
   pace: PaceStatus;
+  getCategoryColor: (name: string) => string;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-function BudgetCard({ budget, period, spentPct, elapsed, pace, onEdit, onDelete }: CardProps) {
-  const catColor = CAT_COLORS[budget.category] || '#B6B6B6';
+function BudgetCard({ budget, period, spentPct, elapsed, pace, getCategoryColor, onEdit, onDelete }: CardProps) {
+  const catColor = getCategoryColor(budget.category);
   const barFillPct = Math.min(spentPct, 100);
   const paceMarkerPct = Math.min(elapsed * 100, 100);
 

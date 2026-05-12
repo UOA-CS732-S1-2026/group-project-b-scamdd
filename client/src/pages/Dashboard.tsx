@@ -13,6 +13,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Highlight from '../components/Highlight';
 import { useTheme } from '../hooks/useTheme';
+import { useCategories } from '../hooks/useCategories';
 import type { Transaction } from '../types/transaction';
 import type { Budget } from '../types/budget';
 import type { Friend } from '../types/friend';
@@ -140,16 +141,6 @@ function loadPanelConfig(): PanelConfig[] {
 
 // ── Chart constants ───────────────────────────────────────────────────────────
 
-const CAT_COLORS: Record<string, string> = {
-  food:          '#FFBDC2',
-  rent:          '#FDFBD4',
-  transport:     '#C5FFD8',
-  entertainment: '#C68BE1',
-  utilities:     '#C5ECF9',
-  shopping:      '#CBCBCB',
-  health:        '#FFBDC2',
-  other:         '#CBCBCB',
-};
 
 const MOOD_KEYS   = ['regret', 'meh', 'okay', 'glad', 'worth-it'] as const;
 const MOOD_LABELS = ['Regret', 'Meh', 'Okay', 'Glad', 'Worth It'] as const;
@@ -192,6 +183,7 @@ export default function Dashboard() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
+  const { getCategoryColor } = useCategories();
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [rawBudgets, setRawBudgets] = useState<Budget[]>([]);
@@ -442,11 +434,11 @@ export default function Dashboard() {
   }, {} as Record<string, number>);
   const catSlices = Object.entries(catSpending)
     .sort((a, b) => b[1] - a[1]).slice(0, 6)
-    .map(([cat, amount]) => ({ label: cat, value: amount, color: CAT_COLORS[cat] || '#EF9F27' }));
+    .map(([cat, amount]) => ({ label: cat, value: amount, color: getCategoryColor(cat) }));
   const catTotal = catSlices.reduce((s, d) => s + d.value, 0);
   const catAllSlices = Object.entries(catSpending)
     .sort((a, b) => b[1] - a[1])
-    .map(([cat, amount]) => ({ label: cat, value: amount, color: CAT_COLORS[cat] || '#B6B6B6' }));
+    .map(([cat, amount]) => ({ label: cat, value: amount, color: getCategoryColor(cat) }));
 
   // ── Breakdown rows ────────────────────────────────────────────────────────────
   const essentialSpent    = expenses.filter(t => t.essential === true) .reduce((s, t) => s + Math.abs(t.amount), 0);
@@ -655,7 +647,7 @@ export default function Dashboard() {
                       <div className="flex items-center gap-3 min-w-0">
                         <span
                           className="w-7 h-7 rounded-full flex-shrink-0 border-[3px] border-white"
-                          style={{ background: CAT_COLORS[t.category ?? ''] || '#CBCBCB' }}
+                          style={{ background: getCategoryColor(t.category ?? '') }}
                           aria-hidden
                         />
                         <div className="min-w-0">

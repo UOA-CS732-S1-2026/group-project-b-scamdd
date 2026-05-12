@@ -114,7 +114,7 @@ router.post('/', async (req: Request, res: Response) => {
     checkAndAwardAchievements(req.user!._id).catch(() => { /* ignore */ });
   } catch (err: unknown) {
     if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
-      res.status(409).json({ message: 'A budget for that category already exists' });
+      res.status(409).json({ message: 'A budget for that category and period already exists' });
       return;
     }
     res.status(500).json({ message: 'Failed to create budget' });
@@ -123,9 +123,10 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.patch('/:id', async (req: Request, res: Response) => {
   try {
-    const { monthlyLimit, period, isPublic } = req.body ?? {};
+    const { category, monthlyLimit, period, isPublic } = req.body ?? {};
     const updates: Record<string, unknown> = {};
 
+    if (category !== undefined) updates.category = category;
     if (monthlyLimit !== undefined) {
       if (typeof monthlyLimit !== 'number' || monthlyLimit <= 0) {
         res.status(400).json({ message: 'limit must be a positive number' });
@@ -147,7 +148,11 @@ router.patch('/:id', async (req: Request, res: Response) => {
       return;
     }
     res.json(budget);
-  } catch {
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
+      res.status(409).json({ message: 'A budget for that category and period already exists' });
+      return;
+    }
     res.status(500).json({ message: 'Failed to update budget' });
   }
 });

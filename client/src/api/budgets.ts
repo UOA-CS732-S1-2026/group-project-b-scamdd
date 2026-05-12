@@ -31,7 +31,10 @@ export async function updateBudget(id: string, data: BudgetUpdate): Promise<Budg
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Failed to update budget');
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? 'Failed to update budget');
+  }
   return res.json();
 }
 

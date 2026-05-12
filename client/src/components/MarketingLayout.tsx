@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
-import { useSession } from '../lib/auth-client';
+import { useSession, signOut } from '../lib/auth-client';
 import { useTheme } from '../hooks/useTheme';
 import FeltWordmark from './FeltWordmark';
 import Footer from './Footer';
@@ -57,10 +57,10 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
             {session ? (
               <button
                 type="button"
-                className={primaryBtn}
-                onClick={() => navigate('/transactions')}
+                className={ghostBtn}
+                onClick={() => signOut().then(() => navigate('/'))}
               >
-                Open app
+                Log out
               </button>
             ) : (
               <>
