@@ -80,6 +80,8 @@ export default function Transactions() {
   const [filterAmountMax, setFilterAmountMax] = useState<string>('');
   const [filtersOpen, setFiltersOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [pageSize, setPageSize] = useState<number>(20);
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   const { allCategories } = useCategories();
 
@@ -150,6 +152,8 @@ export default function Transactions() {
     filterType !== 'all' || filterCategory !== 'all' || filterFrom !== '' || filterTo !== ''
     || filterMood !== 'all' || filterAmountMin !== '' || filterAmountMax !== '' || timeRange !== 'all' || sortBy !== 'recent'
     || searchQuery !== '';
+
+  useEffect(() => { setCurrentPage(1); }, [filterType, filterCategory, filterFrom, filterTo, filterMood, filterAmountMin, filterAmountMax, timeRange, sortBy, searchQuery, pageSize]);
 
   const stats = useMemo(() => {
     const expenses = filteredTransactions.filter(t => t.type === 'expense');
@@ -416,13 +420,30 @@ export default function Transactions() {
           </aside>
 
           <div className="min-w-0">
+            {(() => {
+              const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / pageSize));
+              const safePage = Math.min(currentPage, totalPages);
+              const pagedTransactions = filteredTransactions.slice((safePage - 1) * pageSize, safePage * pageSize);
+              const PAGE_SIZE_OPTIONS = [20, 40, 60, 100];
+
+              return (<>
             <div className="flex justify-between items-center mb-3">
               <span className="text-xs text-[var(--c-text-2)]">
                 {filteredTransactions.length} of {transactions.length} transactions
               </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-[var(--c-text-2)]">Rows</span>
+                <select
+                  value={pageSize}
+                  onChange={e => setPageSize(Number(e.target.value))}
+                  className="text-xs border border-[var(--c-border)] rounded-lg px-2 py-1 bg-[var(--c-card)] text-[var(--c-text)] focus:outline-none"
+                >
+                  {PAGE_SIZE_OPTIONS.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
             </div>
 
-            {filteredTransactions.length === 0 ? (
+            {pagedTransactions.length === 0 && filteredTransactions.length === 0 ? (
               <div className="border border-[rgba(109,109,109,0.8)] rounded-3xl p-12 text-center bg-[var(--c-card)]">
                 <p className="text-[var(--c-text-2)]">
                   {transactions.length === 0 ? 'No transactions yet. Add one to get started.' : 'No transactions match the current filters.'}
@@ -446,7 +467,7 @@ export default function Transactions() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTransactions.map((t) => (
+                  {pagedTransactions.map((t) => (
                     <tr
                       key={t._id}
                       className="border-b border-[var(--c-border)] last:border-b-0 hover:bg-[var(--c-surface)] transition-colors group"
@@ -546,6 +567,59 @@ export default function Transactions() {
             </div>
           </div>
             )}
+
+            {/* Pagination controls */}
+            {filteredTransactions.length > 0 && totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4">
+                <span className="text-xs text-[var(--c-text-2)]">
+                  Page {safePage} of {totalPages}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={safePage === 1}
+                    className="px-2 py-1 rounded-lg text-xs border border-[var(--c-border)] text-[var(--c-text-2)] disabled:opacity-30 hover:opacity-70 transition-opacity"
+                  >«</button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={safePage === 1}
+                    className="px-3 py-1 rounded-lg text-xs border border-[var(--c-border)] text-[var(--c-text-2)] disabled:opacity-30 hover:opacity-70 transition-opacity"
+                  >‹ Prev</button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+                    .reduce<(number | '...')[]>((acc, p, i, arr) => {
+                      if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) acc.push('...');
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((p, i) => p === '...' ? (
+                      <span key={`dots-${i}`} className="px-2 text-xs text-[var(--c-text-2)]">…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setCurrentPage(p as number)}
+                        className={`px-3 py-1 rounded-lg text-xs border transition-opacity ${
+                          p === safePage
+                            ? 'bg-[var(--c-text)] text-[var(--c-bg)] border-[var(--c-text)]'
+                            : 'border-[var(--c-border)] text-[var(--c-text-2)] hover:opacity-70'
+                        }`}
+                      >{p}</button>
+                    ))}
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={safePage === totalPages}
+                    className="px-3 py-1 rounded-lg text-xs border border-[var(--c-border)] text-[var(--c-text-2)] disabled:opacity-30 hover:opacity-70 transition-opacity"
+                  >Next ›</button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={safePage === totalPages}
+                    className="px-2 py-1 rounded-lg text-xs border border-[var(--c-border)] text-[var(--c-text-2)] disabled:opacity-30 hover:opacity-70 transition-opacity"
+                  >»</button>
+                </div>
+              </div>
+            )}
+              </>);
+            })()}
           </div>
         </div>
 
