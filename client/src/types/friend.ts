@@ -12,6 +12,8 @@ export interface IncomingRequest {
   fromId: string;
   username: string | null;
   displayName: string | null;
+  avatarColor: string | null;
+  avatarImage: string | null;
   createdAt: string;
 }
 
@@ -20,6 +22,8 @@ export interface OutgoingRequest {
   toId: string;
   username: string | null;
   displayName: string | null;
+  avatarColor: string | null;
+  avatarImage: string | null;
   createdAt: string;
 }
 
@@ -33,6 +37,8 @@ export interface FriendAcceptance {
   userId: string;
   username: string | null;
   displayName: string | null;
+  avatarColor: string | null;
+  avatarImage: string | null;
   acceptedAt: string;
 }
 

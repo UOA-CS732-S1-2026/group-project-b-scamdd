@@ -18,6 +18,7 @@ import type { SharedBudget } from '../types/sharedBudget';
 import type { FriendAcceptance } from '../types/friend';
 import { achievementMessage } from '../lib/achievementMeta';
 import FeltWordmark from './FeltWordmark';
+import { useProfileAvatar } from '../context/ProfileContext';
 import type { Friend, Requests } from '../types/friend';
 
 interface NavbarProps {
@@ -26,7 +27,6 @@ interface NavbarProps {
   userName?: string;
 }
 
-const AVATAR_PALETTE = ['#FFBDC2', '#FDFBD4', '#C5FFD8', '#C68BE1', '#C5ECF9', '#CBCBCB'];
 const initials = (name: string) =>
   name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
 
@@ -85,15 +85,6 @@ function IconGames() {
   );
 }
 
-function IconProfile() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="7.5" cy="4.5" r="3" />
-      <path d="M1.5 14c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-    </svg>
-  );
-}
-
 function IconSun() {
   return (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -120,7 +111,7 @@ function IconBell() {
   );
 }
 
-export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
+export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -245,8 +236,10 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
     { label: 'Budgets', path: '/budgets', Icon: IconBudgets },
     { label: 'Friends', path: '/friends', Icon: IconFriends },
     { label: 'Games', path: '/games', Icon: IconGames },
-    { label: 'Profile', path: '/profile', Icon: IconProfile },
   ];
+
+  const { avatarColor, avatarImage } = useProfileAvatar();
+  const avatarInitials = (userName || '?').split(' ').slice(0, 2).map((w: string) => w[0]?.toUpperCase() ?? '').join('') || '?';
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -286,6 +279,18 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/profile')}
+            aria-label="Your profile"
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-[var(--c-border)] overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer ${
+              location.pathname === '/profile' ? 'ring-2 ring-[var(--c-accent)]' : ''
+            }`}
+            style={{ backgroundColor: avatarImage ? 'transparent' : avatarColor }}
+          >
+            {avatarImage
+              ? <img src={avatarImage} alt={userName ?? 'Profile'} className="w-full h-full object-cover" />
+              : avatarInitials}
+          </button>
           <div ref={bellWrapRef} className="relative">
             <button
               type="button"
@@ -322,8 +327,13 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
                               className={`px-4 py-3 border-b border-[var(--c-border)] last:border-b-0 flex items-center gap-3 cursor-pointer hover:bg-[var(--c-nav-active)] ${wasNew ? 'bg-[var(--c-tint-yellow)]' : ''}`}
                               onClick={goToNotification}
                             >
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0 bg-[#C68BE1]">
-                                {initials(r.displayName ?? '?')}
+                              <div
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
+                                style={{ backgroundColor: r.avatarImage ? 'transparent' : (r.avatarColor ?? '#C68BE1') }}
+                              >
+                                {r.avatarImage
+                                  ? <img src={r.avatarImage} alt={r.displayName ?? '?'} className="w-full h-full object-cover" />
+                                  : initials(r.displayName ?? '?')}
                               </div>
                               <p className="text-xs text-[var(--c-text)] flex-1 min-w-0 truncate">
                                 <span className="font-semibold">{r.displayName ?? 'Someone'}</span>{' '}
@@ -352,14 +362,22 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
                             ?? sb.members.find((m) => m.status === 'accepted');
                           const inviterName = inviter?.displayName ?? inviter?.username ?? 'Someone';
                           const label = sb.name?.trim() || sb.category;
+                          const inviterFriend = friends.find((fr) => fr.id === inviter?.userId);
+                          const inviterAvatarColor = inviterFriend?.avatarColor ?? '#C5FFD8';
+                          const inviterAvatarImage = inviterFriend?.avatarImage ?? null;
                           return (
                             <li
                               key={n.id}
                               className={`px-4 py-3 border-b border-[var(--c-border)] last:border-b-0 flex items-center gap-3 cursor-pointer hover:bg-[var(--c-nav-active)] ${wasNew ? 'bg-[var(--c-tint-yellow)]' : ''}`}
                               onClick={goToSharedBudgets}
                             >
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[#1a1a1a] flex-shrink-0 bg-[#C5FFD8]">
-                                {initials(inviterName)}
+                              <div
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
+                                style={{ backgroundColor: inviterAvatarImage ? 'transparent' : inviterAvatarColor }}
+                              >
+                                {inviterAvatarImage
+                                  ? <img src={inviterAvatarImage} alt={inviterName} className="w-full h-full object-cover" />
+                                  : initials(inviterName)}
                               </div>
                               <p className="text-xs text-[var(--c-text)] flex-1 min-w-0 truncate">
                                 <span className="font-semibold">{inviterName}</span>{' '}
@@ -387,8 +405,9 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
                         if (n.kind === 'friend-accepted') {
                           const a = n.data as FriendAcceptance;
                           const acceptedName = a.displayName ?? a.username ?? 'Someone';
-                          const idx = friends.findIndex((fr) => fr.id === a.userId);
-                          const acceptedColor = AVATAR_PALETTE[(idx < 0 ? 0 : idx) % AVATAR_PALETTE.length];
+                          const acceptedFriend = friends.find((fr) => fr.id === a.userId);
+                          const acceptedAvatarColor = a.avatarColor ?? acceptedFriend?.avatarColor ?? '#C68BE1';
+                          const acceptedAvatarImage = a.avatarImage ?? acceptedFriend?.avatarImage ?? null;
                           return (
                             <li
                               key={n.id}
@@ -396,10 +415,12 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
                               onClick={() => { setBellOpen(false); navigate('/friends'); }}
                             >
                               <div
-                                className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0"
-                                style={{ backgroundColor: acceptedColor }}
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
+                                style={{ backgroundColor: acceptedAvatarImage ? 'transparent' : acceptedAvatarColor }}
                               >
-                                {initials(acceptedName)}
+                                {acceptedAvatarImage
+                                  ? <img src={acceptedAvatarImage} alt={acceptedName} className="w-full h-full object-cover" />
+                                  : initials(acceptedName)}
                               </div>
                               <p className="text-xs text-[var(--c-text)] flex-1 min-w-0 truncate">
                                 <span className="font-semibold">{acceptedName}</span>{' '}
@@ -410,8 +431,9 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
                         }
                         const c = n.data as ReceivedCheer;
                         const name = c.fromDisplayName ?? c.fromUsername ?? 'Friend';
-                        const idx = friends.findIndex((fr) => fr.id === c.fromId);
-                        const color = AVATAR_PALETTE[(idx < 0 ? 0 : idx) % AVATAR_PALETTE.length];
+                        const cheerFriend = friends.find((fr) => fr.id === c.fromId);
+                        const cheerColor = cheerFriend?.avatarColor ?? '#C68BE1';
+                        const cheerImage = cheerFriend?.avatarImage ?? null;
                         const achMsg = achievementMessage(c.achievementKey, true).toLowerCase();
                         return (
                           <li
@@ -420,10 +442,12 @@ export default function Navbar({ isDark, onThemeToggle }: NavbarProps) {
                             onClick={goToNotification}
                           >
                             <div
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0"
-                              style={{ backgroundColor: color }}
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
+                              style={{ backgroundColor: cheerImage ? 'transparent' : cheerColor }}
                             >
-                              {initials(name)}
+                              {cheerImage
+                                ? <img src={cheerImage} alt={name} className="w-full h-full object-cover" />
+                                : initials(name)}
                             </div>
                             <p className="text-xs text-[var(--c-text)] flex-1 min-w-0 truncate">
                               <span className="font-semibold">{name}</span>{' '}

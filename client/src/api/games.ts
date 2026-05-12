@@ -8,6 +8,8 @@ export interface LeaderboardEntry {
   username: string;
   score: number | null;
   isMe: boolean;
+  avatarColor: string | null;
+  avatarImage: string | null;
 }
 
 export async function submitScore(game: 'price' | 'budget', score: number): Promise<void> {

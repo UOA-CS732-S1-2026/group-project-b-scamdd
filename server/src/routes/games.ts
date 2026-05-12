@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { GameScore } from '../models/GameScore.js';
 import { Friendship } from '../models/Friendship.js';
 import { User } from '../models/User.js';
+import { UserAvatar } from '../models/UserAvatar.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
@@ -43,14 +44,22 @@ router.get('/leaderboard/:game', async (req: Request, res: Response) => {
   );
 
   const users = await User.find({ _id: { $in: allIds } }).lean();
+  const avatarDocs = await UserAvatar.find({ userId: { $in: allIds } }).lean();
+  const avatarByUserId = new Map(avatarDocs.map((a) => [a.userId, a]));
 
-  const entries = users.map((u) => ({
-    userId: String(u._id),
-    name: u.displayName || u.name || u.username || 'Unknown',
-    username: u.username ?? '',
-    score: scoreMap[String(u._id)] ?? null,
-    isMe: String(u._id) === meId,
-  }));
+  const entries = users.map((u) => {
+    const uid = String(u._id);
+    const av = avatarByUserId.get(uid);
+    return {
+      userId: uid,
+      name: u.displayName || u.name || u.username || 'Unknown',
+      username: u.username ?? '',
+      score: scoreMap[uid] ?? null,
+      isMe: uid === meId,
+      avatarColor: av?.avatarColor ?? null,
+      avatarImage: av?.avatarImage ?? null,
+    };
+  });
 
   entries.sort((a, b) => {
     if (a.score !== null && b.score !== null) return b.score - a.score;

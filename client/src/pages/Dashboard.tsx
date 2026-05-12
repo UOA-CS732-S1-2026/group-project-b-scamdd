@@ -18,6 +18,7 @@ import Highlight from '../components/Highlight';
 import { useTheme } from '../hooks/useTheme';
 import { useCurrency } from '../context/CurrencyContext';
 import { useCategories } from '../hooks/useCategories';
+import { useProfileAvatar } from '../context/ProfileContext';
 import type { Transaction } from '../types/transaction';
 import type { Budget } from '../types/budget';
 import type { Friend } from '../types/friend';
@@ -186,6 +187,7 @@ export default function Dashboard() {
   const { isDark, toggle } = useTheme();
   const { fmt, fmtY } = useCurrency();
   const { getCategoryColor } = useCategories();
+  const { avatarColor: myAvatarColor, avatarImage: myAvatarImage } = useProfileAvatar();
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [rawBudgets, setRawBudgets] = useState<Budget[]>([]);
@@ -483,13 +485,14 @@ export default function Dashboard() {
   const myStreak = profile?.streak ?? 0;
   const AVATAR_PALETTE = ['#C68BE1','#1D9E75','#D85A30','#3B82F6','#F59E0B','#EC4899','#8B5CF6'];
   const leaderboard = [
-    { id: 'me', name: profile?.displayName || profile?.name || 'You', streak: myStreak, isMe: true, color: 'var(--c-accent)' },
+    { id: 'me', name: profile?.displayName || profile?.name || 'You', streak: myStreak, isMe: true, color: myAvatarColor, image: myAvatarImage },
     ...friends.map((f, i) => ({
       id: f.id,
       name: f.displayName || f.username || 'Friend',
       streak: f.streak,
       isMe: false,
-      color: AVATAR_PALETTE[i % AVATAR_PALETTE.length],
+      color: f.avatarColor ?? AVATAR_PALETTE[i % AVATAR_PALETTE.length],
+      image: f.avatarImage ?? null,
     })),
   ].sort((a, b) => b.streak - a.streak);
 
@@ -750,7 +753,7 @@ export default function Dashboard() {
 
       // ── Friends (streaks + achievements) ──
       case 'leaderboard': {
-        type AchRow = { id: string; key: string; toUserId: string; color: string; initials: string; name: string; isMe: boolean; message: string; earnedAt: string };
+        type AchRow = { id: string; key: string; toUserId: string; color: string; image: string | null; initials: string; name: string; isMe: boolean; message: string; earnedAt: string };
         const achRows: AchRow[] = [];
         for (const a of myAchievements) {
           const meName = profile?.displayName || profile?.name || 'You';
@@ -758,7 +761,8 @@ export default function Dashboard() {
             id: `me-${a.key}`,
             key: a.key,
             toUserId: profile?.id ?? '',
-            color: '#C68BE1',
+            color: myAvatarColor,
+            image: myAvatarImage,
             initials: getInitials(meName),
             name: 'You',
             isMe: true,
@@ -774,7 +778,8 @@ export default function Dashboard() {
               id: `${f.id}-${a.key}`,
               key: a.key,
               toUserId: f.id,
-              color: AVATAR_PALETTE[i % AVATAR_PALETTE.length],
+              color: f.avatarColor ?? AVATAR_PALETTE[i % AVATAR_PALETTE.length],
+              image: f.avatarImage ?? null,
               initials: getInitials(fname),
               name: fname,
               isMe: false,
@@ -820,9 +825,13 @@ export default function Dashboard() {
                       className="w-14 flex-shrink-0 flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-xl border border-[rgba(109,109,109,0.4)] bg-white"
                     >
                       <span className="text-[9px] font-bold text-[var(--c-tint-text-2)] leading-tight">#{idx + 1}</span>
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-[var(--c-tint-text)] border-2 border-white"
-                        style={{ backgroundColor: entry.isMe ? '#C68BE1' : entry.color }}>
-                        {entry.isMe ? 'You' : getInitials(entry.name)}
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-[var(--c-tint-text)] border-2 border-white overflow-hidden"
+                        style={{ backgroundColor: entry.image ? 'transparent' : entry.color }}
+                      >
+                        {entry.image
+                          ? <img src={entry.image} alt={entry.name} className="w-full h-full object-cover" />
+                          : (entry.isMe ? 'You' : getInitials(entry.name))}
                       </div>
                       <span className="text-[11px] font-semibold text-[var(--c-tint-text)] inline-flex items-center gap-0.5 leading-tight">
                         <span className="text-[#F97316]">{FireIcon}</span>
@@ -839,9 +848,13 @@ export default function Dashboard() {
                         key={a.id}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-2xl border border-[rgba(109,109,109,0.4)] bg-white"
                       >
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] border-2 border-white flex-shrink-0"
-                          style={{ backgroundColor: a.color }}>
-                          {a.initials}
+                        <div
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] border-2 border-white flex-shrink-0 overflow-hidden"
+                          style={{ backgroundColor: a.image ? 'transparent' : a.color }}
+                        >
+                          {a.image
+                            ? <img src={a.image} alt={a.name} className="w-full h-full object-cover" />
+                            : a.initials}
                         </div>
                         <div className="text-xs text-[var(--c-tint-text)] truncate flex-1 min-w-0">
                           {a.isMe ? a.message : (<><span className="font-semibold">{a.name}</span> {a.message}</>)}
