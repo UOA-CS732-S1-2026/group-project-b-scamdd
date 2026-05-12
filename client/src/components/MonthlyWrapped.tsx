@@ -21,6 +21,8 @@ export default function MonthlyWrapped({
       const fresh = await regenerateWrapped();
       setSelected(0);
       onRegenerate(fresh);
+    } catch (err) {
+      console.error('Regenerate failed:', err);
     } finally {
       setRegenerating(false);
     }
