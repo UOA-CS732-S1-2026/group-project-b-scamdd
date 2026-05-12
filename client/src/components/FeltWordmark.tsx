@@ -36,7 +36,7 @@ export default function FeltWordmark({
           draggable={false}
         />
       )}
-      {showText && <span>felt</span>}
+      {showText && <span className="hidden sm:inline">felt</span>}
     </span>
   );
 }

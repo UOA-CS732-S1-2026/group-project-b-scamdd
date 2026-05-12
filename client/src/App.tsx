@@ -242,18 +242,18 @@ const AVATAR_DOTS = ['#C68BE1', '#C5FFD8', '#FDFBD4', '#FFBDC2'];
 function Home() {
   return (
     <MarketingLayout>
-      <section className="max-w-5xl mx-auto px-6 pt-4 pb-6">
-        <div className="grid md:grid-cols-[3fr_1fr] gap-8 items-center">
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-6">
+        <div className="grid md:grid-cols-[3fr_1fr] gap-6 sm:gap-8 items-center">
           <div className="text-left">
-            <h1 className="text-4xl md:text-5xl font-bold text-[var(--c-text)] leading-[1.1] tracking-tight">
-              <span className="block whitespace-nowrap">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[var(--c-text)] leading-[1.1] tracking-tight">
+              <span className="block sm:whitespace-nowrap">
                 The finance website that asks
               </span>
               <span className="block">
                 <Highlight className="px-3 py-1">how you felt</Highlight> about it.
               </span>
             </h1>
-            <p className="text-lg text-[var(--c-text-2)] max-w-xl leading-relaxed mt-6">
+            <p className="text-base sm:text-lg text-[var(--c-text-2)] max-w-xl leading-relaxed mt-6">
               <span className="font-bold text-[var(--c-text)]">felt</span> is a finance
               tracker that pairs every purchase with a mood. After a month, you stop
               guessing where your money goes, and start seeing where it actually feels
@@ -281,21 +281,21 @@ function Home() {
             <img
               src="/felt-logo.svg"
               alt="felt"
-              className="w-56 md:w-[320px] max-w-none h-auto select-none"
+              className="w-40 sm:w-56 md:w-[320px] max-w-full h-auto select-none"
               draggable={false}
             />
           </div>
         </div>
       </section>
 
-      <section className="max-w-5xl mx-auto px-6 mt-6 grid gap-4 md:grid-cols-2">
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 grid gap-4 md:grid-cols-2">
         <MoodPreviewCard />
         <CategoryPreviewCard />
       </section>
 
-      <section className="max-w-5xl mx-auto px-6 mt-12">
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 mt-12">
         <h2
-          className="text-3xl md:text-4xl font-bold text-[var(--c-text)] tracking-tight"
+          className="text-2xl sm:text-3xl md:text-4xl font-bold text-[var(--c-text)] tracking-tight"
           style={{ marginBottom: '20px' }}
         >
           How it works

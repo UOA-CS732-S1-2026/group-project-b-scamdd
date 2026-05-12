@@ -227,23 +227,23 @@ export default function Friends() {
     <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
 
-      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
-        <div className="flex justify-between items-start gap-4 mb-2">
-          <h1 className="text-4xl font-bold" style={{ margin: 0 }}>
+      <main className="flex-1 max-w-5xl mx-auto w-full px-3 sm:px-4 lg:px-6 py-6 sm:py-8">
+        <div className="flex justify-between items-start gap-3 flex-wrap mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold" style={{ margin: 0 }}>
             <Highlight className="px-3 py-1">Friends</Highlight>
           </h1>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => setShowSearchModal(true)}
-              className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity cursor-pointer"
+              className="px-4 sm:px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity cursor-pointer"
             >
               + Add a friend
             </button>
             <button
               type="button"
               onClick={() => setShowFriendsModal(true)}
-              className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-card)] text-[var(--c-text)] hover:bg-[var(--c-nav-active)] transition-colors cursor-pointer"
+              className="px-4 sm:px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-card)] text-[var(--c-text)] hover:bg-[var(--c-nav-active)] transition-colors cursor-pointer"
             >
               Your friends
             </button>
@@ -475,7 +475,7 @@ export default function Friends() {
           onClick={(e) => { if (e.target === e.currentTarget) { setShowSearchModal(false); setSearchResults([]); setSearchError(''); } }}
         >
           <div className="w-full max-w-lg bg-[var(--c-card)] border border-[rgba(109,109,109,0.8)] rounded-3xl flex flex-col max-h-[90vh]">
-            <div className="px-7 pt-6 pb-3 flex justify-between items-start flex-shrink-0">
+            <div className="px-5 sm:px-7 pt-5 sm:pt-6 pb-3 flex justify-between items-start flex-shrink-0">
               <div>
                 <h2 className="text-2xl font-bold text-[var(--c-text)]">Add a friend</h2>
                 <p className="text-sm text-[var(--c-text-2)] mt-1">Search by display name or @username.</p>
@@ -489,7 +489,7 @@ export default function Friends() {
                 ×
               </button>
             </div>
-            <div className="overflow-y-auto px-7 pb-7">
+            <div className="overflow-y-auto px-5 sm:px-7 pb-6 sm:pb-7">
               <form onSubmit={handleSearch} autoComplete="off" className="relative">
                 <input
                   type="text"
@@ -551,7 +551,7 @@ export default function Friends() {
           onClick={(e) => { if (e.target === e.currentTarget) setShowFriendsModal(false); }}
         >
           <div className="w-full max-w-lg bg-[var(--c-card)] border border-[rgba(109,109,109,0.8)] rounded-3xl flex flex-col max-h-[90vh]">
-            <div className="px-7 pt-6 pb-3 flex justify-between items-start flex-shrink-0">
+            <div className="px-5 sm:px-7 pt-5 sm:pt-6 pb-3 flex justify-between items-start flex-shrink-0">
               <div>
                 <h2 className="text-2xl font-bold text-[var(--c-text)]">Your friends</h2>
                 <p className="text-sm text-[var(--c-text-2)] mt-1">{friends.length} friend{friends.length === 1 ? '' : 's'}</p>
@@ -565,7 +565,7 @@ export default function Friends() {
                 ×
               </button>
             </div>
-            <div className="overflow-y-auto px-7 pb-7">
+            <div className="overflow-y-auto px-5 sm:px-7 pb-6 sm:pb-7">
               {friends.length === 0 ? (
                 <p className="text-sm text-[var(--c-text-2)] text-center py-8">
                   No friends yet. Use “Add a friend” to send a request.
@@ -613,7 +613,7 @@ export default function Friends() {
           onClick={(e) => { if (e.target === e.currentTarget) setLikedByModal(null); }}
         >
           <div className="w-full max-w-sm bg-[var(--c-card)] border border-[rgba(109,109,109,0.8)] rounded-3xl">
-            <div className="px-7 pt-6 pb-3 flex justify-between items-start">
+            <div className="px-5 sm:px-7 pt-5 sm:pt-6 pb-3 flex justify-between items-start">
               <div>
                 <h2 className="text-xl font-bold text-[var(--c-text)]">Liked by</h2>
                 <p className="text-xs text-[var(--c-text-2)] mt-1">Friends who cheered your achievement.</p>
@@ -627,7 +627,7 @@ export default function Friends() {
                 ×
               </button>
             </div>
-            <div className="px-7 pb-7">
+            <div className="px-5 sm:px-7 pb-6 sm:pb-7">
               {likedByModal.loading ? (
                 <p className="text-sm text-[var(--c-text-2)] text-center py-6">Loading…</p>
               ) : likedByModal.users.length === 0 ? (

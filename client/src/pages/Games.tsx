@@ -123,7 +123,7 @@ function setHs(key: string, v: number) { if (v > getHs(key)) localStorage.setIte
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-[var(--c-card)] border border-[var(--c-border)] rounded-2xl p-6 ${className}`}>
+    <div className={`bg-[var(--c-card)] border border-[var(--c-border)] rounded-2xl p-4 sm:p-6 ${className}`}>
       {children}
     </div>
   );
@@ -345,8 +345,8 @@ function PriceGuesser({ onScore }: { onScore: (score: number) => void }) {
 
       {state === 'revealed' && (
         <div className="flex flex-col gap-3">
-          <div className="bg-[var(--c-surface)] rounded-xl p-4 flex items-center justify-between">
-            <div className="text-sm text-[var(--c-text-2)]">
+          <div className="bg-[var(--c-surface)] rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap">
+            <div className="text-sm text-[var(--c-text-2)] min-w-0">
               <div>Your guess: <span className="text-[var(--c-text)] font-semibold">{fmt(parseFloat(guess))}</span></div>
               <div className="mt-1">Actual price: <span className="text-[var(--c-text)] font-semibold">{fmt(currentItem.price)}</span></div>
             </div>
@@ -565,18 +565,18 @@ export default function Games() {
   return (
     <div className="min-h-screen flex flex-col bg-[var(--c-bg)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={userName} />
-      <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-8 flex flex-col gap-6">
+      <main className="flex-1 max-w-3xl mx-auto w-full px-3 sm:px-4 lg:px-6 py-6 sm:py-8 flex flex-col gap-6">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold text-[var(--c-text)]">Games</h1>
           <p className="text-sm text-[var(--c-text-2)]">Test your money knowledge with quick mini-games.</p>
         </div>
 
-        <div className="flex gap-1 bg-[var(--c-surface)] p-1 rounded-xl w-fit">
+        <div className="flex gap-1 bg-[var(--c-surface)] p-1 rounded-xl w-full sm:w-fit overflow-x-auto">
           {([['price', '🎯 Price Guesser'], ['budget', '💰 Budget Challenge']] as [GameTab, string][]).map(([id, label]) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
                 tab === id
                   ? 'bg-[var(--c-card)] text-[var(--c-text)] shadow-sm border border-[var(--c-border)]'
                   : 'text-[var(--c-text-2)] hover:text-[var(--c-text)]'

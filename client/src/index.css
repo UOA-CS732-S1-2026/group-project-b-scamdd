@@ -109,6 +109,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 body {
   margin: 0;
+  background: var(--c-bg);
+}
+
+@media (max-width: 639px) {
+  body {
+    padding-bottom: 4.5rem;
+  }
 }
 
 @layer base {

@@ -102,9 +102,9 @@ export default function SharedBudgetForm({ budget, onSuccess, onCancel }: Props)
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="w-full max-w-md bg-[var(--c-card)] border border-[rgba(109,109,109,0.8)] rounded-3xl flex flex-col max-h-[92vh]">
-        <div className="px-7 pt-6 pb-3 flex justify-between items-start flex-shrink-0">
+        <div className="px-5 sm:px-7 pt-5 sm:pt-6 pb-3 flex justify-between items-start flex-shrink-0">
           <div>
-            <h2 className="text-2xl font-bold text-[var(--c-text)]">
+            <h2 className="text-xl sm:text-2xl font-bold text-[var(--c-text)]">
               {isEdit ? 'Edit shared budget' : 'New shared budget'}
             </h2>
             <p className="text-sm text-[var(--c-text-2)] mt-1">
@@ -121,7 +121,7 @@ export default function SharedBudgetForm({ budget, onSuccess, onCancel }: Props)
           </button>
         </div>
 
-        <form className="flex flex-col gap-5 overflow-y-auto px-7 pb-7" onSubmit={handleSubmit}>
+        <form className="flex flex-col gap-5 overflow-y-auto px-5 sm:px-7 pb-6 sm:pb-7" onSubmit={handleSubmit}>
           {/* Name */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-[var(--c-text)]">Label (optional)</label>

@@ -62,8 +62,8 @@ export default function GoalForm({ goal, onSuccess, onCancel }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-md bg-[var(--bg)] border border-[var(--border)] rounded-xl p-8 shadow-[var(--shadow)]">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-4">
+      <div className="w-full max-w-md max-h-[92vh] overflow-y-auto bg-[var(--bg)] border border-[var(--border)] rounded-xl p-6 sm:p-8 shadow-[var(--shadow)]">
         <h2 className="text-xl font-bold text-[var(--text-h)] mb-6 text-center">
           {goal ? 'Edit goal' : 'New goal'}
         </h2>

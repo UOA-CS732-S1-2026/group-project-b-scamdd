@@ -121,14 +121,14 @@ export default function ProfileSetup() {
   return (
     <div className="h-screen overflow-hidden bg-[var(--c-bg)] flex flex-col">
       <header className="z-40 backdrop-blur bg-[color-mix(in_srgb,var(--c-bg)_85%,transparent)] border-b border-[var(--c-border)]">
-        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between min-h-[32px]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between min-h-[32px]">
           <Link to="/" className="flex items-center cursor-pointer hover:opacity-75 transition-opacity">
             <FeltWordmark size="md" />
           </Link>
         </div>
       </header>
-      <div className="flex-1 min-h-0 flex items-start justify-center px-6 pt-6 pb-4">
-        <div className="w-full max-w-md max-h-full overflow-y-auto bg-[var(--c-card)] border border-[var(--c-border)] rounded-3xl pt-4 px-7 pb-6 shadow-sm">
+      <div className="flex-1 min-h-0 flex items-start justify-center px-3 sm:px-6 pt-4 sm:pt-6 pb-4">
+        <div className="w-full max-w-md max-h-full overflow-y-auto bg-[var(--c-card)] border border-[var(--c-border)] rounded-3xl pt-4 px-5 sm:px-7 pb-6 shadow-sm">
         <h1 className="text-2xl font-bold text-[var(--c-text)] text-center mb-1">
           Finish setting up your profile
         </h1>

@@ -4,12 +4,12 @@ import Highlight from '../components/Highlight';
 export default function AboutPage() {
   return (
     <MarketingLayout>
-      <article className="max-w-5xl mx-auto px-6 pt-6 pb-2">
-        <h1 className="text-4xl md:text-5xl font-bold text-[var(--c-text)] tracking-tight mb-6">
+      <article className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 pb-2">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[var(--c-text)] tracking-tight mb-6">
           About <Highlight>felt</Highlight>
         </h1>
         <p
-          className="text-lg text-[var(--c-text-2)] leading-relaxed"
+          className="text-base sm:text-lg text-[var(--c-text-2)] leading-relaxed"
           style={{ marginBottom: '36px' }}
         >
           We&apos;re building a different kind of finance tracker — one that pairs every

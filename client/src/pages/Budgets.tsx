@@ -238,22 +238,22 @@ export default function Budgets() {
     <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
 
-      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-3 sm:px-4 lg:px-6 py-6 sm:py-8">
         {/* ── Header ── */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold m-0 text-[var(--c-text)]">
+        <div className="flex justify-between items-center gap-3 flex-wrap mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold m-0 text-[var(--c-text)]">
             <Highlight className="px-3 py-1">Budgets</Highlight>
           </h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => { setEditingShared(undefined); setShowSharedForm(true); }}
-              className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-card)] text-[var(--c-text)] hover:bg-[var(--c-nav-active)] transition-colors"
+              className="px-4 sm:px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-card)] text-[var(--c-text)] hover:bg-[var(--c-nav-active)] transition-colors"
             >
               + Shared budget
             </button>
             <button
               onClick={() => { setEditingBudget(undefined); setShowForm(true); }}
-              className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity"
+              className="px-4 sm:px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity"
             >
               + Add a budget
             </button>
@@ -273,14 +273,14 @@ export default function Budgets() {
         ) : (
           <>
             {/* ── Summary strip ── */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="p-5 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-pink)]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+              <div className="p-4 sm:p-5 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-pink)]">
                 <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">
                   {filter === 'all' ? 'Total allocated' : `${FILTER_LABELS[filter]} total`}
                 </div>
                 <div className="text-2xl font-bold text-[var(--c-tint-text)]">{fmt(totalAllocated)}</div>
               </div>
-              <div className="p-5 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-green)]">
+              <div className="p-4 sm:p-5 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-green)]">
                 <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">Spent so far</div>
                 <div className="text-2xl font-bold text-[var(--c-tint-text)]">{fmt(totalSpent)}</div>
                 {totalAllocated > 0 && (
@@ -289,7 +289,7 @@ export default function Budgets() {
                   </div>
                 )}
               </div>
-              <div className="p-5 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-yellow)]">
+              <div className="p-4 sm:p-5 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-yellow)]">
                 <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">Remaining</div>
                 <div className="text-2xl font-bold text-[var(--c-tint-text)]">
                   {fmt(Math.max(0, totalAllocated - totalSpent))}
@@ -303,7 +303,7 @@ export default function Budgets() {
             </div>
 
             {/* ── Period filter tabs ── */}
-            <div className="flex items-center gap-2 mb-6">
+            <div className="flex items-center gap-2 mb-6 flex-wrap">
               {ALL_PERIODS.map((p) => {
                 const count = p === 'all' ? budgets.length : budgets.filter((b) => (b.period ?? 'monthly') === p).length;
                 if (p !== 'all' && count === 0) return null;
@@ -362,7 +362,7 @@ export default function Budgets() {
 
         {/* ── Shared budgets section ── */}
         <section id="shared" className="mt-12">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
             <h2 className="text-2xl font-bold text-[var(--c-text)]">Shared budgets</h2>
             {(sharedBudgets.length > 0 || sharedInvites.length > 0) && (
               <button

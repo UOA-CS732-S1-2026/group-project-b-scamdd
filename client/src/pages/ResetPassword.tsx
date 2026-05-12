@@ -34,7 +34,7 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-screen bg-[var(--c-bg)] flex flex-col">
-      <header className="flex items-center justify-between px-8 py-5">
+      <header className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5">
         <button
           onClick={() => navigate('/')}
           className="flex items-center gap-2 font-bold text-lg text-[var(--c-text)] hover:opacity-75 transition-opacity"
@@ -60,8 +60,8 @@ export default function ResetPassword() {
         </button>
       </header>
 
-      <div className="flex-1 flex items-center justify-center px-6 pb-12">
-        <div className="w-full max-w-sm bg-[var(--c-card)] border border-[var(--c-border)] rounded-3xl p-8 shadow-sm">
+      <div className="flex-1 flex items-center justify-center px-3 sm:px-6 pb-12">
+        <div className="w-full max-w-sm bg-[var(--c-card)] border border-[var(--c-border)] rounded-3xl p-6 sm:p-8 shadow-sm">
 
           {!token ? (
             <>
