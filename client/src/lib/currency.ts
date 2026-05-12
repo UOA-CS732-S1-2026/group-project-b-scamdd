@@ -28,6 +28,11 @@ export function convertFromNZD(amount: number, currency: string): number {
   return amount * (FROM_NZD[currency] ?? 1);
 }
 
+/** Convert an amount in a given currency back to NZD for storage. */
+export function convertToNZD(amount: number, currency: string): number {
+  return amount / (FROM_NZD[currency] ?? 1);
+}
+
 /** Return a currency symbol string for a given code. */
 export function symbolFor(currency: string): string {
   return SYMBOLS[currency] ?? '$';
