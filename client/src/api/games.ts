@@ -1,4 +1,4 @@
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+const API = (import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:4000'));
 const BASE = `${API}/api/games`;
 const opts: RequestInit = { credentials: 'include' };
 
@@ -8,6 +8,8 @@ export interface LeaderboardEntry {
   username: string;
   score: number | null;
   isMe: boolean;
+  avatarColor: string | null;
+  avatarImage: string | null;
 }
 
 export async function submitScore(game: 'price' | 'budget', score: number): Promise<void> {

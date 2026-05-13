@@ -16,7 +16,10 @@ const transporter = process.env.SMTP_HOST
 
 export const auth = betterAuth({
   database: mongodbAdapter(client.db()),
-  trustedOrigins: [process.env.CLIENT_URL ?? 'http://localhost:5173'],
+  trustedOrigins: [
+    process.env.CLIENT_URL ?? 'http://localhost:5173',
+    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+  ],
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, token }) => {
@@ -44,10 +47,13 @@ export const auth = betterAuth({
   },
   user: {
     additionalFields: {
-      username: { type: 'string', required: false, input: false },
-      displayName: { type: 'string', required: false, input: false },
-      bio: { type: 'string', required: false, input: false },
-      currency: { type: 'string', required: false, defaultValue: 'NZD', input: false },
+      username:        { type: 'string',  required: false, input: false },
+      displayName:     { type: 'string',  required: false, input: false },
+      bio:             { type: 'string',  required: false, input: false },
+      currency:        { type: 'string',  required: false, defaultValue: 'NZD', input: false },
+      phone:           { type: 'string',  required: false, input: false },
+      avatarColor:     { type: 'string',  required: false, input: false },
+      avatarImage:     { type: 'string',  required: false, input: false },
       profileComplete: { type: 'boolean', required: false, defaultValue: false, input: false },
     },
   },

@@ -12,6 +12,8 @@ export interface IncomingRequest {
   fromId: string;
   username: string | null;
   displayName: string | null;
+  avatarColor: string | null;
+  avatarImage: string | null;
   createdAt: string;
 }
 
@@ -20,12 +22,24 @@ export interface OutgoingRequest {
   toId: string;
   username: string | null;
   displayName: string | null;
+  avatarColor: string | null;
+  avatarImage: string | null;
   createdAt: string;
 }
 
 export interface Requests {
   incoming: IncomingRequest[];
   outgoing: OutgoingRequest[];
+}
+
+export interface FriendAcceptance {
+  id: string;
+  userId: string;
+  username: string | null;
+  displayName: string | null;
+  avatarColor: string | null;
+  avatarImage: string | null;
+  acceptedAt: string;
 }
 
 export interface FriendGoal {
@@ -36,11 +50,19 @@ export interface FriendGoal {
   deadline: string;
 }
 
+import type { BudgetPeriod } from './budget';
+
 export interface FriendBudget {
   id: string;
   category: string;
+  period: BudgetPeriod;
   monthlyLimit: number;
   spent: number;
+}
+
+export interface FriendAchievement {
+  key: string;
+  earnedAt: string;
 }
 
 export interface Friend {
@@ -49,7 +71,10 @@ export interface Friend {
   username: string | null;
   displayName: string | null;
   bio: string | null;
+  avatarColor: string | null;
+  avatarImage: string | null;
   streak: number;
+  achievements: FriendAchievement[];
   goals: FriendGoal[];
   budgets: FriendBudget[];
 }

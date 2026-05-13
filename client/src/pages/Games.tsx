@@ -1,7 +1,9 @@
 ﻿import { useState, useCallback, useEffect } from 'react';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { useSession } from '../lib/auth-client';
 import { useTheme } from '../hooks/useTheme';
+import { useCurrency } from '../context/CurrencyContext';
 import { submitScore, getLeaderboard, type LeaderboardEntry } from '../api/games';
 
 // ── Item database (NZD prices, specific brands/sizes/stores) ──────────────────
@@ -13,83 +15,83 @@ interface Item {
 }
 
 const ITEMS: Item[] = [
-  // Supermarket - Grocery
-  { name: 'Anchor Blue Cap Milk 2L (Countdown)',                     category: 'Supermarket', price: 3.99,  emoji: '🥛' },
-  { name: 'Mainland Mild Cheddar Block 500g (New World)',            category: 'Supermarket', price: 9.49,  emoji: '🧀' },
-  { name: "Vogel's Original Mixed Grain Bread 700g (Pak'nSave)",     category: 'Supermarket', price: 5.29,  emoji: '🍞' },
-  { name: "Wattie's Baked Beans in Tomato Sauce 420g (Countdown)",   category: 'Supermarket', price: 1.99,  emoji: '🫘' },
-  { name: 'Sanitarium Weet-Bix 750g (Countdown)',                    category: 'Supermarket', price: 4.49,  emoji: '🥣' },
-  { name: 'Pams Free Range Eggs 12pk (Countdown)',                   category: 'Supermarket', price: 7.99,  emoji: '🥚' },
-  { name: 'Tasti Peanut Butter Smooth 380g (New World)',             category: 'Supermarket', price: 4.29,  emoji: '🥜' },
-  { name: 'Marmite Original Spread 400g (New World)',                category: 'Supermarket', price: 6.99,  emoji: '🫙' },
-  { name: "Sunrice Medium Grain White Rice 5kg (Pak'nSave)",         category: 'Supermarket', price: 10.99, emoji: '🍚' },
-  { name: 'Macro Organic Chicken Breast 500g (Countdown)',           category: 'Supermarket', price: 11.99, emoji: '🍗' },
-  { name: 'Lewis Road Creamery Chocolate Milk 1L (New World)',       category: 'Supermarket', price: 5.99,  emoji: '🍫' },
-  { name: "Whittaker's Dark Ghana Chocolate 250g (Countdown)",       category: 'Supermarket', price: 5.99,  emoji: '🍫' },
-  { name: 'Tip Top Boysenberry Ripple Ice Cream 2L (Countdown)',     category: 'Supermarket', price: 7.99,  emoji: '🍦' },
-  { name: "Barker's Boysenberry Jam 370g (Countdown)",               category: 'Supermarket', price: 5.49,  emoji: '🫙' },
-  { name: 'Proper Crisps Marlborough Sea Salt 140g (New World)',     category: 'Supermarket', price: 5.99,  emoji: '🧂' },
-  { name: "Tegel Chicken Drumsticks 1kg (Pak'nSave)",                category: 'Supermarket', price: 8.99,  emoji: '🍗' },
-  { name: "Gregg's Espresso Ground Coffee 200g (Countdown)",         category: 'Supermarket', price: 8.99,  emoji: '☕' },
-  { name: 'Healtheries Peppermint Tea 40 bags (New World)',          category: 'Supermarket', price: 4.49,  emoji: '🍵' },
-  { name: 'Homebrand White Sandwich Bread 700g (Countdown)',         category: 'Supermarket', price: 1.79,  emoji: '🍞' },
-  { name: "Countdown Salmon Portions 300g (Pak'nSave)",              category: 'Supermarket', price: 10.99, emoji: '🐟' },
-  { name: "Nescafé Gold Blend Instant Coffee 100g (Countdown)",      category: 'Supermarket', price: 8.49,  emoji: '☕' },
-  { name: 'Primo Kransky Sausages 4pk (New World)',                  category: 'Supermarket', price: 6.99,  emoji: '🌭' },
-  { name: "Pam's Frozen Garden Peas 1kg (Countdown)",                category: 'Supermarket', price: 3.49,  emoji: '🫛' },
-  { name: "Charlie's Apple & Feijoa Juice 1L (New World)",           category: 'Supermarket', price: 4.99,  emoji: '🍎' },
+  // Supermarket
+  { name: "Anchor Blue Cap Milk 2L (Pak'nSave)",                            category: 'Supermarket', price: 5.50,  emoji: '🥛' },
+  { name: 'Mainland Mild Cheddar Block 500g (Countdown)',                   category: 'Supermarket', price: 10.50, emoji: '🧀' },
+  { name: "Vogel's Original Mixed Grain Bread 750g (Pak'nSave)",            category: 'Supermarket', price: 5.08,  emoji: '🍞' },
+  { name: "Wattie's Baked Beans in Tomato Sauce 420g (Countdown)",          category: 'Supermarket', price: 2.63,  emoji: '🫘' },
+  { name: 'Sanitarium Weet-Bix Cereal 750g (Countdown)',                    category: 'Supermarket', price: 6.89,  emoji: '🥣' },
+  { name: 'Woodland Eggs Free Range Size 6 18k (Countdown)',                category: 'Supermarket', price: 14.75, emoji: '🥚' },
+  { name: 'Pics Peanut Butter Smooth 380g (Countdown)',                     category: 'Supermarket', price: 7.49,  emoji: '🥜' },
+  { name: 'Sanitarium Marmite Yeast Spread 250g (Countdown)',               category: 'Supermarket', price: 7.99,  emoji: '🫙' },
+  { name: "Sunrice White Rice Calrose Medium Grain 5kg (Countdown)",        category: 'Supermarket', price: 15.99, emoji: '🍚' },
+  { name: 'Macro Free Range NZ Chicken Breast Min Order 1kg (Countdown)',   category: 'Supermarket', price: 27.30, emoji: '🍗' },
+  { name: 'Lewis Road Creamery Chocolate Milk 1.5L (New World)',            category: 'Supermarket', price: 13.39, emoji: '🍫' },
+  { name: "Whittaker's Dark Ghana Chocolate 250g (Countdown)",              category: 'Supermarket', price: 8.49,  emoji: '🍫' },
+  { name: 'Tip Top Boysenberry Ripple Ice Cream 2L (Countdown)',            category: 'Supermarket', price: 9.00,  emoji: '🍦' },
+  { name: "Barkers Spreadable Fruit Wild Berry 260g (Countdown)",           category: 'Supermarket', price: 6.50,  emoji: '🫙' },
+  { name: 'Proper Crisps Marlborough Sea Salt 150g (New World)',            category: 'Supermarket', price: 5.89,  emoji: '🧂' },
+  { name: "Tegel Chicken Drumsticks 5kg (New World)",                       category: 'Supermarket', price: 31.29, emoji: '🍗' },
+  { name: "Boss Iced Coffee Latte (Countdown)",                             category: 'Supermarket', price: 3.95,  emoji: '☕' },
+  { name: 'Healtheries Peppermint Tea 40 bags (New World)',                 category: 'Supermarket', price: 6.39,  emoji: '🍵' },
+  { name: 'Tip Top Super Soft White Sandwich Bread 700g (Countdown)',       category: 'Supermarket', price: 4.39,  emoji: '🍞' },
+  { name: "Countdown Salmon Portions 2 x 130g (Countdown)",                 category: 'Supermarket', price: 14.00, emoji: '🐟' },
+  { name: "Nescafé Gold Blend Instant Coffee 100g (Countdown)",             category: 'Supermarket', price: 14.49, emoji: '☕' },
+  { name: 'Beehive Mini Cheese Kransky Sausages 800g (New World)',          category: 'Supermarket', price: 13.49, emoji: '🌭' },
+  { name: "Wattie's Frozen Garden Peas 1kg (Countdown)",                    category: 'Supermarket', price: 6.00,  emoji: '🫛' },
+  { name: "Keri Orange Juice 1L (New World)",                               category: 'Supermarket', price: 3.49,  emoji: '🍎' },
   // Fast food
-  { name: "McDonald's Big Mac (NZ)",                                 category: 'Fast Food',   price: 8.60,  emoji: '🍔' },
-  { name: 'KFC 3pc Box Meal (NZ)',                                   category: 'Fast Food',   price: 16.49, emoji: '🍗' },
-  { name: "Domino's Traditional Value Pizza Large (pickup)",         category: 'Fast Food',   price: 9.99,  emoji: '🍕' },
-  { name: 'Subway 6-inch Italian BMT',                               category: 'Fast Food',   price: 9.90,  emoji: '🥖' },
-  { name: 'Burger King Whopper Meal (NZ)',                           category: 'Fast Food',   price: 15.49, emoji: '🍔' },
-  { name: "Hell's Pizza Classic Meltdown 11-inch (pickup)",          category: 'Fast Food',   price: 19.00, emoji: '🍕' },
-  { name: "Wendy's Dave's Single Burger (NZ)",                       category: 'Fast Food',   price: 10.99, emoji: '🍔' },
-  { name: "Carl's Jr. Double Famous Star (NZ)",                      category: 'Fast Food',   price: 13.99, emoji: '🍔' },
-  { name: "Taco Bell Crunchy Taco Supreme (NZ)",                     category: 'Fast Food',   price: 5.99,  emoji: '🌮' },
+  { name: "McDonald's Big Mac (NZ)",                                        category: 'Fast Food',   price: 11.70, emoji: '🍔' },
+  { name: 'KFC 3pc Quater Pack (NZ)',                                       category: 'Fast Food',   price: 18.49, emoji: '🍗' },
+  { name: "Pepperoni Pizza (NZ)",                                           category: 'Fast Food',   price: 7.49,  emoji: '🍕' },
+  { name: 'Subway 6-inch Italian Meatball (NZ)',                            category: 'Fast Food',   price: 9.80,  emoji: '🥖' },
+  { name: 'Burger King Whopper Large Meal (NZ)',                            category: 'Fast Food',   price: 17.75, emoji: '🍔' },
+  { name: "Hell's Pizza Lust Double Size (NZ)",                             category: 'Fast Food',   price: 23.50, emoji: '🍕' },
+  { name: "Wendy's Baconator Single Burger (NZ)",                           category: 'Fast Food',   price: 13.10, emoji: '🍔' },
+  { name: "Burger Fuel Ford Freakout (NZ)",                                 category: 'Fast Food',   price: 16.50, emoji: '🍔' },
+  { name: "Taco Bell Crunchwrap Supreme Combo (NZ)",                        category: 'Fast Food',   price: 7.50,  emoji: '🌮' },
   // Café
-  { name: 'Flat White (standard NZ café)',                           category: 'Café',        price: 5.50,  emoji: '☕' },
-  { name: 'Gong Cha Milk Tea Large (NZ)',                            category: 'Café',        price: 8.50,  emoji: '🧋' },
-  { name: 'Muffin Break Large Blueberry Muffin',                     category: 'Café',        price: 5.00,  emoji: '🧁' },
-  { name: 'Starbucks Caramel Macchiato Tall (NZ)',                   category: 'Café',        price: 7.50,  emoji: '☕' },
+  { name: 'Flat White (standard NZ café)',                                  category: 'Café',        price: 6.00,  emoji: '☕' },
+  { name: 'Gong Cha Milk Tea Large (NZ)',                                   category: 'Café',        price: 7.80,  emoji: '🧋' },
+  { name: 'Muffin Break Large Blueberry Muffin',                            category: 'Café',        price: 6.00,  emoji: '🧁' },
+  { name: 'Starbucks Caramel Macchiato Tall (NZ)',                          category: 'Café',        price: 7.50,  emoji: '☕' },
   // Clothing
-  { name: "Kmart Women's Basic T-Shirt Size M",                      category: 'Clothing',    price: 7.00,  emoji: '👕' },
-  { name: "The Warehouse Men's Slim Chino Pants (32x30)",            category: 'Clothing',    price: 35.00, emoji: '👖' },
-  { name: 'Cotton On Crew Neck Sweatshirt Adults M',                 category: 'Clothing',    price: 39.99, emoji: '👕' },
-  { name: 'Hallensteins Basic Jogger Pants (M)',                     category: 'Clothing',    price: 39.99, emoji: '🩳' },
-  { name: "Glassons Women's Linen Shorts Size S",                    category: 'Clothing',    price: 39.99, emoji: '🩳' },
-  { name: "Farmers Men's Merino Blend Socks 3pk",                    category: 'Clothing',    price: 12.99, emoji: '🧦' },
-  { name: "Postie Girls' School Uniform Blouse Size 8",              category: 'Clothing',    price: 14.99, emoji: '👚' },
-  { name: "Hannahs Women's Ballet Flat Size 7",                      category: 'Clothing',    price: 49.99, emoji: '👡' },
+  { name: "Kmart Women's Basic T-Shirt Size M",                             category: 'Clothing',    price: 8.00,  emoji: '👕' },
+  { name: "The Warehouse Men's Slim Chino Pants (32x30)",                   category: 'Clothing',    price: 40.00, emoji: '👖' },
+  { name: 'Cotton On Crew Neck Sweatshirt Adults M',                        category: 'Clothing',    price: 44.99, emoji: '👕' },
+  { name: 'Hallensteins Basic Jogger Pants (M)',                            category: 'Clothing',    price: 44.99, emoji: '🩳' },
+  { name: "Glassons Women's Linen Shorts Size S",                           category: 'Clothing',    price: 39.99, emoji: '🩳' },
+  { name: "Farmers Men's Merino Blend Socks 3pk",                           category: 'Clothing',    price: 17.99, emoji: '🧦' },
+  { name: "Postie Girls' School Uniform Blouse Size 8",                     category: 'Clothing',    price: 16.99, emoji: '👚' },
+  { name: "Hannahs Women's Ballet Flat Size 7",                             category: 'Clothing',    price: 59.99, emoji: '👡' },
   // Pharmacy / Health
-  { name: 'Panadol Rapid 20 Caplets (Countdown)',                    category: 'Pharmacy',    price: 7.49,  emoji: '💊' },
-  { name: 'Dettol Antibacterial Hand Wash 250ml (Countdown)',        category: 'Pharmacy',    price: 4.49,  emoji: '🧴' },
-  { name: 'Oral-B Classic Manual Toothbrush 2pk',                    category: 'Pharmacy',    price: 6.99,  emoji: '🪥' },
-  { name: 'Band-Aid Flexible Fabric 25pk',                           category: 'Pharmacy',    price: 5.49,  emoji: '🩹' },
-  { name: 'Biofreeze Pain Relief Gel 118ml (Chemist Warehouse)',     category: 'Pharmacy',    price: 19.99, emoji: '🧴' },
-  { name: 'Colgate Total Advanced Toothpaste 170g (Countdown)',      category: 'Pharmacy',    price: 5.49,  emoji: '🪥' },
+  { name: 'Panadol Rapid Caplets 16pk (Countdown)',                         category: 'Pharmacy',    price: 6.19,  emoji: '💊' },
+  { name: 'Dettol Liquid Hand Wash 250ml (Countdown)',                      category: 'Pharmacy',    price: 3.99,  emoji: '🧴' },
+  { name: 'Oral B Toothbrush Cross Action 3pk',                             category: 'Pharmacy',    price: 11.99, emoji: '🪥' },
+  { name: 'Band-Aid Adhesive Bandages Fabric 50pk',                         category: 'Pharmacy',    price: 5.99,  emoji: '🩹' },
+  { name: 'Nurofen Zavance 48 Tablets (Chemist Warehouse)',                 category: 'Pharmacy',    price: 21.99, emoji: '🧴' },
+  { name: 'Sensodyne Toothpaste Repair & Protect Whitening 100g',           category: 'Pharmacy',    price: 11.99, emoji: '🪥' },
   // Household
-  { name: 'Palmolive Antibacterial Dish Liquid 500ml (Countdown)',   category: 'Household',   price: 3.79,  emoji: '🫧' },
-  { name: "Quilton 3-ply Toilet Paper 18pk (Pak'nSave)",             category: 'Household',   price: 14.99, emoji: '🧻' },
-  { name: 'Fairy Dishwashing Liquid 750ml (New World)',              category: 'Household',   price: 6.49,  emoji: '🫧' },
-  { name: 'Jif Cream Cleanser 500ml (Countdown)',                    category: 'Household',   price: 3.99,  emoji: '🧹' },
-  { name: 'Huggies Gold Nappies Size 4 40pk (Countdown)',            category: 'Household',   price: 24.99, emoji: '👶' },
-  { name: "Finish Quantum Dishwasher Tablets 60pk (Pak'nSave)",      category: 'Household',   price: 19.99, emoji: '✨' },
-  { name: "Glad Press'n Seal Wrap 30m (Countdown)",                  category: 'Household',   price: 5.99,  emoji: '📦' },
+  { name: 'Palmolive Dishwash Liquid 500ml (Countdown)',                    category: 'Household',   price: 4.19,  emoji: '🫧' },
+  { name: "Quilton 3-ply Toilet Paper 6pk (Countdown)",                     category: 'Household',   price: 6.50,  emoji: '🧻' },
+  { name: 'Fairy Dishwasher Capsules All In One 26pk (Countdown)',          category: 'Household',   price: 15.00, emoji: '🫧' },
+  { name: 'Jif Cream Surface Cleaner 500ml (Countdown)',                    category: 'Household',   price: 5.50,  emoji: '🧹' },
+  { name: 'Huggies Infant Nappies Size 2 48pk (Countdown)',                 category: 'Household',   price: 27.00, emoji: '👶' },
+  { name: "Finish Quantum Dishwasher Tablets 60pk (Countdown)",             category: 'Household',   price: 41.99, emoji: '✨' },
+  { name: "Glad Plastic Wrap Cling 30m (Countdown)",                        category: 'Household',   price: 5.29,  emoji: '📦' },
   // Drinks / Snacks
-  { name: "Monster Energy Ultra White 500ml (Pak'nSave)",            category: 'Drinks',      price: 3.49,  emoji: '⚡' },
-  { name: 'Coca-Cola Original 1.5L (Countdown)',                     category: 'Drinks',      price: 3.99,  emoji: '🥤' },
-  { name: 'Up&Go Energize Vanilla 3pk (Countdown)',                  category: 'Drinks',      price: 6.49,  emoji: '🥤' },
-  { name: "Schweppes Lemon Sparkling Water 1.5L (Pak'nSave)",        category: 'Drinks',      price: 2.79,  emoji: '💧' },
-  { name: 'Bundaberg Ginger Beer 375ml 4pk (New World)',             category: 'Drinks',      price: 9.99,  emoji: '🍺' },
-  { name: 'V Energy Drink 250ml 4pk (Countdown)',                    category: 'Drinks',      price: 7.99,  emoji: '⚡' },
+  { name: "Monster Energy Ultra White 500ml (Countdown)",                   category: 'Drinks',      price: 3.69,  emoji: '⚡' },
+  { name: 'Coca-Cola Original 1.5L (Countdown)',                            category: 'Drinks',      price: 4.79,  emoji: '🥤' },
+  { name: 'Up&Go Energize Vanilla 3pk (Countdown)',                         category: 'Drinks',      price: 7.99,  emoji: '🥤' },
+  { name: "Schweppes Lemon Duet Soft Drink 1.5L (Countdown)",               category: 'Drinks',      price: 3.49,  emoji: '💧' },
+  { name: 'Bundaberg Ginger Beer 375ml 4pk (Countdown)',                    category: 'Drinks',      price: 8.39,  emoji: '🍺' },
+  { name: 'V Energy Drink 250ml 4pk (Countdown)',                           category: 'Drinks',      price: 9.49,  emoji: '⚡' },
   // Electronics / Stationery
-  { name: 'Energizer Max AA Batteries 8pk (The Warehouse)',          category: 'Electronics', price: 12.99, emoji: '🔋' },
-  { name: 'Duracell Plus AA Batteries 4pk (Countdown)',              category: 'Electronics', price: 8.49,  emoji: '🔋' },
-  { name: 'Verbatim USB-C to USB-A Cable 1m (The Warehouse)',        category: 'Electronics', price: 14.99, emoji: '🔌' },
-  { name: 'Reflex A4 Copy Paper 500 sheets (OfficeMax)',             category: 'Stationery',  price: 12.99, emoji: '📄' },
-  { name: 'Bic Cristal Ballpoint Pens 10pk Blue (The Warehouse)',    category: 'Stationery',  price: 5.99,  emoji: '✏️' },
+  { name: 'Energizer Max AA Batteries 30pk (The Warehouse)',                category: 'Electronics', price: 25.00, emoji: '🔋' },
+  { name: 'Duracell AA Batteries 16pk (Countdown)',                         category: 'Electronics', price: 22.00, emoji: '🔋' },
+  { name: 'Tech.Inc USB-A To USB-C Cable 1m (The Warehouse)',               category: 'Electronics', price: 9.00,  emoji: '🔌' },
+  { name: 'Reflex A4 Premium Copy Paper 500 sheets (The Warehouse)',        category: 'Stationery',  price: 10.90, emoji: '📄' },
+  { name: 'Bic Clic Pens 3pk Blue (The Warehouse)',                         category: 'Stationery',  price: 4.50,  emoji: '✏️' },
 ];
 
 function shuffle<T>(arr: T[]): T[] {
@@ -121,7 +123,7 @@ function setHs(key: string, v: number) { if (v > getHs(key)) localStorage.setIte
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-[var(--c-card)] border border-[var(--c-border)] rounded-2xl p-6 ${className}`}>
+    <div className={`bg-[var(--c-card)] border border-[var(--c-border)] rounded-2xl p-4 sm:p-6 ${className}`}>
       {children}
     </div>
   );
@@ -164,6 +166,8 @@ function Leaderboard({ game, entries, loading }: {
           {entries.map((e) => {
             const ranked = e.score !== null;
             const rank = entries.filter(x => x.score !== null).findIndex(x => x.userId === e.userId);
+            const avatarBg = e.avatarImage ? 'transparent' : (e.avatarColor ?? '#C68BE1');
+            const avatarInitials = (e.name || '?').split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('') || '?';
             return (
               <div
                 key={e.userId}
@@ -174,6 +178,14 @@ function Leaderboard({ game, entries, loading }: {
                 <span className="text-sm w-6 text-center flex-shrink-0 font-bold text-[var(--c-text-2)]">
                   {ranked ? (rank < 3 ? RANK_MEDALS[rank] : `#${rank + 1}`) : '-'}
                 </span>
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
+                  style={{ backgroundColor: avatarBg }}
+                >
+                  {e.avatarImage
+                    ? <img src={e.avatarImage} alt={e.name} className="w-full h-full object-cover" />
+                    : avatarInitials}
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-[var(--c-text)] truncate">
                     {e.name}{e.isMe && <span className="text-xs text-[var(--c-text-2)] ml-1">(you)</span>}
@@ -207,6 +219,7 @@ type PGState = 'idle' | 'guessing' | 'revealed' | 'done';
 interface PGRound { item: Item; guess: number; score: number }
 
 function PriceGuesser({ onScore }: { onScore: (score: number) => void }) {
+  const { fmt } = useCurrency();
   const [state, setState] = useState<PGState>('idle');
   const [queue, setQueue] = useState<Item[]>([]);
   const [round, setRound] = useState(0);
@@ -274,7 +287,7 @@ function PriceGuesser({ onScore }: { onScore: (score: number) => void }) {
                 <div key={i} className="flex items-center justify-between py-2 text-sm gap-2">
                   <span className="text-[var(--c-text)] truncate min-w-0">{r.item.emoji} {r.item.name}</span>
                   <span className="text-[var(--c-text-2)] flex-shrink-0 text-right text-xs">
-                    ${r.guess.toFixed(2)} → <span className="text-[var(--c-text)]">${r.item.price.toFixed(2)}</span>
+                    ${r.guess.toFixed(2)} → <span className="text-[var(--c-text)]">{fmt(r.item.price)}</span>
                     {' · '}
                     <span className={r.score >= 70 ? 'text-[var(--c-income)]' : r.score >= 40 ? 'text-[var(--c-accent)]' : 'text-[var(--c-expense)]'}>
                       {r.score} pts
@@ -332,10 +345,10 @@ function PriceGuesser({ onScore }: { onScore: (score: number) => void }) {
 
       {state === 'revealed' && (
         <div className="flex flex-col gap-3">
-          <div className="bg-[var(--c-surface)] rounded-xl p-4 flex items-center justify-between">
-            <div className="text-sm text-[var(--c-text-2)]">
-              <div>Your guess: <span className="text-[var(--c-text)] font-semibold">${parseFloat(guess).toFixed(2)}</span></div>
-              <div className="mt-1">Actual price: <span className="text-[var(--c-text)] font-semibold">${currentItem.price.toFixed(2)}</span></div>
+          <div className="bg-[var(--c-surface)] rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap">
+            <div className="text-sm text-[var(--c-text-2)] min-w-0">
+              <div>Your guess: <span className="text-[var(--c-text)] font-semibold">{fmt(parseFloat(guess))}</span></div>
+              <div className="mt-1">Actual price: <span className="text-[var(--c-text)] font-semibold">{fmt(currentItem.price)}</span></div>
             </div>
             <div className="text-right">
               <div className={`text-3xl font-bold ${lastScore! >= 70 ? 'text-[var(--c-income)]' : lastScore! >= 40 ? 'text-[var(--c-accent)]' : 'text-[var(--c-expense)]'}`}>
@@ -365,6 +378,7 @@ const BUDGET_AMOUNTS = [25, 30, 35, 40, 45, 50, 60, 75, 100];
 type BCState = 'idle' | 'picking' | 'done';
 
 function BudgetChallenge({ onScore }: { onScore: (score: number) => void }) {
+  const { fmt } = useCurrency();
   const [state, setState] = useState<BCState>('idle');
   const [budget, setBudget] = useState(0);
   const [items, setItems] = useState<Item[]>([]);
@@ -422,12 +436,12 @@ function BudgetChallenge({ onScore }: { onScore: (score: number) => void }) {
                 {finalScore} / 100
               </div>
               <div className="text-sm text-[var(--c-text-2)] mt-1">
-                Budget: <span className="text-[var(--c-text)] font-semibold">${budget.toFixed(2)}</span>
-                {' · '}You spent: <span className={`font-semibold ${over ? 'text-[var(--c-expense)]' : 'text-[var(--c-text)]'}`}>${revealedTotal.toFixed(2)}</span>
+                Budget: <span className="text-[var(--c-text)] font-semibold">{fmt(budget)}</span>
+                {' · '}You spent: <span className={`font-semibold ${over ? 'text-[var(--c-expense)]' : 'text-[var(--c-text)]'}`}>{fmt(revealedTotal)}</span>
                 {' · '}
                 {over
-                  ? <span className="text-[var(--c-expense)]">${(revealedTotal - budget).toFixed(2)} over</span>
-                  : <span className="text-[var(--c-income)]">${(budget - revealedTotal).toFixed(2)} under</span>}
+                  ? <span className="text-[var(--c-expense)]">{fmt(revealedTotal - budget)} over</span>
+                  : <span className="text-[var(--c-income)]">{fmt(budget - revealedTotal)} under</span>}
               </div>
               <div className="text-sm text-[var(--c-text-2)] mt-2">
                 {finalScore >= 90 ? '🏆 Nearly perfect budget management!' :
@@ -443,13 +457,13 @@ function BudgetChallenge({ onScore }: { onScore: (score: number) => void }) {
                   {selectedItems.map((item, i) => (
                     <div key={i} className="flex items-center justify-between py-1.5 text-sm">
                       <span className="text-[var(--c-text)] truncate min-w-0">{item.emoji} {item.name}</span>
-                      <span className="text-[var(--c-text)] font-semibold flex-shrink-0 ml-3">${item.price.toFixed(2)}</span>
+                      <span className="text-[var(--c-text)] font-semibold flex-shrink-0 ml-3">{fmt(item.price)}</span>
                     </div>
                   ))}
                 </div>
                 <div className="flex justify-between text-sm font-bold pt-2 border-t border-[var(--c-border)]">
                   <span className="text-[var(--c-text)]">Total</span>
-                  <span className={over ? 'text-[var(--c-expense)]' : 'text-[var(--c-income)]'}>${revealedTotal.toFixed(2)}</span>
+                  <span className={over ? 'text-[var(--c-expense)]' : 'text-[var(--c-income)]'}>{fmt(revealedTotal)}</span>
                 </div>
               </div>
             )}
@@ -472,7 +486,7 @@ function BudgetChallenge({ onScore }: { onScore: (score: number) => void }) {
         <h2 className="text-lg font-bold text-[var(--c-text)]">Budget Challenge</h2>
         <div className="flex items-center gap-4">
           <div className="text-sm text-[var(--c-text-2)]">
-            Budget: <span className="text-[var(--c-text)] font-bold text-base">${budget.toFixed(2)}</span>
+            Budget: <span className="text-[var(--c-text)] font-bold text-base">{fmt(budget)}</span>
           </div>
           <div className="text-xs px-2 py-1 rounded-lg bg-[var(--c-surface)] text-[var(--c-text-2)]">
             {selected.size} item{selected.size !== 1 ? 's' : ''} selected
@@ -549,20 +563,20 @@ export default function Games() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--c-bg)]">
+    <div className="min-h-screen flex flex-col bg-[var(--c-bg)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={userName} />
-      <main className="max-w-3xl mx-auto px-6 py-8 flex flex-col gap-6">
+      <main className="flex-1 max-w-3xl mx-auto w-full px-3 sm:px-4 lg:px-6 py-6 sm:py-8 flex flex-col gap-6">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold text-[var(--c-text)]">Games</h1>
           <p className="text-sm text-[var(--c-text-2)]">Test your money knowledge with quick mini-games.</p>
         </div>
 
-        <div className="flex gap-1 bg-[var(--c-surface)] p-1 rounded-xl w-fit">
+        <div className="flex gap-1 bg-[var(--c-surface)] p-1 rounded-xl w-full sm:w-fit overflow-x-auto">
           {([['price', '🎯 Price Guesser'], ['budget', '💰 Budget Challenge']] as [GameTab, string][]).map(([id, label]) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
                 tab === id
                   ? 'bg-[var(--c-card)] text-[var(--c-text)] shadow-sm border border-[var(--c-border)]'
                   : 'text-[var(--c-text-2)] hover:text-[var(--c-text)]'
@@ -580,6 +594,8 @@ export default function Games() {
 
         <Leaderboard game={tab} entries={leaderboard} loading={lbLoading} />
       </main>
+
+      <Footer />
     </div>
   );
 }

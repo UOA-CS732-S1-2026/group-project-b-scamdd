@@ -1,11 +1,17 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import { User } from './models/User';
-import { Transaction } from './models/Transaction';
-import { Budget } from './models/Budget';
-import { Goal } from './models/Goal';
+import { User } from './models/User.js';
+import { Transaction } from './models/Transaction.js';
+import { Budget } from './models/Budget.js';
+import { Goal } from './models/Goal.js';
+import { MonthlyWrapped } from './models/MonthlyWrapped.js';
+import { computeWrappedStats, completedMonths } from './lib/computeWrapped.js';
 
-const EMAIL = process.argv[2] ?? 'bgib630@aucklanduni.ac.nz';
+const EMAIL = process.argv[2];
+if (!EMAIL) {
+  console.error('Usage: pnpm seed <email>');
+  process.exit(1);
+}
 
 function d(day: number, month = 4 /* 0-indexed, 4 = May */, year = 2026) {
   return new Date(year, month, day);
@@ -42,6 +48,12 @@ const TRANSACTIONS: SeedTx[] = [
   { title: 'Music streaming',       amount: 11.99,  type: 'expense', category: 'entertainment', essential: false, mood: 'glad',     paymentMethod: 'Credit',       date: d(1) },
   { title: 'Video game',            amount: 24.99,  type: 'expense', category: 'entertainment', essential: false, mood: 'regret',   paymentMethod: 'Debit',        date: d(6) },
   { title: 'Drinks with friends',   amount: 22.00,  type: 'expense', category: 'entertainment', essential: false, mood: 'worth-it', paymentMethod: 'Cash',         date: d(9) },
+  { title: 'Concert tickets',       amount: 89.00,  type: 'expense', category: 'entertainment', essential: false, mood: 'worth-it', paymentMethod: 'Credit',       date: d(10) },
+  { title: 'Lunch',                 amount: 14.50,  type: 'expense', category: 'food',          essential: false, mood: 'okay',     paymentMethod: 'Cash',         date: d(10) },
+  { title: 'Coffee',                amount: 6.50,   type: 'expense', category: 'food',          essential: false, mood: 'worth-it', paymentMethod: 'Debit',        date: d(11) },
+  { title: 'Grocery top-up',        amount: 28.40,  type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',        date: d(11) },
+  { title: 'Rideshare',             amount: 15.00,  type: 'expense', category: 'transport',     essential: false, mood: 'meh',      paymentMethod: 'Credit',       date: d(12) },
+  { title: 'Lunch',                 amount: 13.00,  type: 'expense', category: 'food',          essential: false, mood: 'okay',     paymentMethod: 'Cash',         date: d(12) },
 
   // ── Transport ────────────────────────────────────────────────────────
   { title: 'Public transport',      amount: 40.00,  type: 'expense', category: 'transport',     essential: true,  mood: 'okay',     paymentMethod: 'Debit',        date: d(1) },
@@ -61,6 +73,83 @@ const TRANSACTIONS: SeedTx[] = [
   { title: 'Rent',                  amount: 950,    type: 'expense', category: 'rent',          essential: true,  mood: 'meh',      paymentMethod: 'Bank Transfer', date: d(1) },
   { title: 'Power bill',            amount: 88.70,  type: 'expense', category: 'utilities',     essential: true,  mood: 'meh',      paymentMethod: 'Bank Transfer', date: d(3) },
   { title: 'Internet bill',         amount: 74.99,  type: 'expense', category: 'utilities',     essential: true,  mood: 'okay',     paymentMethod: 'Bank Transfer', date: d(2) },
+
+  // ── January 2026 ────────────────────────────────────────────────────
+  { title: 'Monthly salary',        amount: 3200,   type: 'income',  date: new Date(2026, 0, 1) },
+  { title: 'Rent',                  amount: 950,    type: 'expense', category: 'rent',          essential: true,  mood: 'meh',      paymentMethod: 'Bank Transfer', date: new Date(2026, 0, 1)  },
+  { title: 'Power bill',            amount: 110.20, type: 'expense', category: 'utilities',     essential: true,  mood: 'meh',      paymentMethod: 'Bank Transfer', date: new Date(2026, 0, 3)  },
+  { title: 'Internet bill',         amount: 74.99,  type: 'expense', category: 'utilities',     essential: true,  mood: 'okay',     paymentMethod: 'Bank Transfer', date: new Date(2026, 0, 6)  },
+  { title: 'Gym membership',        amount: 49.90,  type: 'expense', category: 'health',        essential: false, mood: 'glad',     paymentMethod: 'Bank Transfer', date: new Date(2026, 0, 9)  },
+  { title: 'Weekly groceries',      amount: 108.50, type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 0, 4)  },
+  { title: 'Weekly groceries',      amount: 95.30,  type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 0, 11) },
+  { title: 'Weekly groceries',      amount: 102.80, type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 0, 18) },
+  { title: 'Weekly groceries',      amount: 98.60,  type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 0, 25) },
+  { title: 'Coffee',                amount: 5.50,   type: 'expense', category: 'food',          essential: false, mood: 'worth-it', paymentMethod: 'Debit',         date: new Date(2026, 0, 7)  },
+  { title: 'Dinner out',            amount: 62.00,  type: 'expense', category: 'food',          essential: false, mood: 'worth-it', paymentMethod: 'Credit',        date: new Date(2026, 0, 20) },
+  { title: 'Movie tickets',         amount: 34.00,  type: 'expense', category: 'entertainment', essential: false, mood: 'glad',     paymentMethod: 'Credit',        date: new Date(2026, 0, 12) },
+  { title: 'Pub night',             amount: 38.00,  type: 'expense', category: 'entertainment', essential: false, mood: 'glad',     paymentMethod: 'Cash',          date: new Date(2026, 0, 27) },
+  { title: 'Music streaming',       amount: 11.99,  type: 'expense', category: 'entertainment', essential: false, mood: 'okay',     paymentMethod: 'Credit',        date: new Date(2026, 0, 28) },
+  { title: 'Petrol',                amount: 82.40,  type: 'expense', category: 'transport',     essential: true,  mood: 'meh',      paymentMethod: 'Debit',         date: new Date(2026, 0, 15) },
+  { title: 'New Year clothes',      amount: 89.00,  type: 'expense', category: 'shopping',      essential: false, mood: 'glad',     paymentMethod: 'Credit',        date: new Date(2026, 0, 21) },
+  { title: 'Pharmacy',              amount: 18.50,  type: 'expense', category: 'health',        essential: true,  mood: 'meh',      paymentMethod: 'Debit',         date: new Date(2026, 0, 29) },
+
+  // ── February 2026 ───────────────────────────────────────────────────
+  { title: 'Monthly salary',        amount: 3200,   type: 'income',  date: new Date(2026, 1, 1) },
+  { title: 'Rent',                  amount: 950,    type: 'expense', category: 'rent',          essential: true,  mood: 'meh',      paymentMethod: 'Bank Transfer', date: new Date(2026, 1, 1)  },
+  { title: 'Power bill',            amount: 95.40,  type: 'expense', category: 'utilities',     essential: true,  mood: 'meh',      paymentMethod: 'Bank Transfer', date: new Date(2026, 1, 3)  },
+  { title: 'Internet bill',         amount: 74.99,  type: 'expense', category: 'utilities',     essential: true,  mood: 'okay',     paymentMethod: 'Bank Transfer', date: new Date(2026, 1, 7)  },
+  { title: 'Phone bill',            amount: 49.00,  type: 'expense', category: 'utilities',     essential: true,  mood: 'okay',     paymentMethod: 'Bank Transfer', date: new Date(2026, 1, 13) },
+  { title: 'Gym membership',        amount: 49.90,  type: 'expense', category: 'health',        essential: false, mood: 'glad',     paymentMethod: 'Bank Transfer', date: new Date(2026, 1, 9)  },
+  { title: 'Weekly groceries',      amount: 104.20, type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 1, 5)  },
+  { title: 'Weekly groceries',      amount: 91.80,  type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 1, 12) },
+  { title: 'Weekly groceries',      amount: 99.60,  type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 1, 19) },
+  { title: 'Weekly groceries',      amount: 88.40,  type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 1, 26) },
+  { title: "Valentine's dinner",    amount: 96.00,  type: 'expense', category: 'food',          essential: false, mood: 'worth-it', paymentMethod: 'Credit',        date: new Date(2026, 1, 14) },
+  { title: 'Coffee',                amount: 5.50,   type: 'expense', category: 'food',          essential: false, mood: 'worth-it', paymentMethod: 'Debit',         date: new Date(2026, 1, 6)  },
+  { title: 'Concert tickets',       amount: 89.00,  type: 'expense', category: 'entertainment', essential: false, mood: 'worth-it', paymentMethod: 'Credit',        date: new Date(2026, 1, 27) },
+  { title: 'Music streaming',       amount: 11.99,  type: 'expense', category: 'entertainment', essential: false, mood: 'okay',     paymentMethod: 'Credit',        date: new Date(2026, 1, 28) },
+  { title: 'Impulse clothing haul', amount: 134.00, type: 'expense', category: 'shopping',      essential: false, mood: 'regret',   paymentMethod: 'Credit',        date: new Date(2026, 1, 21) },
+  { title: 'Rideshare',             amount: 22.50,  type: 'expense', category: 'transport',     essential: false, mood: 'okay',     paymentMethod: 'Credit',        date: new Date(2026, 1, 16) },
+
+  // ── March 2026 ──────────────────────────────────────────────────────
+  { title: 'Monthly salary',        amount: 3200,   type: 'income',  date: new Date(2026, 2, 1) },
+  { title: 'Freelance income',      amount: 450,    type: 'income',  date: new Date(2026, 2, 12), note: 'Web design project' },
+  { title: 'Rent',                  amount: 950,    type: 'expense', category: 'rent',          essential: true,  mood: 'meh',      paymentMethod: 'Bank Transfer', date: new Date(2026, 2, 1)  },
+  { title: 'Power bill',            amount: 88.70,  type: 'expense', category: 'utilities',     essential: true,  mood: 'meh',      paymentMethod: 'Bank Transfer', date: new Date(2026, 2, 4)  },
+  { title: 'Internet bill',         amount: 74.99,  type: 'expense', category: 'utilities',     essential: true,  mood: 'okay',     paymentMethod: 'Bank Transfer', date: new Date(2026, 2, 7)  },
+  { title: 'Phone bill',            amount: 49.00,  type: 'expense', category: 'utilities',     essential: true,  mood: 'okay',     paymentMethod: 'Bank Transfer', date: new Date(2026, 2, 10) },
+  { title: 'Gym membership',        amount: 49.90,  type: 'expense', category: 'health',        essential: false, mood: 'glad',     paymentMethod: 'Bank Transfer', date: new Date(2026, 2, 5)  },
+  { title: 'Weekly groceries',      amount: 115.30, type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 2, 7)  },
+  { title: 'Weekly groceries',      amount: 109.80, type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 2, 14) },
+  { title: 'Weekly groceries',      amount: 97.20,  type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 2, 21) },
+  { title: 'Weekly groceries',      amount: 103.40, type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 2, 28) },
+  { title: 'Midnight snack delivery', amount: 38.90, type: 'expense', category: 'food',         essential: false, mood: 'regret',   paymentMethod: 'Credit',        date: new Date(2026, 2, 18) },
+  { title: 'Coffee',                amount: 5.50,   type: 'expense', category: 'food',          essential: false, mood: 'worth-it', paymentMethod: 'Debit',         date: new Date(2026, 2, 9)  },
+  { title: 'Weekend trip accommodation', amount: 210.00, type: 'expense', category: 'entertainment', essential: false, mood: 'worth-it', paymentMethod: 'Credit', date: new Date(2026, 2, 15) },
+  { title: 'Drinks with friends',   amount: 45.00,  type: 'expense', category: 'entertainment', essential: false, mood: 'glad',     paymentMethod: 'Cash',          date: new Date(2026, 2, 25) },
+  { title: 'Music streaming',       amount: 11.99,  type: 'expense', category: 'entertainment', essential: false, mood: 'okay',     paymentMethod: 'Credit',        date: new Date(2026, 2, 30) },
+  { title: 'Petrol',                amount: 79.60,  type: 'expense', category: 'transport',     essential: true,  mood: 'meh',      paymentMethod: 'Debit',         date: new Date(2026, 2, 15) },
+  { title: 'Pharmacy',              amount: 24.80,  type: 'expense', category: 'health',        essential: true,  mood: 'meh',      paymentMethod: 'Debit',         date: new Date(2026, 2, 31) },
+
+  // ── April 2026 ──────────────────────────────────────────────────────
+  { title: 'Monthly salary',        amount: 3200,   type: 'income',  date: new Date(2026, 3, 1) },
+  { title: 'Freelance income',      amount: 300,    type: 'income',  date: new Date(2026, 3, 30) },
+  { title: 'Rent',                  amount: 950,    type: 'expense', category: 'rent',          essential: true,  mood: 'meh',      paymentMethod: 'Bank Transfer', date: new Date(2026, 3, 1)  },
+  { title: 'Power bill',            amount: 88.70,  type: 'expense', category: 'utilities',     essential: true,  mood: 'meh',      paymentMethod: 'Bank Transfer', date: new Date(2026, 3, 4)  },
+  { title: 'Internet bill',         amount: 74.99,  type: 'expense', category: 'utilities',     essential: true,  mood: 'okay',     paymentMethod: 'Bank Transfer', date: new Date(2026, 3, 7)  },
+  { title: 'Phone bill',            amount: 49.00,  type: 'expense', category: 'utilities',     essential: true,  mood: 'okay',     paymentMethod: 'Bank Transfer', date: new Date(2026, 3, 9)  },
+  { title: 'Gym membership',        amount: 49.90,  type: 'expense', category: 'health',        essential: false, mood: 'glad',     paymentMethod: 'Bank Transfer', date: new Date(2026, 3, 5)  },
+  { title: 'Weekly groceries',      amount: 111.60, type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 3, 5)  },
+  { title: 'Weekly groceries',      amount: 94.30,  type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 3, 12) },
+  { title: 'Weekly groceries',      amount: 101.70, type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 3, 19) },
+  { title: 'Weekly groceries',      amount: 96.80,  type: 'expense', category: 'food',          essential: true,  mood: 'okay',     paymentMethod: 'Debit',         date: new Date(2026, 3, 26) },
+  { title: 'Coffee',                amount: 5.50,   type: 'expense', category: 'food',          essential: false, mood: 'worth-it', paymentMethod: 'Debit',         date: new Date(2026, 3, 8)  },
+  { title: 'Movie tickets',         amount: 36.00,  type: 'expense', category: 'entertainment', essential: false, mood: 'glad',     paymentMethod: 'Credit',        date: new Date(2026, 3, 13) },
+  { title: 'Drinks with friends',   amount: 32.00,  type: 'expense', category: 'entertainment', essential: false, mood: 'glad',     paymentMethod: 'Cash',          date: new Date(2026, 3, 28) },
+  { title: 'Music streaming',       amount: 11.99,  type: 'expense', category: 'entertainment', essential: false, mood: 'okay',     paymentMethod: 'Credit',        date: new Date(2026, 3, 29) },
+  { title: 'New headphones',        amount: 279.00, type: 'expense', category: 'shopping',      essential: false, mood: 'regret',   paymentMethod: 'Credit',        date: new Date(2026, 3, 17), note: 'impulse buy' },
+  { title: 'Hiking gear',           amount: 145.00, type: 'expense', category: 'shopping',      essential: false, mood: 'worth-it', paymentMethod: 'Credit',        date: new Date(2026, 3, 22) },
+  { title: 'Petrol',                amount: 85.30,  type: 'expense', category: 'transport',     essential: true,  mood: 'meh',      paymentMethod: 'Debit',         date: new Date(2026, 3, 15) },
 ];
 
 const BUDGETS = [
@@ -91,12 +180,13 @@ async function seed() {
   const userId = String(user._id);
   console.log(`Seeding for: ${user.email} (${userId})`);
 
-  const [txDel, budgetDel, goalDel] = await Promise.all([
+  const [txDel, budgetDel, goalDel, wrappedDel] = await Promise.all([
     Transaction.deleteMany({ userId }),
     Budget.deleteMany({ userId }),
     Goal.deleteMany({ userId }),
+    MonthlyWrapped.deleteMany({ userId }),
   ]);
-  console.log(`Cleared ${txDel.deletedCount} transactions, ${budgetDel.deletedCount} budgets, ${goalDel.deletedCount} goals`);
+  console.log(`Cleared ${txDel.deletedCount} transactions, ${budgetDel.deletedCount} budgets, ${goalDel.deletedCount} goals, ${wrappedDel.deletedCount} wrapped`);
 
   const txDocs = TRANSACTIONS.map((t) => ({ ...t, userId, amount: Number(t.amount) }));
   const [txs, budgets, goals] = await Promise.all([
@@ -105,9 +195,22 @@ async function seed() {
     Goal.insertMany(GOALS.map((g) => ({ ...g, userId }))),
   ]);
 
+  // Generate wrapped for all completed months from seeded transactions
+  const allTxns = await Transaction.find({ userId });
+  const months = completedMonths(allTxns);
+  const wrappedDocs = months.map(({ year, month }) => {
+    const monthTxns = allTxns.filter((t) => {
+      const d = new Date(t.date);
+      return d.getFullYear() === year && d.getMonth() + 1 === month;
+    });
+    return { userId, year, month, stats: computeWrappedStats(monthTxns), generatedAt: new Date() };
+  });
+  const wrapped = await MonthlyWrapped.insertMany(wrappedDocs);
+
   console.log(`✓ Created ${txs.length} transactions`);
   console.log(`✓ Created ${budgets.length} budgets`);
   console.log(`✓ Created ${goals.length} goals`);
+  console.log(`✓ Generated ${wrapped.length} wrapped months`);
   console.log('Done!');
 
   await mongoose.disconnect();

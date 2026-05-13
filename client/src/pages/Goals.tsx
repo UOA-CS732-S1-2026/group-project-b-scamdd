@@ -1,16 +1,19 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
-import { getGoals, createGoal, updateGoal, deleteGoal, contributeToGoal } from '../api/goals';
+import { getGoals, deleteGoal } from '../api/goals';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import GoalForm from '../components/GoalForm';
 import { useTheme } from '../hooks/useTheme';
+import { useCurrency } from '../context/CurrencyContext';
 import type { Goal } from '../types/goal';
 
 export default function Goals() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
+  const { fmt } = useCurrency();
 
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,18 +68,18 @@ export default function Goals() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--c-bg)] text-[var(--c-text)]">
+    <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold m-0 text-[var(--c-text)]">Goals</h1>
+      <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 lg:px-6 py-6 sm:py-8">
+        <div className="flex justify-between items-center gap-3 flex-wrap mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold m-0 text-[var(--c-text)]">Goals</h1>
           <button
             onClick={() => {
               setEditingGoal(undefined);
               setShowForm(true);
             }}
-            className="px-6 py-3 rounded-lg font-medium hover:opacity-80 transition-opacity bg-[var(--c-accent)] text-white"
+            className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium hover:opacity-80 transition-opacity bg-[var(--c-accent)] text-white"
           >
             + Add Goal
           </button>
@@ -102,7 +105,7 @@ export default function Goals() {
                     <div>
                       <h3 className="text-lg font-semibold">{goal.name}</h3>
                       <p className="text-sm text-[var(--c-text-2)]">
-                        ${goal.currentAmount.toFixed(2)} of ${goal.targetAmount.toFixed(2)}
+                        {fmt(goal.currentAmount)} of {fmt(goal.targetAmount)}
                       </p>
                       <p className="text-xs mt-1 text-[var(--c-text-2)]">
                         {daysLeft > 0 ? `${daysLeft} days left` : 'Deadline passed'}
@@ -151,6 +154,8 @@ export default function Goals() {
           />
         )}
       </main>
+
+      <Footer />
     </div>
   );
 }

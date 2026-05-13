@@ -1,10 +1,20 @@
 import { Router, Request, Response } from 'express';
-import { Budget, type BudgetPeriod } from '../models/Budget';
-import { Transaction } from '../models/Transaction';
-import { requireAuth } from '../middleware/auth';
+import { Budget, type BudgetPeriod } from '../models/Budget.js';
+import { Transaction } from '../models/Transaction.js';
+import { requireAuth } from '../middleware/auth.js';
+import { checkAndAwardAchievements } from '../lib/achievements.js';
+import { asyncHandler } from '../lib/asyncHandler.js';
+import { HttpError } from '../lib/httpError.js';
+import { logger } from '../lib/logger.js';
 
 const router = Router();
 router.use(requireAuth);
+
+function fireAchievements(userId: string) {
+  checkAndAwardAchievements(userId).catch((err) => {
+    logger.error({ err, userId }, 'checkAndAwardAchievements failed');
+  });
+}
 
 function periodRange(period: BudgetPeriod): { start: Date; end: Date } {
   const now = new Date();
@@ -39,16 +49,29 @@ function periodRange(period: BudgetPeriod): { start: Date; end: Date } {
 async function spentForPeriod(userId: string, period: BudgetPeriod): Promise<Record<string, number>> {
   const { start, end } = periodRange(period);
   const rows = await Transaction.aggregate<{ _id: string; total: number }>([
-    { $match: { userId, type: 'expense', date: { $gte: start, $lt: end } } },
+    {
+      $match: {
+        userId,
+        type: 'expense',
+        category: { $ne: 'emergency' },
+        date: { $gte: start, $lt: end },
+      },
+    },
     { $group: { _id: '$category', total: { $sum: '$amount' } } },
   ]);
   const map: Record<string, number> = {};
-  for (const r of rows) map[r._id] = r.total;
+  let overall = 0;
+  for (const r of rows) {
+    map[r._id] = r.total;
+    overall += r.total;
+  }
+  map['overall'] = overall;
   return map;
 }
 
-router.get('/', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/',
+  asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!._id;
     const budgets = await Budget.find({ userId }).sort({ category: 1 }).lean();
 
@@ -67,51 +90,54 @@ router.get('/', async (req: Request, res: Response) => {
     });
 
     res.json(enriched);
-  } catch {
-    res.status(500).json({ message: 'Failed to fetch budgets' });
-  }
-});
+  }),
+);
 
-router.post('/', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/',
+  asyncHandler(async (req: Request, res: Response) => {
     const { category, monthlyLimit, period, isPublic } = req.body ?? {};
     if (!category) {
-      res.status(400).json({ message: 'category is required' });
-      return;
+      throw HttpError.badRequest('category is required');
+    }
+    if (category === 'emergency') {
+      throw HttpError.badRequest('Emergency cannot have a budget');
     }
     if (typeof monthlyLimit !== 'number' || monthlyLimit <= 0) {
-      res.status(400).json({ message: 'limit must be a positive number' });
-      return;
+      throw HttpError.badRequest('limit must be a positive number');
     }
     const validPeriods = ['daily', 'weekly', 'monthly', 'yearly'];
     const resolvedPeriod = validPeriods.includes(period) ? period : 'monthly';
 
-    const budget = await Budget.create({
-      userId: req.user!._id,
-      category,
-      monthlyLimit,
-      period: resolvedPeriod,
-      isPublic: Boolean(isPublic),
-    });
-    res.status(201).json(budget);
-  } catch (err: unknown) {
-    if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
-      res.status(409).json({ message: 'A budget for that category already exists' });
-      return;
+    try {
+      const budget = await Budget.create({
+        userId: req.user!._id,
+        category,
+        monthlyLimit,
+        period: resolvedPeriod,
+        isPublic: Boolean(isPublic),
+      });
+      res.status(201).json(budget);
+      fireAchievements(req.user!._id);
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
+        throw HttpError.conflict('A budget for that category and period already exists');
+      }
+      throw err;
     }
-    res.status(500).json({ message: 'Failed to create budget' });
-  }
-});
+  }),
+);
 
-router.patch('/:id', async (req: Request, res: Response) => {
-  try {
-    const { monthlyLimit, period, isPublic } = req.body ?? {};
+router.patch(
+  '/:id',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { category, monthlyLimit, period, isPublic } = req.body ?? {};
     const updates: Record<string, unknown> = {};
 
+    if (category !== undefined) updates.category = category;
     if (monthlyLimit !== undefined) {
       if (typeof monthlyLimit !== 'number' || monthlyLimit <= 0) {
-        res.status(400).json({ message: 'limit must be a positive number' });
-        return;
+        throw HttpError.badRequest('limit must be a positive number');
       }
       updates.monthlyLimit = monthlyLimit;
     }
@@ -119,32 +145,34 @@ router.patch('/:id', async (req: Request, res: Response) => {
     if (period !== undefined && validPeriods.includes(period)) updates.period = period;
     if (isPublic !== undefined) updates.isPublic = Boolean(isPublic);
 
-    const budget = await Budget.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user!._id },
-      updates,
-      { new: true, runValidators: true },
-    );
-    if (!budget) {
-      res.status(404).json({ message: 'Budget not found' });
-      return;
+    try {
+      const budget = await Budget.findOneAndUpdate(
+        { _id: req.params.id, userId: req.user!._id },
+        updates,
+        { new: true, runValidators: true },
+      );
+      if (!budget) {
+        throw HttpError.notFound('Budget not found');
+      }
+      res.json(budget);
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
+        throw HttpError.conflict('A budget for that category and period already exists');
+      }
+      throw err;
     }
-    res.json(budget);
-  } catch {
-    res.status(500).json({ message: 'Failed to update budget' });
-  }
-});
+  }),
+);
 
-router.delete('/:id', async (req: Request, res: Response) => {
-  try {
+router.delete(
+  '/:id',
+  asyncHandler(async (req: Request, res: Response) => {
     const budget = await Budget.findOneAndDelete({ _id: req.params.id, userId: req.user!._id });
     if (!budget) {
-      res.status(404).json({ message: 'Budget not found' });
-      return;
+      throw HttpError.notFound('Budget not found');
     }
     res.status(204).send();
-  } catch {
-    res.status(500).json({ message: 'Failed to delete budget' });
-  }
-});
+  }),
+);
 
 export default router;

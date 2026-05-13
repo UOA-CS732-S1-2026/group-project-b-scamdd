@@ -157,31 +157,48 @@ app.get('/api/protected', async (req, res) => {
 });
 ```
 
----
+### Running tests
 
-## Project structure
+Tests use [Vitest](https://vitest.dev/) and require no external services — the server tests spin up an in-memory MongoDB via `mongodb-memory-server` automatically.
 
-```
-group-project-b-scamdd/
-├── client/                 # Vite + React frontend
-│   └── src/
-│       ├── api/            # API call functions
-│       ├── components/     # Reusable UI components
-│       ├── hooks/          # Custom React hooks
-│       ├── lib/            # Auth client + utilities
-│       ├── pages/          # Page-level components
-│       └── types/          # Shared TypeScript types
-└── server/                 # Express backend
-    └── src/
-        ├── middleware/     # Express middleware
-        ├── models/         # Mongoose models
-        ├── routes/         # API route handlers
-        └── types/          # Shared TypeScript types
+> **First run only:** `mongodb-memory-server` downloads a MongoDB binary (~77 MB) the first time it runs. Subsequent runs use the cached binary and are much faster.
+
+#### Server tests (API integration tests)
+
+```bash
+cd server
+pnpm test          # run once
+pnpm test:watch    # re-run on file changes
 ```
 
----
+Covers:
+- `POST /api/auth/sign-up/email` — success, duplicate email, missing fields
+- `POST /api/auth/sign-in/email` — success, wrong password, unknown email
+- `GET /api/transactions` — only returns the signed-in user's own data, 401 without token
+- `POST /api/transactions` — creates correctly, rejects invalid data, 401 without token
+- `DELETE /api/transactions/:id` — deletes correctly, 404 for non-owner, 401 without token
 
-## Building for production
+#### Client tests (component tests)
+
+```bash
+cd client
+pnpm test          # run once
+pnpm test:watch    # re-run on file changes
+```
+
+#### Run all tests from the project root
+
+```bash
+make test
+```
+
+Or without Make:
+
+```bash
+(cd server && pnpm test) && (cd client && pnpm test)
+```
+
+### Building for production
 
 ```bash
 cd client && pnpm build

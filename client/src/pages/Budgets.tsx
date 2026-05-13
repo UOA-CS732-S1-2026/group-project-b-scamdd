@@ -3,22 +3,27 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
 import { getBudgets, deleteBudget } from '../api/budgets';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import Highlight from '../components/Highlight';
 import BudgetForm from '../components/BudgetForm';
+import SharedBudgetForm from '../components/SharedBudgetForm';
+import SharedBudgetCard from '../components/SharedBudgetCard';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useTheme } from '../hooks/useTheme';
+import { useCurrency } from '../context/CurrencyContext';
+import { useCategories } from '../hooks/useCategories';
 import type { Budget, BudgetPeriod } from '../types/budget';
 import { PERIOD_LABELS } from '../types/budget';
+import type { SharedBudget } from '../types/sharedBudget';
+import {
+  acceptSharedBudgetInvite,
+  declineSharedBudgetInvite,
+  deleteSharedBudget,
+  getSharedBudgetInvites,
+  getSharedBudgets,
+  leaveSharedBudget,
+} from '../api/sharedBudgets';
 
-const CAT_COLORS: Record<string, string> = {
-  food:          '#534AB7',
-  rent:          '#1D9E75',
-  transport:     '#D85A30',
-  entertainment: '#EF9F27',
-  utilities:     '#3B82F6',
-  shopping:      '#EC4899',
-  health:        '#C68BE1',
-  other:         '#B6B6B6',
-};
 
 const ALL_PERIODS: Array<BudgetPeriod | 'all'> = ['all', 'daily', 'weekly', 'monthly', 'yearly'];
 const FILTER_LABELS: Record<string, string> = { all: 'All', ...PERIOD_LABELS };
@@ -106,12 +111,20 @@ export default function Budgets() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
+  const { fmt } = useCurrency();
+  const { getCategoryColor } = useCategories();
 
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [sharedBudgets, setSharedBudgets] = useState<SharedBudget[]>([]);
+  const [sharedInvites, setSharedInvites] = useState<SharedBudget[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | undefined>();
+  const [showSharedForm, setShowSharedForm] = useState(false);
+  const [editingShared, setEditingShared] = useState<SharedBudget | undefined>();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmSharedDeleteId, setConfirmSharedDeleteId] = useState<string | null>(null);
+  const [confirmSharedLeaveId, setConfirmSharedLeaveId] = useState<string | null>(null);
   const [filter, setFilter] = useState<BudgetPeriod | 'all'>('all');
   const [profile, setProfile] = useState<any>(null);
 
@@ -121,8 +134,14 @@ export default function Budgets() {
 
   const fetchBudgets = useCallback(async () => {
     try {
-      const data = await getBudgets();
-      setBudgets(data);
+      const [personal, shared, invites] = await Promise.all([
+        getBudgets(),
+        getSharedBudgets().catch(() => []),
+        getSharedBudgetInvites().catch(() => []),
+      ]);
+      setBudgets(personal);
+      setSharedBudgets(shared);
+      setSharedInvites(invites);
     } finally {
       setLoading(false);
     }
@@ -136,6 +155,52 @@ export default function Budgets() {
       });
     }
   }, [session, fetchBudgets]);
+
+  const meId = session?.user?.id ?? '';
+
+  const handleSharedFormSuccess = () => {
+    setShowSharedForm(false);
+    setEditingShared(undefined);
+    fetchBudgets();
+  };
+
+  const handleAcceptShared = async (id: string) => {
+    try {
+      await acceptSharedBudgetInvite(id);
+      fetchBudgets();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeclineShared = async (id: string) => {
+    try {
+      await declineSharedBudgetInvite(id);
+      fetchBudgets();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteShared = async (id: string) => {
+    try {
+      await deleteSharedBudget(id);
+      setSharedBudgets((bs) => bs.filter((b) => b._id !== id));
+      setConfirmSharedDeleteId(null);
+    } catch {
+      setConfirmSharedDeleteId(null);
+    }
+  };
+
+  const handleLeaveShared = async (id: string) => {
+    try {
+      await leaveSharedBudget(id);
+      setSharedBudgets((bs) => bs.filter((b) => b._id !== id));
+      setConfirmSharedLeaveId(null);
+    } catch {
+      setConfirmSharedLeaveId(null);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -162,7 +227,7 @@ export default function Budgets() {
   }
 
   const filtered = filter === 'all' ? budgets : budgets.filter((b) => (b.period ?? 'monthly') === filter);
-  const existingCategories = budgets.map((b) => b.category);
+  const existingBudgets = budgets.map((b) => ({ category: b.category, period: (b.period ?? 'monthly') as BudgetPeriod }));
 
   // Summary stats (across filtered set)
   const totalAllocated = filtered.reduce((s, b) => s + b.monthlyLimit, 0);
@@ -170,27 +235,37 @@ export default function Budgets() {
   const overBudgetCount = filtered.filter((b) => b.spent > b.monthlyLimit).length;
 
   return (
-    <div className="min-h-screen bg-[var(--c-bg)] text-[var(--c-text)]">
+    <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
       <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-3 sm:px-4 lg:px-6 py-6 sm:py-8">
         {/* ── Header ── */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold m-0 text-[var(--c-text)]">Budgets</h1>
-          <button
-            onClick={() => { setEditingBudget(undefined); setShowForm(true); }}
-            className="px-6 py-3 rounded-lg font-medium hover:opacity-80 transition-opacity bg-[var(--c-accent)] text-white"
-          >
-            + Add Budget
-          </button>
+        <div className="flex justify-between items-center gap-3 flex-wrap mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold m-0 text-[var(--c-text)]">
+            <Highlight className="px-3 py-1">Budgets</Highlight>
+          </h1>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => { setEditingShared(undefined); setShowSharedForm(true); }}
+              className="px-4 sm:px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-card)] text-[var(--c-text)] hover:bg-[var(--c-nav-active)] transition-colors"
+            >
+              + Shared budget
+            </button>
+            <button
+              onClick={() => { setEditingBudget(undefined); setShowForm(true); }}
+              className="px-4 sm:px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity"
+            >
+              + Add a budget
+            </button>
+          </div>
         </div>
 
         {budgets.length === 0 ? (
-          <div className="border border-[var(--c-border)] rounded-2xl p-16 text-center bg-[var(--c-card)]">
+          <div className="border border-[rgba(109,109,109,0.8)] rounded-3xl p-16 text-center bg-[var(--c-card)]">
             <p className="text-[var(--c-text-2)] mb-4">No budgets yet.</p>
             <button
               onClick={() => setShowForm(true)}
-              className="px-6 py-2 rounded-lg font-medium bg-[var(--c-accent)] text-white hover:opacity-80 transition-opacity"
+              className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity"
             >
               Create your first budget
             </button>
@@ -198,26 +273,26 @@ export default function Budgets() {
         ) : (
           <>
             {/* ── Summary strip ── */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="p-5 rounded-2xl bg-[var(--c-tint-pink)]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+              <div className="p-4 sm:p-5 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-pink)]">
                 <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">
                   {filter === 'all' ? 'Total allocated' : `${FILTER_LABELS[filter]} total`}
                 </div>
-                <div className="text-2xl font-bold text-[var(--c-tint-text)]">${totalAllocated.toFixed(2)}</div>
+                <div className="text-2xl font-bold text-[var(--c-tint-text)]">{fmt(totalAllocated)}</div>
               </div>
-              <div className="p-5 rounded-2xl bg-[var(--c-tint-green)]">
+              <div className="p-4 sm:p-5 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-green)]">
                 <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">Spent so far</div>
-                <div className="text-2xl font-bold text-[var(--c-tint-text)]">${totalSpent.toFixed(2)}</div>
+                <div className="text-2xl font-bold text-[var(--c-tint-text)]">{fmt(totalSpent)}</div>
                 {totalAllocated > 0 && (
                   <div className="text-xs text-[var(--c-tint-text-2)] mt-1">
                     {Math.round((totalSpent / totalAllocated) * 100)}% of budget used
                   </div>
                 )}
               </div>
-              <div className="p-5 rounded-2xl bg-[var(--c-tint-yellow)]">
+              <div className="p-4 sm:p-5 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-yellow)]">
                 <div className="text-xs text-[var(--c-tint-text-2)] mb-1 uppercase tracking-wide font-medium">Remaining</div>
                 <div className="text-2xl font-bold text-[var(--c-tint-text)]">
-                  ${Math.max(0, totalAllocated - totalSpent).toFixed(2)}
+                  {fmt(Math.max(0, totalAllocated - totalSpent))}
                 </div>
                 {overBudgetCount > 0 && (
                   <div className="text-xs text-[var(--c-negative)] mt-1">
@@ -228,7 +303,7 @@ export default function Budgets() {
             </div>
 
             {/* ── Period filter tabs ── */}
-            <div className="flex items-center gap-2 mb-6">
+            <div className="flex items-center gap-2 mb-6 flex-wrap">
               {ALL_PERIODS.map((p) => {
                 const count = p === 'all' ? budgets.length : budgets.filter((b) => (b.period ?? 'monthly') === p).length;
                 if (p !== 'all' && count === 0) return null;
@@ -236,15 +311,15 @@ export default function Budgets() {
                   <button
                     key={p}
                     onClick={() => setFilter(p)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors cursor-pointer ${
                       filter === p
-                        ? 'bg-[var(--c-accent)] text-white border-[var(--c-accent)]'
-                        : 'bg-transparent text-[var(--c-text-2)] border-[var(--c-border)] hover:border-[var(--c-accent)]'
+                        ? 'bg-[var(--c-accent)] text-[var(--c-text)] border-[var(--c-text)]'
+                        : 'bg-[var(--c-card)] text-[var(--c-text-2)] border-[rgba(109,109,109,0.5)] hover:border-[var(--c-text)] hover:text-[var(--c-text)]'
                     }`}
                   >
                     {FILTER_LABELS[p]}
                     {count > 0 && (
-                      <span className={`ml-1.5 text-xs ${filter === p ? 'text-white/70' : 'text-[var(--c-text-2)]'}`}>
+                      <span className={`ml-1.5 text-xs ${filter === p ? 'text-[var(--c-text-2)]' : 'text-[var(--c-text-2)]'}`}>
                         {count}
                       </span>
                     )}
@@ -255,7 +330,7 @@ export default function Budgets() {
 
             {/* ── Budget cards ── */}
             {filtered.length === 0 ? (
-              <div className="border border-[var(--c-border)] rounded-2xl p-12 text-center bg-[var(--c-card)]">
+              <div className="border border-[rgba(109,109,109,0.8)] rounded-3xl p-12 text-center bg-[var(--c-card)]">
                 <p className="text-[var(--c-text-2)]">No {FILTER_LABELS[filter].toLowerCase()} budgets yet.</p>
               </div>
             ) : (
@@ -274,6 +349,7 @@ export default function Budgets() {
                       spentPct={spentPct}
                       elapsed={elapsed}
                       pace={pace}
+                      getCategoryColor={getCategoryColor}
                       onEdit={() => { setEditingBudget(budget); setShowForm(true); }}
                       onDelete={() => setConfirmDeleteId(budget._id)}
                     />
@@ -283,14 +359,78 @@ export default function Budgets() {
             )}
           </>
         )}
+
+        {/* ── Shared budgets section ── */}
+        <section id="shared" className="mt-12">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+            <h2 className="text-2xl font-bold text-[var(--c-text)]">Shared budgets</h2>
+            {(sharedBudgets.length > 0 || sharedInvites.length > 0) && (
+              <button
+                onClick={() => { setEditingShared(undefined); setShowSharedForm(true); }}
+                className="px-4 py-1.5 rounded-full text-sm font-medium border border-[var(--c-text)] text-[var(--c-text)] hover:bg-[var(--c-nav-active)] transition-colors"
+              >
+                + New shared budget
+              </button>
+            )}
+          </div>
+
+          {sharedInvites.length > 0 && (
+            <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-5">
+              {sharedInvites.map((sb) => (
+                <SharedBudgetCard
+                  key={sb._id}
+                  budget={sb}
+                  meId={meId}
+                  onAccept={() => handleAcceptShared(sb._id)}
+                  onDecline={() => handleDeclineShared(sb._id)}
+                />
+              ))}
+            </div>
+          )}
+
+          {sharedBudgets.length === 0 && sharedInvites.length === 0 ? (
+            <div className="border border-[rgba(109,109,109,0.8)] rounded-3xl p-12 text-center bg-[var(--c-card)]">
+              <p className="text-[var(--c-text-2)] mb-3">
+                Pool spending with friends or family — pick a category and invite people.
+              </p>
+              <button
+                onClick={() => { setEditingShared(undefined); setShowSharedForm(true); }}
+                className="px-5 py-2 rounded-[20px] text-sm font-semibold border border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-90 transition-opacity"
+              >
+                Create a shared budget
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {sharedBudgets.map((sb) => (
+                <SharedBudgetCard
+                  key={sb._id}
+                  budget={sb}
+                  meId={meId}
+                  onEdit={() => { setEditingShared(sb); setShowSharedForm(true); }}
+                  onLeave={() => setConfirmSharedLeaveId(sb._id)}
+                  onDelete={() => setConfirmSharedDeleteId(sb._id)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </main>
 
       {showForm && (
         <BudgetForm
           budget={editingBudget}
-          existingCategories={existingCategories}
+          existingBudgets={existingBudgets}
           onSuccess={handleFormSuccess}
           onCancel={() => { setShowForm(false); setEditingBudget(undefined); }}
+        />
+      )}
+
+      {showSharedForm && (
+        <SharedBudgetForm
+          budget={editingShared}
+          onSuccess={handleSharedFormSuccess}
+          onCancel={() => { setShowSharedForm(false); setEditingShared(undefined); }}
         />
       )}
 
@@ -301,6 +441,24 @@ export default function Budgets() {
           onCancel={() => setConfirmDeleteId(null)}
         />
       )}
+
+      {confirmSharedDeleteId && (
+        <ConfirmDialog
+          message="Delete this shared budget for everyone? This can't be undone."
+          onConfirm={() => handleDeleteShared(confirmSharedDeleteId)}
+          onCancel={() => setConfirmSharedDeleteId(null)}
+        />
+      )}
+
+      {confirmSharedLeaveId && (
+        <ConfirmDialog
+          message="Leave this shared budget? The others can keep using it."
+          onConfirm={() => handleLeaveShared(confirmSharedLeaveId)}
+          onCancel={() => setConfirmSharedLeaveId(null)}
+        />
+      )}
+
+      <Footer />
     </div>
   );
 }
@@ -311,25 +469,30 @@ interface CardProps {
   spentPct: number;
   elapsed: number;
   pace: PaceStatus;
+  getCategoryColor: (name: string) => string;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-function BudgetCard({ budget, period, spentPct, elapsed, pace, onEdit, onDelete }: CardProps) {
-  const catColor = CAT_COLORS[budget.category] || '#B6B6B6';
+function BudgetCard({ budget, period, spentPct, elapsed, pace, getCategoryColor, onEdit, onDelete }: CardProps) {
+  const catColor = getCategoryColor(budget.category);
+  const { fmt } = useCurrency();
   const barFillPct = Math.min(spentPct, 100);
   const paceMarkerPct = Math.min(elapsed * 100, 100);
 
   return (
-    <div className="border border-[var(--c-border)] rounded-2xl p-6 bg-[var(--c-card)]">
+    <div className="border border-[rgba(109,109,109,0.8)] rounded-3xl p-6 bg-[var(--c-card)]">
       {/* Card header */}
       <div className="flex items-start justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex-shrink-0" style={{ backgroundColor: catColor }} />
+          <div
+            className="w-10 h-10 rounded-full flex-shrink-0 border-[3px] border-white"
+            style={{ backgroundColor: catColor }}
+          />
           <div>
             <h3 className="font-semibold capitalize text-[var(--c-text)]">{budget.category}</h3>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xs px-2 py-0.5 rounded-full border border-[var(--c-border)] text-[var(--c-text-2)]">
+              <span className="text-xs px-2 py-0.5 rounded-full border border-[rgba(109,109,109,0.5)] text-[var(--c-text-2)]">
                 {PERIOD_LABELS[period]}
               </span>
               {budget.isPublic && (
@@ -341,13 +504,13 @@ function BudgetCard({ budget, period, spentPct, elapsed, pace, onEdit, onDelete 
         <div className="flex gap-3 flex-shrink-0">
           <button
             onClick={onEdit}
-            className="text-sm text-[var(--c-accent)] hover:opacity-60 transition-opacity"
+            className="text-sm text-[var(--c-text-2)] hover:text-[var(--c-text)] transition-colors cursor-pointer"
           >
             Edit
           </button>
           <button
             onClick={onDelete}
-            className="text-sm text-red-500 hover:opacity-60 transition-opacity"
+            className="text-sm text-[var(--c-expense)] hover:opacity-60 transition-opacity cursor-pointer"
           >
             Delete
           </button>
@@ -357,10 +520,10 @@ function BudgetCard({ budget, period, spentPct, elapsed, pace, onEdit, onDelete 
       {/* Amount row */}
       <div className="flex justify-between items-baseline mb-2">
         <span className="text-2xl font-bold text-[var(--c-text)]">
-          ${budget.spent.toFixed(2)}
+          {fmt(budget.spent)}
         </span>
         <span className="text-sm text-[var(--c-text-2)]">
-          of ${budget.monthlyLimit.toFixed(2)}
+          of {fmt(budget.monthlyLimit)}
         </span>
       </div>
 

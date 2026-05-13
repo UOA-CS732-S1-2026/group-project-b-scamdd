@@ -2,6 +2,7 @@
   "name": "server",
   "version": "1.0.0",
   "description": "B Scamdd backend - Express + TS + MongoDB",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -10,12 +11,14 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "seed": "tsx src/seed.ts"
+    "seed": "tsx src/seed.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.33.2",
+  "packageManager": "pnpm@11.1.0",
   "dependencies": {
     "better-auth": "^1.6.9",
     "cors": "^2.8.6",
@@ -23,19 +26,27 @@
     "express": "^5.2.1",
     "mongodb": "^7.2.0",
     "mongoose": "^9.6.0",
-    "nodemailer": "^8.0.7"
+    "node-cron": "^4.2.1",
+    "nodemailer": "^8.0.7",
+    "pino": "^9.5.0",
+    "pino-pretty": "^11.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
+    "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^8.0.0",
+    "@types/supertest": "^6.0.2",
     "eslint": "^10.2.1",
     "eslint-config-prettier": "^10.1.8",
+    "mongodb-memory-server": "^10.1.4",
     "prettier": "^3.8.3",
+    "supertest": "^7.0.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.1"
+    "typescript-eslint": "^8.59.1",
+    "vitest": "^2.1.8"
   }
 }

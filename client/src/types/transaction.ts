@@ -8,8 +8,12 @@ export const CATEGORIES = [
   'utilities',
   'shopping',
   'health',
+  'emergency',
   'other',
 ] as const;
+
+export const EMERGENCY_CATEGORY = 'emergency';
+export const OVERALL_CATEGORY = 'overall';
 
 export interface Transaction {
   _id: string;

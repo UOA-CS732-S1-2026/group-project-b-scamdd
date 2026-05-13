@@ -1,0 +1,13 @@
+{
+  "installCommand": "npm install --no-package-lock && npm install --prefix server --no-package-lock && npm install --prefix client --no-package-lock",
+  "buildCommand": "npm --prefix client run build",
+  "outputDirectory": "client/dist",
+  "framework": null,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "functions": {
+    "api/index.ts": { "maxDuration": 10 }
+  }
+}

@@ -1,12 +1,11 @@
-import type { Friend, Requests, SearchResult } from '../types/friend';
+import type { Friend, FriendAcceptance, Requests, SearchResult } from '../types/friend';
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+const API = (import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:4000'));
 const BASE = `${API}/api/friends`;
 const opts: RequestInit = { credentials: 'include' };
 
-export async function searchUser(username: string): Promise<SearchResult> {
-  const res = await fetch(`${BASE}/search?username=${encodeURIComponent(username)}`, opts);
-  if (res.status === 404) throw new Error('User not found');
+export async function searchUser(query: string): Promise<SearchResult[]> {
+  const res = await fetch(`${BASE}/search?q=${encodeURIComponent(query)}`, opts);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message ?? 'Search failed');
@@ -57,4 +56,15 @@ export async function getFriends(): Promise<Friend[]> {
 export async function unfriend(friendId: string): Promise<void> {
   const res = await fetch(`${BASE}/${friendId}`, { ...opts, method: 'DELETE' });
   if (!res.ok) throw new Error('Failed to unfriend');
+}
+
+export async function getAcceptances(): Promise<FriendAcceptance[]> {
+  const res = await fetch(`${BASE}/acceptances`, opts);
+  if (!res.ok) throw new Error('Failed to load acceptances');
+  return res.json();
+}
+
+export async function markAcceptancesSeen(): Promise<void> {
+  const res = await fetch(`${BASE}/acceptances/seen`, { ...opts, method: 'POST' });
+  if (!res.ok) throw new Error('Failed to mark acceptances seen');
 }

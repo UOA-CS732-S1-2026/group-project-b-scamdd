@@ -1,46 +1,57 @@
 import { Router, Request, Response } from 'express';
-import { Friendship } from '../models/Friendship';
-import { User } from '../models/User';
-import { Goal } from '../models/Goal';
-import { Budget } from '../models/Budget';
-import { Transaction } from '../models/Transaction';
-import { requireAuth } from '../middleware/auth';
+import { Friendship } from '../models/Friendship.js';
+import { User } from '../models/User.js';
+import { UserAvatar } from '../models/UserAvatar.js';
+import { Goal } from '../models/Goal.js';
+import { Budget } from '../models/Budget.js';
+import { Transaction } from '../models/Transaction.js';
+import { requireAuth } from '../middleware/auth.js';
+import { computeBudgetStreak } from '../lib/streaks.js';
+import { listAchievements } from '../lib/achievements.js';
+import type { BudgetPeriod } from '../models/Budget.js';
+import { asyncHandler } from '../lib/asyncHandler.js';
+import { HttpError } from '../lib/httpError.js';
+import { logger } from '../lib/logger.js';
 
 const router = Router();
 
 router.use(requireAuth);
 
-const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
-
-function dayKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function streakFromDates(dateSet: Set<string>): number {
-  if (dateSet.size === 0) return 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const cur = new Date(today);
-  if (!dateSet.has(dayKey(cur))) cur.setDate(cur.getDate() - 1);
-  let n = 0;
-  while (dateSet.has(dayKey(cur))) {
-    n++;
-    cur.setDate(cur.getDate() - 1);
-    if (n > 3650) break;
-  }
-  return n;
-}
-
-function currentMonthRange() {
+function periodRange(period: BudgetPeriod): { start: Date; end: Date } {
   const now = new Date();
-  return {
-    start: new Date(now.getFullYear(), now.getMonth(), 1),
-    end: new Date(now.getFullYear(), now.getMonth() + 1, 1),
-  };
+  switch (period) {
+    case 'daily': {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      return { start, end };
+    }
+    case 'weekly': {
+      const day = now.getDay() === 0 ? 7 : now.getDay();
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - (day - 1));
+      monday.setHours(0, 0, 0, 0);
+      const nextMonday = new Date(monday);
+      nextMonday.setDate(monday.getDate() + 7);
+      return { start: monday, end: nextMonday };
+    }
+    case 'monthly':
+      return {
+        start: new Date(now.getFullYear(), now.getMonth(), 1),
+        end: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+      };
+    case 'yearly':
+      return {
+        start: new Date(now.getFullYear(), 0, 1),
+        end: new Date(now.getFullYear() + 1, 0, 1),
+      };
+  }
 }
 
-async function spentByCategoryFor(userId: string): Promise<Record<string, number>> {
-  const { start, end } = currentMonthRange();
+async function spentByCategoryFor(
+  userId: string,
+  period: BudgetPeriod,
+): Promise<Record<string, number>> {
+  const { start, end } = periodRange(period);
   const rows = await Transaction.aggregate<{ _id: string; total: number }>([
     {
       $match: {
@@ -73,57 +84,54 @@ async function statusBetween(meId: string, otherId: string): Promise<Status> {
   return 'none';
 }
 
-router.get('/search', async (req: Request, res: Response) => {
-  try {
-    const u = String(req.query.username ?? '').toLowerCase().trim();
-    if (!USERNAME_RE.test(u)) {
-      res.status(400).json({ message: 'Invalid username' });
-      return;
-    }
-    const user = await User.findOne({ username: u }).lean();
-    if (!user) {
-      res.status(404).json({ message: 'User not found' });
-      return;
+router.get(
+  '/search',
+  asyncHandler(async (req: Request, res: Response) => {
+    const q = String(req.query.q ?? '').trim();
+    if (!q || q.length < 2) {
+      throw HttpError.badRequest('Query must be at least 2 characters');
     }
     const meId = req.user!._id;
-    const otherId = String(user._id);
-    if (otherId === meId) {
-      res.json({
-        id: otherId,
-        username: user.username,
-        displayName: user.displayName ?? null,
-        status: 'self',
-      });
-      return;
-    }
-    const status = await statusBetween(meId, otherId);
-    res.json({
-      id: otherId,
-      username: user.username,
-      displayName: user.displayName ?? null,
-      status,
-    });
-  } catch {
-    res.status(500).json({ message: 'Search failed' });
-  }
-});
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escaped, 'i');
+    const users = await User.find({
+      _id: { $ne: meId },
+      profileComplete: true,
+      $or: [{ displayName: regex }, { username: regex }],
+    })
+      .limit(8)
+      .lean();
 
-router.post('/requests', async (req: Request, res: Response) => {
-  try {
+    const results = await Promise.all(
+      users.map(async (user) => {
+        const otherId = String(user._id);
+        const status = await statusBetween(meId, otherId);
+        return {
+          id: otherId,
+          username: user.username ?? null,
+          displayName: user.displayName ?? null,
+          status,
+        };
+      }),
+    );
+    res.json(results);
+  }),
+);
+
+router.post(
+  '/requests',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const { addresseeId } = req.body ?? {};
     if (!addresseeId || typeof addresseeId !== 'string') {
-      res.status(400).json({ message: 'addresseeId is required' });
-      return;
+      throw HttpError.badRequest('addresseeId is required');
     }
     if (addresseeId === meId) {
-      res.status(400).json({ message: 'You cannot friend yourself' });
-      return;
+      throw HttpError.badRequest('You cannot friend yourself');
     }
     const target = await User.findById(addresseeId).lean();
     if (!target) {
-      res.status(404).json({ message: 'User not found' });
-      return;
+      throw HttpError.notFound('User not found');
     }
     const existing = await Friendship.findOne({
       $or: [
@@ -133,12 +141,10 @@ router.post('/requests', async (req: Request, res: Response) => {
     });
     if (existing) {
       if (existing.status === 'accepted') {
-        res.status(409).json({ message: 'Already friends' });
-        return;
+        throw HttpError.conflict('Already friends');
       }
       if (existing.status === 'pending') {
-        res.status(409).json({ message: 'A request already exists between you' });
-        return;
+        throw HttpError.conflict('A request already exists between you');
       }
       // rejected → allow re-request by overwriting
       existing.requesterId = meId;
@@ -154,13 +160,12 @@ router.post('/requests', async (req: Request, res: Response) => {
       status: 'pending',
     });
     res.status(201).json(created);
-  } catch {
-    res.status(500).json({ message: 'Failed to create friend request' });
-  }
-});
+  }),
+);
 
-router.get('/requests', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/requests',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const all = await Friendship.find({
       status: 'pending',
@@ -168,18 +173,25 @@ router.get('/requests', async (req: Request, res: Response) => {
     }).lean();
 
     const otherIds = all.map((f) => (f.requesterId === meId ? f.addresseeId : f.requesterId));
-    const users = await User.find({ _id: { $in: otherIds } }).lean();
+    const [users, avatarDocs] = await Promise.all([
+      User.find({ _id: { $in: otherIds } }).lean(),
+      UserAvatar.find({ userId: { $in: otherIds } }).lean(),
+    ]);
     const userById = new Map(users.map((u) => [String(u._id), u]));
+    const avatarByUserId = new Map(avatarDocs.map((a) => [a.userId, a]));
 
     const incoming = all
       .filter((f) => f.addresseeId === meId)
       .map((f) => {
         const u = userById.get(f.requesterId);
+        const av = avatarByUserId.get(f.requesterId);
         return {
           id: String(f._id),
           fromId: f.requesterId,
           username: u?.username ?? null,
           displayName: u?.displayName ?? null,
+          avatarColor: av?.avatarColor ?? null,
+          avatarImage: av?.avatarImage ?? null,
           createdAt: f.createdAt,
         };
       });
@@ -187,67 +199,64 @@ router.get('/requests', async (req: Request, res: Response) => {
       .filter((f) => f.requesterId === meId)
       .map((f) => {
         const u = userById.get(f.addresseeId);
+        const av = avatarByUserId.get(f.addresseeId);
         return {
           id: String(f._id),
           toId: f.addresseeId,
           username: u?.username ?? null,
           displayName: u?.displayName ?? null,
+          avatarColor: av?.avatarColor ?? null,
+          avatarImage: av?.avatarImage ?? null,
           createdAt: f.createdAt,
         };
       });
 
     res.json({ incoming, outgoing });
-  } catch {
-    res.status(500).json({ message: 'Failed to load requests' });
-  }
-});
+  }),
+);
 
-router.patch('/requests/:id', async (req: Request, res: Response) => {
-  try {
+router.patch(
+  '/requests/:id',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const { action } = req.body ?? {};
     if (action !== 'accept' && action !== 'reject') {
-      res.status(400).json({ message: "action must be 'accept' or 'reject'" });
-      return;
+      throw HttpError.badRequest("action must be 'accept' or 'reject'");
     }
     const f = await Friendship.findById(req.params.id);
     if (!f || f.status !== 'pending') {
-      res.status(404).json({ message: 'Pending request not found' });
-      return;
+      throw HttpError.notFound('Pending request not found');
     }
     if (f.addresseeId !== meId) {
-      res.status(403).json({ message: 'Only the addressee can act on this request' });
-      return;
+      throw HttpError.forbidden('Only the addressee can act on this request');
     }
     f.status = action === 'accept' ? 'accepted' : 'rejected';
+    // Mark unseen for the requester only on accept; reject quietly removes.
+    f.seenByRequester = action === 'accept' ? false : true;
     await f.save();
     res.json(f);
-  } catch {
-    res.status(500).json({ message: 'Failed to update request' });
-  }
-});
+  }),
+);
 
-router.delete('/requests/:id', async (req: Request, res: Response) => {
-  try {
+router.delete(
+  '/requests/:id',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const f = await Friendship.findById(req.params.id);
     if (!f || f.status !== 'pending') {
-      res.status(404).json({ message: 'Pending request not found' });
-      return;
+      throw HttpError.notFound('Pending request not found');
     }
     if (f.requesterId !== meId) {
-      res.status(403).json({ message: 'Only the requester can cancel' });
-      return;
+      throw HttpError.forbidden('Only the requester can cancel');
     }
     await f.deleteOne();
     res.status(204).send();
-  } catch {
-    res.status(500).json({ message: 'Failed to cancel request' });
-  }
-});
+  }),
+);
 
-router.get('/', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const accepted = await Friendship.find({
       status: 'accepted',
@@ -262,22 +271,14 @@ router.get('/', async (req: Request, res: Response) => {
       return;
     }
 
-    const [friends, goals, budgets, friendTxnDates] = await Promise.all([
+    const [friends, goals, budgets, avatarDocs] = await Promise.all([
       User.find({ _id: { $in: friendIds } }).lean(),
       Goal.find({ userId: { $in: friendIds }, isPublic: true }).lean(),
       Budget.find({ userId: { $in: friendIds }, isPublic: true }).lean(),
-      Transaction.aggregate([
-        { $match: { userId: { $in: friendIds } } },
-        { $group: { _id: { userId: '$userId', date: { $dateToString: { format: '%Y-%m-%d', date: '$date' } } } } },
-      ]),
+      UserAvatar.find({ userId: { $in: friendIds } }).lean(),
     ]);
 
-    const friendDateSets = new Map<string, Set<string>>();
-    for (const row of friendTxnDates) {
-      const uid = row._id.userId;
-      if (!friendDateSets.has(uid)) friendDateSets.set(uid, new Set());
-      friendDateSets.get(uid)!.add(row._id.date);
-    }
+    const avatarByUserId = new Map(avatarDocs.map((a) => [a.userId, a]));
 
     const goalsByUser = new Map<string, typeof goals>();
     for (const g of goals) {
@@ -292,10 +293,31 @@ router.get('/', async (req: Request, res: Response) => {
       budgetsByUser.set(b.userId, arr);
     }
 
-    const spentMaps = await Promise.all(
-      friendIds.map(async (id) => [id, await spentByCategoryFor(id)] as const),
+    // Compute spent per (friendId, period) so weekly/yearly budgets get the
+    // correct denominator. Build the unique set from the public budgets we'll
+    // actually render.
+    const spentByUserPeriod = new Map<string, Record<string, number>>();
+    const needed = new Set<string>();
+    for (const b of budgets) {
+      const p = (b.period ?? 'monthly') as BudgetPeriod;
+      needed.add(`${b.userId}|${p}`);
+    }
+    await Promise.all(
+      Array.from(needed).map(async (key) => {
+        const [uid, p] = key.split('|') as [string, BudgetPeriod];
+        spentByUserPeriod.set(key, await spentByCategoryFor(uid, p));
+      }),
     );
-    const spentByUser = new Map(spentMaps);
+
+    const streakEntries = await Promise.all(
+      friendIds.map(async (id) => [id, await computeBudgetStreak(id)] as const),
+    );
+    const streakByUser = new Map(streakEntries);
+
+    const achievementEntries = await Promise.all(
+      friendIds.map(async (id) => [id, await listAchievements(id)] as const),
+    );
+    const achievementsByUser = new Map(achievementEntries);
 
     const result = friends.map((u) => {
       const id = String(u._id);
@@ -303,14 +325,17 @@ router.get('/', async (req: Request, res: Response) => {
         (f) => f.requesterId === id || f.addresseeId === id,
       );
       const userBudgets = budgetsByUser.get(id) ?? [];
-      const spentMap = spentByUser.get(id) ?? {};
+      const avatar = avatarByUserId.get(id);
       return {
         id,
         friendshipId: friendshipRow ? String(friendshipRow._id) : null,
         username: u.username ?? null,
         displayName: u.displayName ?? null,
         bio: u.bio ?? null,
-        streak: streakFromDates(friendDateSets.get(id) ?? new Set()),
+        avatarColor: avatar?.avatarColor ?? null,
+        avatarImage: avatar?.avatarImage ?? null,
+        streak: streakByUser.get(id) ?? 0,
+        achievements: achievementsByUser.get(id) ?? [],
         goals: (goalsByUser.get(id) ?? []).map((g) => ({
           id: String(g._id),
           name: g.name,
@@ -319,10 +344,13 @@ router.get('/', async (req: Request, res: Response) => {
           deadline: g.deadline,
         })),
         budgets: userBudgets.map((b) => {
+          const p = (b.period ?? 'monthly') as BudgetPeriod;
+          const spentMap = spentByUserPeriod.get(`${id}|${p}`) ?? {};
           const used = spentMap[b.category] ?? 0;
           return {
             id: String(b._id),
             category: b.category,
+            period: p,
             monthlyLimit: b.monthlyLimit,
             spent: used,
           };
@@ -331,13 +359,64 @@ router.get('/', async (req: Request, res: Response) => {
     });
 
     res.json(result);
-  } catch {
-    res.status(500).json({ message: 'Failed to load friends' });
-  }
-});
+  }),
+);
 
-router.delete('/:friendId', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/acceptances',
+  asyncHandler(async (req: Request, res: Response) => {
+    const meId = req.user!._id;
+    const rows = await Friendship.find({
+      requesterId: meId,
+      status: 'accepted',
+      seenByRequester: false,
+    })
+      .sort({ updatedAt: -1 })
+      .lean();
+    if (rows.length === 0) {
+      res.json([]);
+      return;
+    }
+    const userIds = rows.map((r) => r.addresseeId);
+    const [users, avatarDocs] = await Promise.all([
+      User.find({ _id: { $in: userIds } }).lean(),
+      UserAvatar.find({ userId: { $in: userIds } }).lean(),
+    ]);
+    const userById = new Map(users.map((u) => [String(u._id), u]));
+    const avatarByUserId = new Map(avatarDocs.map((a) => [a.userId, a]));
+    res.json(
+      rows.map((r) => {
+        const u = userById.get(r.addresseeId);
+        const av = avatarByUserId.get(r.addresseeId);
+        return {
+          id: String(r._id),
+          userId: r.addresseeId,
+          username: u?.username ?? null,
+          displayName: u?.displayName ?? null,
+          avatarColor: av?.avatarColor ?? null,
+          avatarImage: av?.avatarImage ?? null,
+          acceptedAt: r.updatedAt,
+        };
+      }),
+    );
+  }),
+);
+
+router.post(
+  '/acceptances/seen',
+  asyncHandler(async (req: Request, res: Response) => {
+    const meId = req.user!._id;
+    await Friendship.updateMany(
+      { requesterId: meId, status: 'accepted', seenByRequester: false },
+      { $set: { seenByRequester: true } },
+    );
+    res.status(204).send();
+  }),
+);
+
+router.delete(
+  '/:friendId',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const friendId = req.params.friendId;
     const removed = await Friendship.findOneAndDelete({
@@ -348,13 +427,10 @@ router.delete('/:friendId', async (req: Request, res: Response) => {
       ],
     });
     if (!removed) {
-      res.status(404).json({ message: 'Friendship not found' });
-      return;
+      throw HttpError.notFound('Friendship not found');
     }
     res.status(204).send();
-  } catch {
-    res.status(500).json({ message: 'Failed to unfriend' });
-  }
-});
+  }),
+);
 
 export default router;
