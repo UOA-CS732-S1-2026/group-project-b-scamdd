@@ -548,7 +548,7 @@ export default function Dashboard() {
     (_, i) => nsPMin + i * nsStep,
   );
   const nsLastVal = netSavingsFull[drawUpToIdx] ?? 0;
-  const nsColor = nsLastVal >= 0 ? '#1D9E75' : '#D85A30';
+  const nsColor = nsLastVal >= 0 ? 'var(--c-income)' : 'var(--c-expense)';
 
   // Other maximums for bar charts
   const maxSegSpend = Math.max(...segSpending, 1);
@@ -895,37 +895,43 @@ export default function Dashboard() {
                 {nsLastVal >= 0 ? '+' : '−'}{fmt(Math.abs(nsLastVal))}
               </span>
             </div>
-            <svg width="100%" viewBox={`0 0 ${SVG_W} ${NS_H}`} style={{ display: 'block', overflow: 'visible' }}>
-              {nsYTicks.map(tick => {
-                const y = nsCyFn(tick);
-                return (
-                  <g key={tick}>
-                    <line x1={PAD_L} y1={y} x2={PAD_L + PLOT_W} y2={y}
-                      stroke={tick === 0 ? 'var(--c-text-2)' : 'var(--c-grid)'}
-                      strokeWidth={tick === 0 ? 1.5 : 1}
-                      strokeDasharray={tick === 0 ? '4 3' : undefined} />
-                    <text x={PAD_L - 4} y={y + 3} textAnchor="end" fontSize="9" fill="var(--c-text-2)">{fmtY(tick)}</text>
-                  </g>
-                );
-              })}
-              {/* zero-crossing area fill */}
-              {netSavingsPts.length > 1 && (
-                <path
-                  d={`M ${cxFn(0).toFixed(1)},${nsZeroY.toFixed(1)} L ${netSavingsPts.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${nsZeroY.toFixed(1)} Z`}
-                  fill={nsColor} opacity="0.15"
-                />
-              )}
-              {netSavingsPts.length > 1 && (
-                <polyline points={netSavingsPts.join(' ')} fill="none" stroke={nsColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              )}
-              {netSavingsPts.length > 0 && (() => {
-                const [lx, ly] = netSavingsPts[netSavingsPts.length - 1].split(',').map(Number);
-                return <circle cx={lx} cy={ly} r="3" fill={nsColor} />;
-              })()}
-              {xTicks.map(({ idx, label: xl }) => (
-                <text key={idx} x={cxFn(idx)} y={NS_H - 3} textAnchor="middle" fontSize="9" fill="var(--c-text-2)">{xl}</text>
-              ))}
-            </svg>
+            <div className="flex-1 min-h-0 relative">
+              <svg
+                viewBox={`0 0 ${SVG_W} ${NS_H}`}
+                preserveAspectRatio="xMidYMid meet"
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', overflow: 'visible' }}
+              >
+                {nsYTicks.map(tick => {
+                  const y = nsCyFn(tick);
+                  return (
+                    <g key={tick}>
+                      <line x1={PAD_L} y1={y} x2={PAD_L + PLOT_W} y2={y}
+                        stroke={tick === 0 ? 'var(--c-text-2)' : 'var(--c-grid)'}
+                        strokeWidth={tick === 0 ? 1.5 : 1}
+                        strokeDasharray={tick === 0 ? '4 3' : undefined} />
+                      <text x={PAD_L - 4} y={y + 3} textAnchor="end" fontSize="9" fill="var(--c-text-2)">{fmtY(tick)}</text>
+                    </g>
+                  );
+                })}
+                {/* zero-crossing area fill */}
+                {netSavingsPts.length > 1 && (
+                  <path
+                    d={`M ${cxFn(0).toFixed(1)},${nsZeroY.toFixed(1)} L ${netSavingsPts.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${nsZeroY.toFixed(1)} Z`}
+                    fill={nsColor} opacity="0.15"
+                  />
+                )}
+                {netSavingsPts.length > 1 && (
+                  <polyline points={netSavingsPts.join(' ')} fill="none" stroke={nsColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                )}
+                {netSavingsPts.length > 0 && (() => {
+                  const [lx, ly] = netSavingsPts[netSavingsPts.length - 1].split(',').map(Number);
+                  return <circle cx={lx} cy={ly} r="3" fill={nsColor} />;
+                })()}
+                {xTicks.map(({ idx, label: xl }) => (
+                  <text key={idx} x={cxFn(idx)} y={NS_H - 3} textAnchor="middle" fontSize="9" fill="var(--c-text-2)">{xl}</text>
+                ))}
+              </svg>
+            </div>
           </div>
         );
 
@@ -1049,7 +1055,7 @@ export default function Dashboard() {
               {visibleCounts.map((val, i) => (
                 <div key={i} className="flex-1 h-full flex items-end" title={`${val} transaction${val !== 1 ? 's' : ''}`}>
                   <div
-                    style={{ height: val > 0 ? `${Math.max((val / maxSegCount) * 100, 4)}%` : '0%', backgroundColor: '#3B82F6', opacity: 0.85 }}
+                    style={{ height: val > 0 ? `${Math.max((val / maxSegCount) * 100, 4)}%` : '0%', backgroundColor: 'var(--c-accent)', opacity: 0.85 }}
                     className="w-full rounded-t transition-all"
                   />
                 </div>
