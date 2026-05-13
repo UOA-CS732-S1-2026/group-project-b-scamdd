@@ -70,7 +70,7 @@ export default function Goals() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
-      <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
+      <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name ?? undefined} />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 lg:px-6 py-6 sm:py-8">
         <div className="flex justify-between items-center gap-3 flex-wrap mb-6 sm:mb-8">
