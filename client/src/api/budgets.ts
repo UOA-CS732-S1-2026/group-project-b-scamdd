@@ -1,44 +1,18 @@
 import type { Budget, BudgetInput, BudgetUpdate } from '../types/budget';
+import { apiFetch } from './_fetch';
 
-const API = (import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:4000'));
-const BASE = `${API}/api/budgets`;
-const opts: RequestInit = { credentials: 'include' };
-
-export async function getBudgets(): Promise<Budget[]> {
-  const res = await fetch(BASE, opts);
-  if (!res.ok) throw new Error('Failed to fetch budgets');
-  return res.json();
+export function getBudgets(): Promise<Budget[]> {
+  return apiFetch<Budget[]>('/budgets');
 }
 
-export async function createBudget(data: BudgetInput): Promise<Budget> {
-  const res = await fetch(BASE, {
-    ...opts,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? 'Failed to create budget');
-  }
-  return res.json();
+export function createBudget(data: BudgetInput): Promise<Budget> {
+  return apiFetch<Budget>('/budgets', { method: 'POST', body: data });
 }
 
-export async function updateBudget(id: string, data: BudgetUpdate): Promise<Budget> {
-  const res = await fetch(`${BASE}/${id}`, {
-    ...opts,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? 'Failed to update budget');
-  }
-  return res.json();
+export function updateBudget(id: string, data: BudgetUpdate): Promise<Budget> {
+  return apiFetch<Budget>(`/budgets/${id}`, { method: 'PATCH', body: data });
 }
 
-export async function deleteBudget(id: string): Promise<void> {
-  const res = await fetch(`${BASE}/${id}`, { ...opts, method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to delete budget');
+export function deleteBudget(id: string): Promise<void> {
+  return apiFetch<void>(`/budgets/${id}`, { method: 'DELETE' });
 }
