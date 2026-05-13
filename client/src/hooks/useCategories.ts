@@ -4,14 +4,14 @@ import type { UserCategory } from '../types/category';
 import { getCategories } from '../api/categories';
 
 const BUILTIN_COLORS: Record<string, string> = {
-  food:          '#FFBDC2',
-  rent:          '#C5FFD8',
-  transport:     '#FDFBD4',
+  food: '#FFBDC2',
+  rent: '#C5FFD8',
+  transport: '#FDFBD4',
   entertainment: '#C68BE1',
-  utilities:     '#B5C9E8',
-  shopping:      '#FFD4A8',
-  health:        '#D4F8E0',
-  other:         '#CBCBCB',
+  utilities: '#B5C9E8',
+  shopping: '#FFD4A8',
+  health: '#D4F8E0',
+  other: '#CBCBCB',
 };
 
 const FALLBACK_COLOR = '#CBCBCB';
@@ -31,7 +31,9 @@ export function useCategories() {
     }
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   const allCategories: string[] = [
     ...(CATEGORIES as readonly string[]),

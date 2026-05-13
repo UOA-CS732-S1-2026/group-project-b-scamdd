@@ -58,13 +58,15 @@ describe('shared budgets create + invite + accept + leave', () => {
 
   it('A creates a shared budget inviting B, B accepts, both see it', async () => {
     setAuthUser(userA);
-    const created = await request(app).post('/api/shared-budgets').send({
-      name: 'Groceries',
-      category: 'food',
-      monthlyLimit: 200,
-      period: 'monthly',
-      inviteUserIds: [userB],
-    });
+    const created = await request(app)
+      .post('/api/shared-budgets')
+      .send({
+        name: 'Groceries',
+        category: 'food',
+        monthlyLimit: 200,
+        period: 'monthly',
+        inviteUserIds: [userB],
+      });
     expect(created.status).toBe(201);
     const id = created.body._id as string;
     expect(id).toBeTruthy();
@@ -91,24 +93,28 @@ describe('shared budgets create + invite + accept + leave', () => {
 
   it('rejects sharing the forbidden "emergency" category', async () => {
     setAuthUser(userA);
-    const res = await request(app).post('/api/shared-budgets').send({
-      category: 'emergency',
-      monthlyLimit: 100,
-      period: 'monthly',
-      inviteUserIds: [userB],
-    });
+    const res = await request(app)
+      .post('/api/shared-budgets')
+      .send({
+        category: 'emergency',
+        monthlyLimit: 100,
+        period: 'monthly',
+        inviteUserIds: [userB],
+      });
     expect(res.status).toBe(400);
   });
 
   it('rejects inviting a non-friend', async () => {
     setAuthUser(userA);
     const stranger = new mongoose.Types.ObjectId().toString();
-    const res = await request(app).post('/api/shared-budgets').send({
-      category: 'food',
-      monthlyLimit: 100,
-      period: 'monthly',
-      inviteUserIds: [stranger],
-    });
+    const res = await request(app)
+      .post('/api/shared-budgets')
+      .send({
+        category: 'food',
+        monthlyLimit: 100,
+        period: 'monthly',
+        inviteUserIds: [stranger],
+      });
     expect(res.status).toBe(400);
   });
 });

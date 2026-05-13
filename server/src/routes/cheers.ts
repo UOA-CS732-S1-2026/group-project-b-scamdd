@@ -7,11 +7,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
 import { validate } from '../middleware/validate.js';
-import {
-  cheersForParams,
-  createCheerSchema,
-  deleteCheerSchema,
-} from '../schemas/cheers.js';
+import { cheersForParams, createCheerSchema, deleteCheerSchema } from '../schemas/cheers.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -71,7 +67,7 @@ router.get(
     const sent = await Cheer.find({ fromUserId: meId })
       .select({ toUserId: 1, achievementKey: 1 })
       .lean();
-    res.json(sent.map(c => ({ toUserId: c.toUserId, achievementKey: c.achievementKey })));
+    res.json(sent.map((c) => ({ toUserId: c.toUserId, achievementKey: c.achievementKey })));
   }),
 );
 
@@ -79,14 +75,12 @@ router.get(
   '/received',
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const cheers = await Cheer.find({ toUserId: meId })
-      .sort({ createdAt: -1 })
-      .lean();
-    const fromIds = [...new Set(cheers.map(c => c.fromUserId))];
+    const cheers = await Cheer.find({ toUserId: meId }).sort({ createdAt: -1 }).lean();
+    const fromIds = [...new Set(cheers.map((c) => c.fromUserId))];
     const users = await User.find({ _id: { $in: fromIds } }).lean();
-    const userById = new Map(users.map(u => [String(u._id), u]));
+    const userById = new Map(users.map((u) => [String(u._id), u]));
     res.json(
-      cheers.map(c => {
+      cheers.map((c) => {
         const u = userById.get(c.fromUserId);
         return {
           id: String(c._id),
@@ -106,7 +100,10 @@ router.post(
   '/mark-seen',
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    await Cheer.updateMany({ toUserId: meId, seenByRecipient: false }, { $set: { seenByRecipient: true } });
+    await Cheer.updateMany(
+      { toUserId: meId, seenByRecipient: false },
+      { $set: { seenByRecipient: true } },
+    );
     res.status(204).send();
   }),
 );
@@ -122,11 +119,11 @@ router.get(
       throw HttpError.forbidden('Not friends with that user');
     }
     const cheers = await Cheer.find({ toUserId: userId, achievementKey: key }).lean();
-    const fromIds = cheers.map(c => c.fromUserId);
+    const fromIds = cheers.map((c) => c.fromUserId);
     const users = await User.find({ _id: { $in: fromIds } }).lean();
-    const userById = new Map(users.map(u => [String(u._id), u]));
+    const userById = new Map(users.map((u) => [String(u._id), u]));
     res.json(
-      cheers.map(c => {
+      cheers.map((c) => {
         const u = userById.get(c.fromUserId);
         return {
           id: c.fromUserId,

@@ -32,9 +32,7 @@ describe('Goal contribute returns justCompleted', () => {
       deadline: new Date('2027-01-01'),
     });
 
-    const first = await request(app)
-      .post(`/api/goals/${goal._id}/contribute`)
-      .send({ amount: 50 });
+    const first = await request(app).post(`/api/goals/${goal._id}/contribute`).send({ amount: 50 });
     expect(first.status).toBe(200);
     expect(first.body.completed).toBe(false);
     expect(first.body.justCompleted).toBe(false);
@@ -46,9 +44,7 @@ describe('Goal contribute returns justCompleted', () => {
     expect(second.body.completed).toBe(true);
     expect(second.body.justCompleted).toBe(true);
 
-    const third = await request(app)
-      .post(`/api/goals/${goal._id}/contribute`)
-      .send({ amount: 10 });
+    const third = await request(app).post(`/api/goals/${goal._id}/contribute`).send({ amount: 10 });
     expect(third.body.completed).toBe(true);
     expect(third.body.justCompleted).toBe(false);
   });
@@ -61,13 +57,43 @@ describe('Leaderboard stable tiebreak', () => {
     userA = new mongoose.Types.ObjectId().toString();
     userB = new mongoose.Types.ObjectId().toString();
     await User.collection.insertMany([
-      { _id: new mongoose.Types.ObjectId(userA) as unknown as string, name: 'A', displayName: 'A', username: 'aa', email: 'a@x', profileComplete: true, emailVerified: true, createdAt: new Date(), updatedAt: new Date() },
-      { _id: new mongoose.Types.ObjectId(userB) as unknown as string, name: 'B', displayName: 'B', username: 'bb', email: 'b@x', profileComplete: true, emailVerified: true, createdAt: new Date(), updatedAt: new Date() },
+      {
+        _id: new mongoose.Types.ObjectId(userA) as unknown as string,
+        name: 'A',
+        displayName: 'A',
+        username: 'aa',
+        email: 'a@x',
+        profileComplete: true,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        _id: new mongoose.Types.ObjectId(userB) as unknown as string,
+        name: 'B',
+        displayName: 'B',
+        username: 'bb',
+        email: 'b@x',
+        profileComplete: true,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     ]);
     await Friendship.create({ requesterId: userA, addresseeId: userB, status: 'accepted' });
     // A hits 100 first.
-    await GameScore.create({ userId: userA, game: 'price', score: 100, createdAt: new Date('2026-01-01') });
-    await GameScore.create({ userId: userB, game: 'price', score: 100, createdAt: new Date('2026-02-01') });
+    await GameScore.create({
+      userId: userA,
+      game: 'price',
+      score: 100,
+      createdAt: new Date('2026-01-01'),
+    });
+    await GameScore.create({
+      userId: userB,
+      game: 'price',
+      score: 100,
+      createdAt: new Date('2026-02-01'),
+    });
   });
 
   it('orders equal scores by earliest createdAt', async () => {

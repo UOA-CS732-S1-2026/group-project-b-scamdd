@@ -32,7 +32,12 @@ router.post(
       });
       res.status(201).json(cat);
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'code' in err &&
+        (err as { code: number }).code === 11000
+      ) {
         throw HttpError.conflict('A category with that name already exists');
       }
       throw err;
@@ -60,7 +65,12 @@ router.patch(
       }
       res.json(cat);
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'code' in err &&
+        (err as { code: number }).code === 11000
+      ) {
         throw HttpError.conflict('A category with that name already exists');
       }
       throw err;

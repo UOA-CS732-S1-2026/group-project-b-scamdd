@@ -54,9 +54,39 @@ describe('C2: shared-budget invite concurrency', () => {
     userB = new mongoose.Types.ObjectId().toString();
     userC = new mongoose.Types.ObjectId().toString();
     await User.collection.insertMany([
-      { _id: new mongoose.Types.ObjectId(userA) as unknown as string, name: 'A', displayName: 'A', username: 'aaa', email: 'a@x', profileComplete: true, emailVerified: true, createdAt: new Date(), updatedAt: new Date() },
-      { _id: new mongoose.Types.ObjectId(userB) as unknown as string, name: 'B', displayName: 'B', username: 'bbb', email: 'b@x', profileComplete: true, emailVerified: true, createdAt: new Date(), updatedAt: new Date() },
-      { _id: new mongoose.Types.ObjectId(userC) as unknown as string, name: 'C', displayName: 'C', username: 'ccc', email: 'c@x', profileComplete: true, emailVerified: true, createdAt: new Date(), updatedAt: new Date() },
+      {
+        _id: new mongoose.Types.ObjectId(userA) as unknown as string,
+        name: 'A',
+        displayName: 'A',
+        username: 'aaa',
+        email: 'a@x',
+        profileComplete: true,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        _id: new mongoose.Types.ObjectId(userB) as unknown as string,
+        name: 'B',
+        displayName: 'B',
+        username: 'bbb',
+        email: 'b@x',
+        profileComplete: true,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        _id: new mongoose.Types.ObjectId(userC) as unknown as string,
+        name: 'C',
+        displayName: 'C',
+        username: 'ccc',
+        email: 'c@x',
+        profileComplete: true,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     ]);
     await Friendship.create({ requesterId: userA, addresseeId: userB, status: 'accepted' });
     await Friendship.create({ requesterId: userA, addresseeId: userC, status: 'accepted' });
@@ -64,18 +94,22 @@ describe('C2: shared-budget invite concurrency', () => {
 
   it('concurrent /invite calls for the same user do not duplicate members', async () => {
     setAuthUser(userA);
-    const created = await request(app).post('/api/shared-budgets').send({
-      category: 'food',
-      monthlyLimit: 200,
-      period: 'monthly',
-      inviteUserIds: [userB],
-    });
+    const created = await request(app)
+      .post('/api/shared-budgets')
+      .send({
+        category: 'food',
+        monthlyLimit: 200,
+        period: 'monthly',
+        inviteUserIds: [userB],
+      });
     const id = created.body._id as string;
 
     // Fire 10 concurrent invites for userC against the same shared budget.
     await Promise.all(
       Array.from({ length: 10 }, () =>
-        request(app).post(`/api/shared-budgets/${id}/invite`).send({ userIds: [userC] }),
+        request(app)
+          .post(`/api/shared-budgets/${id}/invite`)
+          .send({ userIds: [userC] }),
       ),
     );
 

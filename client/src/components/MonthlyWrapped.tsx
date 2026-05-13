@@ -2,7 +2,20 @@ import { useState } from 'react';
 import { statsToInsights } from '../lib/insights';
 import type { WrappedMonth } from '../types/wrapped';
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 export default function MonthlyWrapped({ months }: { months: WrappedMonth[] }) {
   const [selected, setSelected] = useState(0);

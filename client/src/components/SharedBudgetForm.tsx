@@ -3,11 +3,7 @@ import { CATEGORIES, EMERGENCY_CATEGORY } from '../types/transaction';
 import type { BudgetPeriod } from '../types/budget';
 import { PERIOD_LABELS } from '../types/budget';
 import type { SharedBudget, SharedBudgetInput } from '../types/sharedBudget';
-import {
-  createSharedBudget,
-  inviteToSharedBudget,
-  updateSharedBudget,
-} from '../api/sharedBudgets';
+import { createSharedBudget, inviteToSharedBudget, updateSharedBudget } from '../api/sharedBudgets';
 import { getFriends } from '../api/friends';
 import type { Friend } from '../types/friend';
 
@@ -31,7 +27,11 @@ function hashIndex(id: string, mod: number) {
 }
 
 const initials = (name: string) =>
-  name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
+  name
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('') || '?';
 
 export default function SharedBudgetForm({ budget, onSuccess, onCancel }: Props) {
   const isEdit = Boolean(budget);
@@ -45,7 +45,9 @@ export default function SharedBudgetForm({ budget, onSuccess, onCancel }: Props)
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getFriends().then(setFriends).catch(() => setFriends([]));
+    getFriends()
+      .then(setFriends)
+      .catch(() => setFriends([]));
   }, []);
 
   const sharableCategories = CATEGORIES.filter((c) => c !== EMERGENCY_CATEGORY);
@@ -66,9 +68,18 @@ export default function SharedBudgetForm({ budget, onSuccess, onCancel }: Props)
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (!isEdit && !category) { setError('Pick a category'); return; }
-    if (!monthlyLimit || monthlyLimit <= 0) { setError('Limit must be greater than 0'); return; }
-    if (!isEdit && selected.size === 0) { setError('Invite at least one friend'); return; }
+    if (!isEdit && !category) {
+      setError('Pick a category');
+      return;
+    }
+    if (!monthlyLimit || monthlyLimit <= 0) {
+      setError('Limit must be greater than 0');
+      return;
+    }
+    if (!isEdit && selected.size === 0) {
+      setError('Invite at least one friend');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -121,7 +132,10 @@ export default function SharedBudgetForm({ budget, onSuccess, onCancel }: Props)
           </button>
         </div>
 
-        <form className="flex flex-col gap-5 overflow-y-auto px-5 sm:px-7 pb-6 sm:pb-7" onSubmit={handleSubmit}>
+        <form
+          className="flex flex-col gap-5 overflow-y-auto px-5 sm:px-7 pb-6 sm:pb-7"
+          onSubmit={handleSubmit}
+        >
           {/* Name */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-[var(--c-text)]">Label (optional)</label>

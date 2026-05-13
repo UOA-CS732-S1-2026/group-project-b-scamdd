@@ -1,7 +1,10 @@
 const THUMB_PX = 18;
 
 export default function RangeSlider({
-  min, max, value, onChange,
+  min,
+  max,
+  value,
+  onChange,
 }: {
   min: number;
   max: number;
@@ -30,7 +33,8 @@ export default function RangeSlider({
         />
         <input
           type="range"
-          min={min} max={max}
+          min={min}
+          max={max}
           value={lo}
           onChange={(e) => onChange([Math.min(+e.target.value, hi), hi])}
           className="range-thumb absolute inset-0 w-full h-full"
@@ -38,7 +42,8 @@ export default function RangeSlider({
         />
         <input
           type="range"
-          min={min} max={max}
+          min={min}
+          max={max}
           value={hi}
           onChange={(e) => onChange([lo, Math.max(+e.target.value, lo)])}
           className="range-thumb absolute inset-0 w-full h-full"

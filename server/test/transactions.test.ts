@@ -30,15 +30,13 @@ describe('transactions CRUD', () => {
   });
 
   it('POST /api/transactions creates a transaction', async () => {
-    const res = await request(app)
-      .post('/api/transactions')
-      .send({
-        title: 'Coffee',
-        amount: 5.5,
-        type: 'expense',
-        category: 'food',
-        date: '2026-05-01T00:00:00.000Z',
-      });
+    const res = await request(app).post('/api/transactions').send({
+      title: 'Coffee',
+      amount: 5.5,
+      type: 'expense',
+      category: 'food',
+      date: '2026-05-01T00:00:00.000Z',
+    });
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({
       title: 'Coffee',
@@ -50,9 +48,7 @@ describe('transactions CRUD', () => {
   });
 
   it('POST /api/transactions rejects missing fields', async () => {
-    const res = await request(app)
-      .post('/api/transactions')
-      .send({ amount: 5, type: 'expense' });
+    const res = await request(app).post('/api/transactions').send({ amount: 5, type: 'expense' });
     expect(res.status).toBe(400);
   });
 
@@ -77,20 +73,16 @@ describe('transactions CRUD', () => {
   });
 
   it('PATCH updates, DELETE removes, 404 thereafter', async () => {
-    const created = await request(app)
-      .post('/api/transactions')
-      .send({
-        title: 'Lunch',
-        amount: 12,
-        type: 'expense',
-        category: 'food',
-        date: '2026-05-02',
-      });
+    const created = await request(app).post('/api/transactions').send({
+      title: 'Lunch',
+      amount: 12,
+      type: 'expense',
+      category: 'food',
+      date: '2026-05-02',
+    });
     const id = created.body._id as string;
 
-    const patched = await request(app)
-      .patch(`/api/transactions/${id}`)
-      .send({ amount: 15 });
+    const patched = await request(app).patch(`/api/transactions/${id}`).send({ amount: 15 });
     expect(patched.status).toBe(200);
     expect(patched.body.amount).toBe(15);
 
@@ -102,15 +94,13 @@ describe('transactions CRUD', () => {
   });
 
   it('one user cannot see another user transactions', async () => {
-    await request(app)
-      .post('/api/transactions')
-      .send({
-        title: 'private',
-        amount: 1,
-        type: 'expense',
-        category: 'food',
-        date: '2026-05-01',
-      });
+    await request(app).post('/api/transactions').send({
+      title: 'private',
+      amount: 1,
+      type: 'expense',
+      category: 'food',
+      date: '2026-05-01',
+    });
     setAuthUser('other-user');
     const res = await request(app).get('/api/transactions');
     expect(res.status).toBe(200);

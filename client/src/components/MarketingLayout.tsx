@@ -7,7 +7,16 @@ import Footer from './Footer';
 
 function IconSun() {
   return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 15 15"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <circle cx="7.5" cy="7.5" r="2.5" />
       <path d="M7.5 1v1.5M7.5 12.5V14M1 7.5h1.5M12.5 7.5H14M2.93 2.93l1.06 1.06M11.01 11.01l1.06 1.06M2.93 12.07l1.06-1.06M11.01 3.99l1.06-1.06" />
     </svg>
@@ -16,7 +25,16 @@ function IconSun() {
 
 function IconMoon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 15 15"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M12.5 10A6 6 0 0 1 5 2.5a6 6 0 1 0 7.5 7.5z" />
     </svg>
   );
@@ -46,12 +64,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
             <FeltWordmark size="md" />
           </Link>
           <nav className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            <button
-              type="button"
-              onClick={toggle}
-              className={iconBtn}
-              aria-label="Toggle theme"
-            >
+            <button type="button" onClick={toggle} className={iconBtn} aria-label="Toggle theme">
               {isDark ? <IconSun /> : <IconMoon />}
             </button>
             {session ? (

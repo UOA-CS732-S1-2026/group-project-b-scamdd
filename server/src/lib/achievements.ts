@@ -19,11 +19,11 @@ export const ACHIEVEMENT_KEYS = [
   'safety_net',
 ] as const;
 
-export type AchievementKey = typeof ACHIEVEMENT_KEYS[number];
+export type AchievementKey = (typeof ACHIEVEMENT_KEYS)[number];
 
 async function listEarnedKeys(userId: string): Promise<Set<string>> {
   const rows = await Achievement.find({ userId }).select({ key: 1 }).lean();
-  return new Set(rows.map(r => r.key));
+  return new Set(rows.map((r) => r.key));
 }
 
 async function award(userId: string, key: AchievementKey): Promise<boolean> {
@@ -39,7 +39,7 @@ export async function checkAndAwardAchievements(userId: string): Promise<Achieve
   const earned = await listEarnedKeys(userId);
   const newlyEarned: AchievementKey[] = [];
 
-  const toCheck = ACHIEVEMENT_KEYS.filter(k => !earned.has(k));
+  const toCheck = ACHIEVEMENT_KEYS.filter((k) => !earned.has(k));
   if (toCheck.length === 0) return newlyEarned;
 
   const [txnCount, budgetCount, goalCount] = await Promise.all([
@@ -67,7 +67,10 @@ export async function checkAndAwardAchievements(userId: string): Promise<Achieve
   }
 
   if (toCheck.includes('goal_completed')) {
-    const completed = await Goal.exists({ userId, $expr: { $gte: ['$currentAmount', '$targetAmount'] } });
+    const completed = await Goal.exists({
+      userId,
+      $expr: { $gte: ['$currentAmount', '$targetAmount'] },
+    });
     if (completed) {
       if (await award(userId, 'goal_completed')) newlyEarned.push('goal_completed');
     }
@@ -80,11 +83,8 @@ export async function checkAndAwardAchievements(userId: string): Promise<Achieve
     }
   }
 
-  const needsStreak = (
-    toCheck.includes('streak_7') ||
-    toCheck.includes('streak_30') ||
-    toCheck.includes('streak_100')
-  );
+  const needsStreak =
+    toCheck.includes('streak_7') || toCheck.includes('streak_30') || toCheck.includes('streak_100');
   if (needsStreak) {
     const streak = await computeBudgetStreak(userId);
     if (toCheck.includes('streak_7') && streak >= 7) {
@@ -119,17 +119,21 @@ export async function checkAndAwardAchievements(userId: string): Promise<Achieve
         category: { $ne: 'emergency' },
         date: { $gte: lastMonthStart, $lt: thisMonthStart },
       }).lean();
-      const monthlyBudgets = budgets.filter(b => (b.period ?? 'monthly') === 'monthly');
+      const monthlyBudgets = budgets.filter((b) => (b.period ?? 'monthly') === 'monthly');
       const spentByCat: Record<string, number> = {};
       let overall = 0;
       for (const t of txns) {
-        spentByCat[t.category ?? 'other'] = (spentByCat[t.category ?? 'other'] || 0) + Math.abs(t.amount);
+        spentByCat[t.category ?? 'other'] =
+          (spentByCat[t.category ?? 'other'] || 0) + Math.abs(t.amount);
         overall += Math.abs(t.amount);
       }
       let allOk = true;
       for (const b of monthlyBudgets) {
         const spent = b.category === 'overall' ? overall : (spentByCat[b.category] ?? 0);
-        if (spent > b.monthlyLimit) { allOk = false; break; }
+        if (spent > b.monthlyLimit) {
+          allOk = false;
+          break;
+        }
       }
       if (allOk && monthlyBudgets.length > 0) {
         const monthAgo = new Date();
@@ -149,9 +153,11 @@ export async function checkAndAwardAchievements(userId: string): Promise<Achieve
   return newlyEarned;
 }
 
-export async function listAchievements(userId: string): Promise<Array<{ key: string; earnedAt: string }>> {
+export async function listAchievements(
+  userId: string,
+): Promise<Array<{ key: string; earnedAt: string }>> {
   const rows = await Achievement.find({ userId }).select({ key: 1, earnedAt: 1 }).lean();
-  return rows.map(r => ({ key: r.key, earnedAt: new Date(r.earnedAt).toISOString() }));
+  return rows.map((r) => ({ key: r.key, earnedAt: new Date(r.earnedAt).toISOString() }));
 }
 
 /**

@@ -22,12 +22,12 @@ export function timeRangeBounds(range: TimeRange): { start: Date | null; end: Da
     case 'this-month':
       return {
         start: new Date(now.getFullYear(), now.getMonth(), 1),
-        end:   new Date(now.getFullYear(), now.getMonth() + 1, 1),
+        end: new Date(now.getFullYear(), now.getMonth() + 1, 1),
       };
     case 'last-month':
       return {
         start: new Date(now.getFullYear(), now.getMonth() - 1, 1),
-        end:   new Date(now.getFullYear(), now.getMonth(), 1),
+        end: new Date(now.getFullYear(), now.getMonth(), 1),
       };
   }
 }
@@ -48,5 +48,5 @@ export function formatRelative(dateStr: string): string {
 
 export function moodIdx(mood?: string): number {
   if (!mood) return -1;
-  return MOOD_KEYS.indexOf(mood as typeof MOOD_KEYS[number]);
+  return MOOD_KEYS.indexOf(mood as (typeof MOOD_KEYS)[number]);
 }

@@ -11,7 +11,13 @@ import {
 } from '../api/friends';
 import { getMyProfile } from '../api/profile';
 import { getMyAchievements, type Achievement } from '../api/achievements';
-import { cheer as apiCheer, uncheer as apiUncheer, getSentCheers, getCheersFor, type CheerUser } from '../api/cheers';
+import {
+  cheer as apiCheer,
+  uncheer as apiUncheer,
+  getSentCheers,
+  getCheersFor,
+  type CheerUser,
+} from '../api/cheers';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Highlight from '../components/Highlight';
@@ -19,12 +25,17 @@ import { useTheme } from '../hooks/useTheme';
 import { useProfileAvatar } from '../context/ProfileContext';
 import { achievementMessage } from '../lib/achievementMeta';
 import type { Friend, Requests, SearchResult } from '../types/friend';
+import type { Profile } from '../types/profile';
 import { PERIOD_LABELS } from '../types/budget';
 
 const AVATAR_PALETTE = ['#FFBDC2', '#FDFBD4', '#C5FFD8', '#C68BE1', '#C5ECF9', '#CBCBCB'];
 
 const initials = (name: string) =>
-  name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
+  name
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('') || '?';
 
 function IconHeart({ filled = false }: { filled?: boolean }) {
   return (
@@ -63,7 +74,6 @@ function IconFire() {
   );
 }
 
-
 export default function Friends() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
@@ -73,7 +83,7 @@ export default function Friends() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [requests, setRequests] = useState<Requests>({ incoming: [], outgoing: [] });
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [myStreak, setMyStreak] = useState(0);
   const [myAchievements, setMyAchievements] = useState<Achievement[]>([]);
 
@@ -85,44 +95,58 @@ export default function Friends() {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [likedAchievements, setLikedAchievements] = useState<Set<string>>(new Set());
-  const [likedByModal, setLikedByModal] = useState<{ key: string; users: CheerUser[]; loading: boolean } | null>(null);
+  const [likedByModal, setLikedByModal] = useState<{
+    key: string;
+    users: CheerUser[];
+    loading: boolean;
+  } | null>(null);
 
-  const openLikedBy = useCallback(async (key: string) => {
-    if (!profile?.id) return;
-    setLikedByModal({ key, users: [], loading: true });
-    try {
-      const users = await getCheersFor(profile.id, key);
-      setLikedByModal({ key, users, loading: false });
-    } catch {
-      setLikedByModal({ key, users: [], loading: false });
-    }
-  }, [profile?.id]);
+  const openLikedBy = useCallback(
+    async (key: string) => {
+      if (!profile?.id) return;
+      setLikedByModal({ key, users: [], loading: true });
+      try {
+        const users = await getCheersFor(profile.id, key);
+        setLikedByModal({ key, users, loading: false });
+      } catch {
+        setLikedByModal({ key, users: [], loading: false });
+      }
+    },
+    [profile?.id],
+  );
 
   const refreshSentCheers = useCallback(() => {
     getSentCheers()
-      .then(list => setLikedAchievements(new Set(list.map(c => `${c.toUserId}|${c.achievementKey}`))))
+      .then((list) =>
+        setLikedAchievements(new Set(list.map((c) => `${c.toUserId}|${c.achievementKey}`))),
+      )
       .catch(() => {});
   }, []);
 
-  const toggleCheer = useCallback(async (toUserId: string, key: string) => {
-    const id = `${toUserId}|${key}`;
-    const alreadyLiked = likedAchievements.has(id);
-    setLikedAchievements(s => {
-      const next = new Set(s);
-      if (alreadyLiked) next.delete(id); else next.add(id);
-      return next;
-    });
-    try {
-      if (alreadyLiked) await apiUncheer(toUserId, key);
-      else await apiCheer(toUserId, key);
-    } catch {
-      setLikedAchievements(s => {
+  const toggleCheer = useCallback(
+    async (toUserId: string, key: string) => {
+      const id = `${toUserId}|${key}`;
+      const alreadyLiked = likedAchievements.has(id);
+      setLikedAchievements((s) => {
         const next = new Set(s);
-        if (alreadyLiked) next.add(id); else next.delete(id);
+        if (alreadyLiked) next.delete(id);
+        else next.add(id);
         return next;
       });
-    }
-  }, [likedAchievements]);
+      try {
+        if (alreadyLiked) await apiUncheer(toUserId, key);
+        else await apiCheer(toUserId, key);
+      } catch {
+        setLikedAchievements((s) => {
+          const next = new Set(s);
+          if (alreadyLiked) next.add(id);
+          else next.delete(id);
+          return next;
+        });
+      }
+    },
+    [likedAchievements],
+  );
 
   useEffect(() => {
     if (!isPending && !session) navigate('/auth');
@@ -189,7 +213,9 @@ export default function Friends() {
   const handleAdd = async (addresseeId: string) => {
     try {
       await sendRequest(addresseeId);
-      setSearchResults((prev) => prev.map((r) => r.id === addresseeId ? { ...r, status: 'pending-out' } : r));
+      setSearchResults((prev) =>
+        prev.map((r) => (r.id === addresseeId ? { ...r, status: 'pending-out' } : r)),
+      );
       load();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to send request');
@@ -250,13 +276,21 @@ export default function Friends() {
           </div>
         </div>
         <p className="text-sm text-[var(--c-text-2)] mt-2 mb-8">
-          {friends.length} friend{friends.length === 1 ? '' : 's'} · cheering each other on without showing the dollar amounts.
+          {friends.length} friend{friends.length === 1 ? '' : 's'} · cheering each other on without
+          showing the dollar amounts.
         </p>
 
         {/* Achievements + Streak board */}
         {(() => {
           const myName = profile?.displayName || profile?.name || 'You';
-          const myEntry = { id: 'me', name: myName, streak: myStreak, isMe: true, color: myAvatarColor, image: myAvatarImage };
+          const myEntry = {
+            id: 'me',
+            name: myName,
+            streak: myStreak,
+            isMe: true,
+            color: myAvatarColor,
+            image: myAvatarImage,
+          };
           const friendEntries = friends.map((f) => ({
             id: f.id,
             name: f.displayName ?? 'Friend',
@@ -267,12 +301,28 @@ export default function Friends() {
           }));
           const everyone = [myEntry, ...friendEntries];
 
-          type Row = { id: string; key: string; toUserId: string; name: string; isMe: boolean; color: string; earnedAt: string; message: string; image?: string | null };
+          type Row = {
+            id: string;
+            key: string;
+            toUserId: string;
+            name: string;
+            isMe: boolean;
+            color: string;
+            earnedAt: string;
+            message: string;
+            image?: string | null;
+          };
           const feedRows: Row[] = [];
           for (const a of myAchievements) {
             feedRows.push({
-              id: `me-${a.key}`, key: a.key, toUserId: profile?.id ?? '', name: myName, isMe: true,
-              color: myAvatarColor, image: myAvatarImage, earnedAt: a.earnedAt,
+              id: `me-${a.key}`,
+              key: a.key,
+              toUserId: profile?.id ?? '',
+              name: myName,
+              isMe: true,
+              color: myAvatarColor,
+              image: myAvatarImage,
+              earnedAt: a.earnedAt,
               message: achievementMessage(a.key, true),
             });
           }
@@ -281,8 +331,14 @@ export default function Friends() {
             const fname = f.displayName ?? f.username ?? 'Friend';
             for (const a of f.achievements ?? []) {
               feedRows.push({
-                id: `${f.id}-${a.key}`, key: a.key, toUserId: f.id, name: fname, isMe: false,
-                color: f.avatarColor ?? AVATAR_PALETTE[i % AVATAR_PALETTE.length], image: f.avatarImage ?? null, earnedAt: a.earnedAt,
+                id: `${f.id}-${a.key}`,
+                key: a.key,
+                toUserId: f.id,
+                name: fname,
+                isMe: false,
+                color: f.avatarColor ?? AVATAR_PALETTE[i % AVATAR_PALETTE.length],
+                image: f.avatarImage ?? null,
+                earnedAt: a.earnedAt,
                 message: achievementMessage(a.key, false),
               });
             }
@@ -310,9 +366,15 @@ export default function Friends() {
                           className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
                           style={{ backgroundColor: e.image ? 'transparent' : e.color }}
                         >
-                          {e.image
-                            ? <img src={e.image} alt={e.name} className="w-full h-full object-cover" />
-                            : initials(e.name)}
+                          {e.image ? (
+                            <img
+                              src={e.image}
+                              alt={e.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            initials(e.name)
+                          )}
                         </div>
                         <p className="text-sm text-[var(--c-text)] truncate flex-1 min-w-0">
                           {e.isMe ? (
@@ -355,14 +417,18 @@ export default function Friends() {
                 <div className="flex flex-col gap-4">
                   {streakBoard.map((e, i) => (
                     <div key={e.id} className="flex items-center gap-3">
-                      <span className="text-xs font-bold text-[var(--c-tint-text-2)] w-6">#{i + 1}</span>
+                      <span className="text-xs font-bold text-[var(--c-tint-text-2)] w-6">
+                        #{i + 1}
+                      </span>
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-[3px] border-white text-[var(--c-tint-text)] flex-shrink-0 overflow-hidden"
                         style={{ backgroundColor: e.image ? 'transparent' : e.color }}
                       >
-                        {e.image
-                          ? <img src={e.image} alt={e.name} className="w-full h-full object-cover" />
-                          : initials(e.name)}
+                        {e.image ? (
+                          <img src={e.image} alt={e.name} className="w-full h-full object-cover" />
+                        ) : (
+                          initials(e.name)
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-[var(--c-tint-text)] truncate">
@@ -370,7 +436,9 @@ export default function Friends() {
                         </p>
                       </div>
                       <span className="text-sm font-semibold text-[var(--c-tint-text)] flex-shrink-0 inline-flex items-center gap-1">
-                        <span className="text-[#F97316]"><IconFire /></span>
+                        <span className="text-[#F97316]">
+                          <IconFire />
+                        </span>
                         {e.streak}d
                       </span>
                     </div>
@@ -396,93 +464,113 @@ export default function Friends() {
                   </p>
                 </div>
               ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {withBudgets.map((f, i) => {
-                  const name = f.displayName ?? f.username ?? 'Friend';
-                  const color = f.avatarColor ?? AVATAR_PALETTE[i % AVATAR_PALETTE.length];
-                  return (
-                    <div
-                      key={f.id}
-                      className="border border-[rgba(109,109,109,0.8)] rounded-3xl p-5 bg-[var(--c-card)]"
-                    >
-                      <div className="flex items-center gap-3 mb-4">
-                        <div
-                          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
-                          style={{ backgroundColor: f.avatarImage ? 'transparent' : color }}
-                        >
-                          {f.avatarImage
-                            ? <img src={f.avatarImage} alt={name} className="w-full h-full object-cover" />
-                            : initials(name)}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {withBudgets.map((f, i) => {
+                    const name = f.displayName ?? f.username ?? 'Friend';
+                    const color = f.avatarColor ?? AVATAR_PALETTE[i % AVATAR_PALETTE.length];
+                    return (
+                      <div
+                        key={f.id}
+                        className="border border-[rgba(109,109,109,0.8)] rounded-3xl p-5 bg-[var(--c-card)]"
+                      >
+                        <div className="flex items-center gap-3 mb-4">
+                          <div
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
+                            style={{ backgroundColor: f.avatarImage ? 'transparent' : color }}
+                          >
+                            {f.avatarImage ? (
+                              <img
+                                src={f.avatarImage}
+                                alt={name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              initials(name)
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-[var(--c-text)] truncate">
+                              {name}
+                            </p>
+                            <p className="text-xs text-[var(--c-text-2)]">
+                              {f.budgets.length} public budget{f.budgets.length === 1 ? '' : 's'}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-[var(--c-text)] truncate">{name}</p>
-                          <p className="text-xs text-[var(--c-text-2)]">
-                            {f.budgets.length} public budget{f.budgets.length === 1 ? '' : 's'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-3">
-                        {f.budgets.map((b) => {
-                          const pct = b.monthlyLimit > 0
-                            ? Math.min(100, Math.round((b.spent / b.monthlyLimit) * 100))
-                            : 0;
-                          const over = b.monthlyLimit > 0 && b.spent > b.monthlyLimit;
-                          const barColor = over
-                            ? 'bg-[var(--c-negative)]'
-                            : pct >= 90
-                              ? 'bg-[#F59E0B]'
-                              : 'bg-[var(--c-accent)]';
-                          return (
-                            <div key={b.id}>
-                              <div className="flex items-center justify-between gap-2 mb-1">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <span className="text-xs font-medium text-[var(--c-text)] capitalize truncate">
-                                    {b.category}
-                                  </span>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-[rgba(109,109,109,0.5)] text-[var(--c-text-2)] flex-shrink-0">
-                                    {PERIOD_LABELS[b.period]}
+                        <div className="flex flex-col gap-3">
+                          {f.budgets.map((b) => {
+                            const pct =
+                              b.monthlyLimit > 0
+                                ? Math.min(100, Math.round((b.spent / b.monthlyLimit) * 100))
+                                : 0;
+                            const over = b.monthlyLimit > 0 && b.spent > b.monthlyLimit;
+                            const barColor = over
+                              ? 'bg-[var(--c-negative)]'
+                              : pct >= 90
+                                ? 'bg-[#F59E0B]'
+                                : 'bg-[var(--c-accent)]';
+                            return (
+                              <div key={b.id}>
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-xs font-medium text-[var(--c-text)] capitalize truncate">
+                                      {b.category}
+                                    </span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-[rgba(109,109,109,0.5)] text-[var(--c-text-2)] flex-shrink-0">
+                                      {PERIOD_LABELS[b.period]}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs text-[var(--c-text-2)] flex-shrink-0">
+                                    {over ? 'Over budget' : `${pct}%`}
                                   </span>
                                 </div>
-                                <span className="text-xs text-[var(--c-text-2)] flex-shrink-0">
-                                  {over ? 'Over budget' : `${pct}%`}
-                                </span>
+                                <div className="w-full h-2 rounded-full overflow-hidden bg-[var(--c-border)]">
+                                  <div
+                                    style={{ width: `${pct}%` }}
+                                    className={`h-full rounded-full transition-all ${barColor}`}
+                                  />
+                                </div>
                               </div>
-                              <div className="w-full h-2 rounded-full overflow-hidden bg-[var(--c-border)]">
-                                <div
-                                  style={{ width: `${pct}%` }}
-                                  className={`h-full rounded-full transition-all ${barColor}`}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
               )}
             </section>
           );
         })()}
-
       </main>
 
       {/* Add a friend modal */}
       {showSearchModal && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) { setShowSearchModal(false); setSearchResults([]); setSearchError(''); } }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowSearchModal(false);
+              setSearchResults([]);
+              setSearchError('');
+            }
+          }}
         >
           <div className="w-full max-w-lg bg-[var(--c-card)] border border-[rgba(109,109,109,0.8)] rounded-3xl flex flex-col max-h-[90vh]">
             <div className="px-5 sm:px-7 pt-5 sm:pt-6 pb-3 flex justify-between items-start flex-shrink-0">
               <div>
                 <h2 className="text-2xl font-bold text-[var(--c-text)]">Add a friend</h2>
-                <p className="text-sm text-[var(--c-text-2)] mt-1">Search by display name or @username.</p>
+                <p className="text-sm text-[var(--c-text-2)] mt-1">
+                  Search by display name or @username.
+                </p>
               </div>
               <button
                 type="button"
-                onClick={() => { setShowSearchModal(false); setSearchResults([]); setSearchError(''); }}
+                onClick={() => {
+                  setShowSearchModal(false);
+                  setSearchResults([]);
+                  setSearchError('');
+                }}
                 aria-label="Close"
                 className="text-2xl leading-none text-[var(--c-text-2)] hover:text-[var(--c-text)] cursor-pointer px-2"
               >
@@ -501,17 +589,26 @@ export default function Friends() {
                   className="w-full px-4 py-2 pr-10 border border-[rgba(109,109,109,0.5)] rounded-2xl text-sm focus:outline-none focus:border-[var(--c-text)] bg-[var(--c-card)] text-[var(--c-text)] placeholder:text-[var(--c-text-2)] transition-colors"
                 />
                 {searching && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--c-text-2)] text-xs animate-pulse">…</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--c-text-2)] text-xs animate-pulse">
+                    …
+                  </span>
                 )}
               </form>
               {searchError && <p className="mt-3 text-sm text-[var(--c-expense)]">{searchError}</p>}
               {searchResults.length > 0 && (
                 <div className="mt-4 flex flex-col gap-2">
                   {searchResults.map((r) => (
-                    <div key={r.id} className="flex items-center justify-between gap-3 p-4 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[var(--c-card)]">
+                    <div
+                      key={r.id}
+                      className="flex items-center justify-between gap-3 p-4 border border-[rgba(109,109,109,0.5)] rounded-2xl bg-[var(--c-card)]"
+                    >
                       <div>
-                        <p className="font-medium text-[var(--c-text)]">{r.displayName ?? r.username ?? 'Unknown'}</p>
-                        {r.username && <p className="text-xs text-[var(--c-text-2)] mt-0.5">@{r.username}</p>}
+                        <p className="font-medium text-[var(--c-text)]">
+                          {r.displayName ?? r.username ?? 'Unknown'}
+                        </p>
+                        {r.username && (
+                          <p className="text-xs text-[var(--c-text-2)] mt-0.5">@{r.username}</p>
+                        )}
                       </div>
                       <SearchAction result={r} onAdd={handleAdd} />
                     </div>
@@ -521,10 +618,15 @@ export default function Friends() {
 
               {requests.outgoing.length > 0 && (
                 <div className="mt-6">
-                  <h3 className="text-xs font-semibold mb-3 text-[var(--c-text-2)] uppercase tracking-wide">Sent</h3>
+                  <h3 className="text-xs font-semibold mb-3 text-[var(--c-text-2)] uppercase tracking-wide">
+                    Sent
+                  </h3>
                   <div className="flex flex-col gap-2">
                     {requests.outgoing.map((r) => (
-                      <div key={r.id} className="flex items-center justify-between gap-2 p-3 rounded-2xl border border-[rgba(109,109,109,0.5)] bg-[var(--c-card)]">
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between gap-2 p-3 rounded-2xl border border-[rgba(109,109,109,0.5)] bg-[var(--c-card)]"
+                      >
                         <span className="text-sm text-[var(--c-text)] truncate">
                           {r.displayName ?? 'Unknown'}
                         </span>
@@ -548,13 +650,17 @@ export default function Friends() {
       {showFriendsModal && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowFriendsModal(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowFriendsModal(false);
+          }}
         >
           <div className="w-full max-w-lg bg-[var(--c-card)] border border-[rgba(109,109,109,0.8)] rounded-3xl flex flex-col max-h-[90vh]">
             <div className="px-5 sm:px-7 pt-5 sm:pt-6 pb-3 flex justify-between items-start flex-shrink-0">
               <div>
                 <h2 className="text-2xl font-bold text-[var(--c-text)]">Your friends</h2>
-                <p className="text-sm text-[var(--c-text-2)] mt-1">{friends.length} friend{friends.length === 1 ? '' : 's'}</p>
+                <p className="text-sm text-[var(--c-text-2)] mt-1">
+                  {friends.length} friend{friends.length === 1 ? '' : 's'}
+                </p>
               </div>
               <button
                 type="button"
@@ -584,12 +690,20 @@ export default function Friends() {
                           className="w-11 h-11 rounded-full flex items-center justify-center font-bold border-[3px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
                           style={{ backgroundColor: friend.avatarImage ? 'transparent' : color }}
                         >
-                          {friend.avatarImage
-                            ? <img src={friend.avatarImage} alt={name} className="w-full h-full object-cover" />
-                            : initials(name)}
+                          {friend.avatarImage ? (
+                            <img
+                              src={friend.avatarImage}
+                              alt={name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            initials(name)
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[var(--c-text)] truncate">{name}</p>
+                          <p className="text-sm font-semibold text-[var(--c-text)] truncate">
+                            {name}
+                          </p>
                         </div>
                         <button
                           onClick={() => handleUnfriend(friend.id, name)}
@@ -610,13 +724,17 @@ export default function Friends() {
       {likedByModal && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setLikedByModal(null); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setLikedByModal(null);
+          }}
         >
           <div className="w-full max-w-sm bg-[var(--c-card)] border border-[rgba(109,109,109,0.8)] rounded-3xl">
             <div className="px-5 sm:px-7 pt-5 sm:pt-6 pb-3 flex justify-between items-start">
               <div>
                 <h2 className="text-xl font-bold text-[var(--c-text)]">Liked by</h2>
-                <p className="text-xs text-[var(--c-text-2)] mt-1">Friends who cheered your achievement.</p>
+                <p className="text-xs text-[var(--c-text-2)] mt-1">
+                  Friends who cheered your achievement.
+                </p>
               </div>
               <button
                 type="button"
@@ -645,8 +763,12 @@ export default function Friends() {
                         >
                           {initials(name)}
                         </div>
-                        <p className="text-sm font-medium text-[var(--c-text)] flex-1 truncate">{name}</p>
-                        <span className="flex-shrink-0 text-[#E11D48]"><IconHeart filled /></span>
+                        <p className="text-sm font-medium text-[var(--c-text)] flex-1 truncate">
+                          {name}
+                        </p>
+                        <span className="flex-shrink-0 text-[#E11D48]">
+                          <IconHeart filled />
+                        </span>
                       </div>
                     );
                   })}
@@ -662,13 +784,7 @@ export default function Friends() {
   );
 }
 
-function SearchAction({
-  result,
-  onAdd,
-}: {
-  result: SearchResult;
-  onAdd: (id: string) => void;
-}) {
+function SearchAction({ result, onAdd }: { result: SearchResult; onAdd: (id: string) => void }) {
   switch (result.status) {
     case 'self':
       return <span className="text-sm text-[var(--c-text-2)]">That's you</span>;

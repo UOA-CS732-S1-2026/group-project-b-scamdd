@@ -6,11 +6,7 @@ import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
 import { logger } from '../lib/logger.js';
 import { validate } from '../middleware/validate.js';
-import {
-  contributeGoalSchema,
-  createGoalSchema,
-  updateGoalSchema,
-} from '../schemas/goals.js';
+import { contributeGoalSchema, createGoalSchema, updateGoalSchema } from '../schemas/goals.js';
 import { idParam } from '../schemas/common.js';
 
 const router = Router();

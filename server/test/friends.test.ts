@@ -50,9 +50,7 @@ describe('friend request lifecycle', () => {
 
   it('A requests B, B accepts, both see each other as friends', async () => {
     setAuthUser(userA);
-    const req1 = await request(app)
-      .post('/api/friends/requests')
-      .send({ addresseeId: userB });
+    const req1 = await request(app).post('/api/friends/requests').send({ addresseeId: userB });
     expect(req1.status).toBe(201);
 
     setAuthUser(userB);

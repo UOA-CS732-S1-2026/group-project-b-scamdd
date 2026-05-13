@@ -8,11 +8,7 @@ import { HttpError } from '../lib/httpError.js';
 import { logger } from '../lib/logger.js';
 import { cascadeDeleteUser } from '../lib/userCascade.js';
 import { validate } from '../middleware/validate.js';
-import {
-  checkUsernameQuery,
-  updateProfileSchema,
-  usernameParam,
-} from '../schemas/profile.js';
+import { checkUsernameQuery, updateProfileSchema, usernameParam } from '../schemas/profile.js';
 
 const router = Router();
 
@@ -133,29 +129,42 @@ router.patch(
     // can never wipe them when it updates the user document.
     const userId = req.user!._id;
     const avatarPatch: Record<string, unknown> = {};
-    if (updates.avatarColor !== undefined) { avatarPatch.avatarColor = updates.avatarColor; delete updates.avatarColor; }
-    if (updates.avatarImage !== undefined) { avatarPatch.avatarImage = updates.avatarImage; delete updates.avatarImage; }
+    if (updates.avatarColor !== undefined) {
+      avatarPatch.avatarColor = updates.avatarColor;
+      delete updates.avatarColor;
+    }
+    if (updates.avatarImage !== undefined) {
+      avatarPatch.avatarImage = updates.avatarImage;
+      delete updates.avatarImage;
+    }
 
     // Upsert avatar data (always, even when nothing else changes)
-    const avatarPromise = Object.keys(avatarPatch).length > 0
-      ? UserAvatar.findOneAndUpdate(
-          { userId },
-          { $set: avatarPatch },
-          { upsert: true, new: true },
-        ).lean()
-      : UserAvatar.findOne({ userId }).lean();
+    const avatarPromise =
+      Object.keys(avatarPatch).length > 0
+        ? UserAvatar.findOneAndUpdate(
+            { userId },
+            { $set: avatarPatch },
+            { upsert: true, new: true },
+          ).lean()
+        : UserAvatar.findOne({ userId }).lean();
 
     // Update user doc for remaining fields (if any)
-    const userPromise = Object.keys(updates).length > 0
-      ? User.findByIdAndUpdate(userId, { $set: updates }, { new: true }).lean()
-      : User.findById(userId).lean();
+    const userPromise =
+      Object.keys(updates).length > 0
+        ? User.findByIdAndUpdate(userId, { $set: updates }, { new: true }).lean()
+        : User.findById(userId).lean();
 
     let user;
     let userAvatar;
     try {
       [user, userAvatar] = await Promise.all([userPromise, avatarPromise]);
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'code' in err &&
+        (err as { code: number }).code === 11000
+      ) {
         throw HttpError.conflict('Username is taken');
       }
       throw err;
@@ -184,7 +193,9 @@ router.get(
   requireAuth,
   validate({ query: checkUsernameQuery }),
   asyncHandler(async (req: Request, res: Response) => {
-    const raw = String((req.query as { u?: string }).u ?? '').toLowerCase().trim();
+    const raw = String((req.query as { u?: string }).u ?? '')
+      .toLowerCase()
+      .trim();
     if (!USERNAME_RE.test(raw)) {
       res.json({ available: false, reason: 'invalid' });
       return;

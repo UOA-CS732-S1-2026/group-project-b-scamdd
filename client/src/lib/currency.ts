@@ -1,7 +1,7 @@
 /** All amounts in the DB are stored in NZD. These rates convert FROM NZD. */
 export const FROM_NZD: Record<string, number> = {
   NZD: 1,
-  USD: 0.60,
+  USD: 0.6,
   AUD: 0.85,
   EUR: 0.51,
   GBP: 0.44,
@@ -50,5 +50,7 @@ export function fmtYAxis(nzdValue: number, currency: string): string {
   const v = convertFromNZD(nzdValue, currency);
   const sign = v < 0 ? '-' : '';
   const abs = Math.abs(v);
-  return abs >= 1000 ? `${sign}${sym}${(abs / 1000).toFixed(1)}k` : `${sign}${sym}${abs.toFixed(0)}`;
+  return abs >= 1000
+    ? `${sign}${sym}${(abs / 1000).toFixed(1)}k`
+    : `${sign}${sym}${abs.toFixed(0)}`;
 }

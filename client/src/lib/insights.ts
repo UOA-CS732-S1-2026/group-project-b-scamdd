@@ -108,10 +108,13 @@ export function statsToInsights(stats: WrappedStats): InsightCard[] {
   }
 
   const moodLabel =
-    stats.moodAvg >= 4.5 ? 'You were on cloud nine 😊' :
-    stats.moodAvg >= 3.5 ? 'Overall pretty good vibes 🙂' :
-    stats.moodAvg >= 2.5 ? 'Mixed feelings this month 😐' :
-    'Rough month spending-wise 😕';
+    stats.moodAvg >= 4.5
+      ? 'You were on cloud nine 😊'
+      : stats.moodAvg >= 3.5
+        ? 'Overall pretty good vibes 🙂'
+        : stats.moodAvg >= 2.5
+          ? 'Mixed feelings this month 😐'
+          : 'Rough month spending-wise 😕';
 
   cards.push({
     id: 'mood',

@@ -11,13 +11,9 @@ export default function HeroTitle({ highlight, rest, subtitle }: HeroTitleProps)
         <span className="inline-block px-4 py-1 rounded-2xl bg-[var(--c-accent)] text-[var(--c-tint-text)]">
           {highlight}
         </span>
-        {rest && (
-          <span className="ml-3 text-[var(--c-text)]">{rest}</span>
-        )}
+        {rest && <span className="ml-3 text-[var(--c-text)]">{rest}</span>}
       </h1>
-      {subtitle && (
-        <p className="text-sm mt-3 text-[var(--c-text-2)]">{subtitle}</p>
-      )}
+      {subtitle && <p className="text-sm mt-3 text-[var(--c-text-2)]">{subtitle}</p>}
     </div>
   );
 }

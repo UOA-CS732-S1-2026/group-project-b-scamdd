@@ -57,7 +57,10 @@ export default function ProfileSetup() {
   useEffect(() => {
     if (usernameDebounceRef.current) window.clearTimeout(usernameDebounceRef.current);
     const u = username.trim().toLowerCase();
-    if (!u) { setUsernameNote(null); return; }
+    if (!u) {
+      setUsernameNote(null);
+      return;
+    }
     if (!USERNAME_RE.test(u)) {
       setUsernameNote({ ok: false, msg: 'Use 3–20 lowercase letters, numbers, or _' });
       return;
@@ -66,11 +69,20 @@ export default function ProfileSetup() {
     usernameDebounceRef.current = window.setTimeout(async () => {
       try {
         const { available, reason } = await checkUsername(u);
-        setUsernameNote(available ? { ok: true, msg: '@' + u + ' is available' } : { ok: false, msg: reason ?? 'Username is taken' });
-      } catch { setUsernameNote(null); }
-      finally { setCheckingUsername(false); }
+        setUsernameNote(
+          available
+            ? { ok: true, msg: '@' + u + ' is available' }
+            : { ok: false, msg: reason ?? 'Username is taken' },
+        );
+      } catch {
+        setUsernameNote(null);
+      } finally {
+        setCheckingUsername(false);
+      }
     }, 400);
-    return () => { if (usernameDebounceRef.current) window.clearTimeout(usernameDebounceRef.current); };
+    return () => {
+      if (usernameDebounceRef.current) window.clearTimeout(usernameDebounceRef.current);
+    };
   }, [username]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -122,104 +134,117 @@ export default function ProfileSetup() {
     <div className="h-screen overflow-hidden bg-[var(--c-bg)] flex flex-col">
       <header className="z-40 backdrop-blur bg-[color-mix(in_srgb,var(--c-bg)_85%,transparent)] border-b border-[var(--c-border)]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between min-h-[32px]">
-          <Link to="/" className="flex items-center cursor-pointer hover:opacity-75 transition-opacity">
+          <Link
+            to="/"
+            className="flex items-center cursor-pointer hover:opacity-75 transition-opacity"
+          >
             <FeltWordmark size="md" />
           </Link>
         </div>
       </header>
       <div className="flex-1 min-h-0 flex items-start justify-center px-3 sm:px-6 pt-4 sm:pt-6 pb-4">
         <div className="w-full max-w-md max-h-full overflow-y-auto bg-[var(--c-card)] border border-[var(--c-border)] rounded-3xl pt-4 px-5 sm:px-7 pb-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-[var(--c-text)] text-center mb-1">
-          Finish setting up your profile
-        </h1>
-        <p className="text-sm text-[var(--c-text-2)] text-center mb-6">
-          Add a few basics so friends can find you.
-        </p>
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-          <div className={fieldCls}>
-            <label htmlFor="username" className={labelCls}>
-              Username <span className="text-[var(--c-text-2)] font-normal">(permanent, starts with @)</span>
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--c-text-2)] text-sm select-none">@</span>
+          <h1 className="text-2xl font-bold text-[var(--c-text)] text-center mb-1">
+            Finish setting up your profile
+          </h1>
+          <p className="text-sm text-[var(--c-text-2)] text-center mb-6">
+            Add a few basics so friends can find you.
+          </p>
+          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+            <div className={fieldCls}>
+              <label htmlFor="username" className={labelCls}>
+                Username{' '}
+                <span className="text-[var(--c-text-2)] font-normal">
+                  (permanent, starts with @)
+                </span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--c-text-2)] text-sm select-none">
+                  @
+                </span>
+                <input
+                  id="username"
+                  type="text"
+                  className={`${inputCls} pl-7 ${usernameNote && !usernameNote.ok ? 'border-red-400' : usernameNote?.ok ? 'border-green-500' : ''}`}
+                  value={username}
+                  onChange={(e) =>
+                    setUsername(e.target.value.replace(/^@/, '').replace(/\s/g, '').toLowerCase())
+                  }
+                  placeholder="yourname"
+                  maxLength={20}
+                  autoComplete="off"
+                />
+              </div>
+              {checkingUsername && <p className="text-xs text-[var(--c-text-2)]">Checking…</p>}
+              {usernameNote && !checkingUsername && (
+                <p className={`text-xs ${usernameNote.ok ? 'text-green-600' : 'text-red-500'}`}>
+                  {usernameNote.msg}
+                </p>
+              )}
+            </div>
+
+            <div className={fieldCls}>
+              <label htmlFor="display-name" className={labelCls}>
+                Display name{' '}
+                <span className="text-[var(--c-text-2)] font-normal">(changeable later)</span>
+              </label>
               <input
-                id="username"
+                id="display-name"
                 type="text"
-                className={`${inputCls} pl-7 ${usernameNote && !usernameNote.ok ? 'border-red-400' : usernameNote?.ok ? 'border-green-500' : ''}`}
-                value={username}
-                onChange={(e) => setUsername(e.target.value.replace(/^@/, '').replace(/\s/g, '').toLowerCase())}
-                placeholder="yourname"
-                maxLength={20}
-                autoComplete="off"
+                className={inputCls}
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Your name"
+                required
+                maxLength={50}
               />
             </div>
-            {checkingUsername && <p className="text-xs text-[var(--c-text-2)]">Checking…</p>}
-            {usernameNote && !checkingUsername && (
-              <p className={`text-xs ${usernameNote.ok ? 'text-green-600' : 'text-red-500'}`}>{usernameNote.msg}</p>
-            )}
-          </div>
 
-          <div className={fieldCls}>
-            <label htmlFor="display-name" className={labelCls}>
-              Display name <span className="text-[var(--c-text-2)] font-normal">(changeable later)</span>
-            </label>
-            <input
-              id="display-name"
-              type="text"
-              className={inputCls}
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Your name"
-              required
-              maxLength={50}
-            />
-          </div>
+            <div className={fieldCls}>
+              <label htmlFor="bio" className={labelCls}>
+                Bio <span className="text-[var(--c-text-2)] font-normal">(optional)</span>
+              </label>
+              <textarea
+                id="bio"
+                className={`${inputCls} resize-none`}
+                rows={2}
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                maxLength={200}
+                placeholder="Saving for a holiday in 2026"
+              />
+            </div>
 
-          <div className={fieldCls}>
-            <label htmlFor="bio" className={labelCls}>
-              Bio <span className="text-[var(--c-text-2)] font-normal">(optional)</span>
-            </label>
-            <textarea
-              id="bio"
-              className={`${inputCls} resize-none`}
-              rows={2}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              maxLength={200}
-              placeholder="Saving for a holiday in 2026"
-            />
-          </div>
+            <div className={fieldCls}>
+              <label htmlFor="currency" className={labelCls}>
+                Currency
+              </label>
+              <select
+                id="currency"
+                className={inputCls}
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className={fieldCls}>
-            <label htmlFor="currency" className={labelCls}>
-              Currency
-            </label>
-            <select
-              id="currency"
-              className={inputCls}
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
+            {/* TODO: avatar upload */}
+
+            {error && <p className="text-sm text-[var(--c-expense)] m-0">{error}</p>}
+
+            <button
+              type="submit"
+              className="px-5 py-2.5 rounded-[20px] bg-[var(--c-text)] text-[var(--c-bg)] border border-[var(--c-text)] text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              disabled={submitting}
             >
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* TODO: avatar upload */}
-
-          {error && <p className="text-sm text-[var(--c-expense)] m-0">{error}</p>}
-
-          <button
-            type="submit"
-            className="px-5 py-2.5 rounded-[20px] bg-[var(--c-text)] text-[var(--c-bg)] border border-[var(--c-text)] text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            disabled={submitting}
-          >
-            {submitting ? 'Saving…' : 'Continue'}
-          </button>
-        </form>
+              {submitting ? 'Saving…' : 'Continue'}
+            </button>
+          </form>
         </div>
       </div>
     </div>

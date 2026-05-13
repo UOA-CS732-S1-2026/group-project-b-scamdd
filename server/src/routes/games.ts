@@ -26,9 +26,7 @@ router.post(
     const { game, score } = req.body as { game: GameName; score: number };
     if (score > MAX_SCORE_BY_GAME[game]) {
       logger.warn({ userId: meId, game, score }, 'rejected impossible game score');
-      throw HttpError.badRequest(
-        `score must be <= ${MAX_SCORE_BY_GAME[game]} for game "${game}"`,
-      );
+      throw HttpError.badRequest(`score must be <= ${MAX_SCORE_BY_GAME[game]} for game "${game}"`);
     }
     await GameScore.create({ userId: meId, game, score });
     res.json({ ok: true });

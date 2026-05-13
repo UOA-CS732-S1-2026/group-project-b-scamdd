@@ -12,8 +12,8 @@ export default function ContactPage() {
           className="text-base sm:text-lg text-[var(--c-text-2)] leading-relaxed"
           style={{ marginBottom: '36px' }}
         >
-          We&apos;d love to hear from you. Whether you have questions, feedback, or just
-          want to say hi.
+          We&apos;d love to hear from you. Whether you have questions, feedback, or just want to say
+          hi.
         </p>
 
         <div className="flex flex-wrap gap-3 text-sm text-[var(--c-text)] mb-10">
@@ -41,8 +41,8 @@ export default function ContactPage() {
         </div>
 
         <Section title="Get in touch">
-          Have a question about how felt works? Running into a bug? Want to suggest a
-          feature? We&apos;re here to help. Send us an email at{' '}
+          Have a question about how felt works? Running into a bug? Want to suggest a feature?
+          We&apos;re here to help. Send us an email at{' '}
           <a
             href="mailto:hello@felt.app"
             className="font-semibold text-[var(--c-text-2)] hover:underline"
@@ -53,22 +53,20 @@ export default function ContactPage() {
         </Section>
 
         <Section title="Share your feedback">
-          felt is built for people who want to understand their relationship with money.
-          Your feedback shapes how we build the product. Tell us what&apos;s working,
-          what&apos;s confusing, or what features would make felt more useful for you.
-          Every piece of feedback gets read by our team.
+          felt is built for people who want to understand their relationship with money. Your
+          feedback shapes how we build the product. Tell us what&apos;s working, what&apos;s
+          confusing, or what features would make felt more useful for you. Every piece of feedback
+          gets read by our team.
         </Section>
 
         <Section title="Report a bug">
-          Found something that&apos;s not working right? We want to know. When reporting a
-          bug, it helps if you can tell us what you were doing when it happened, what you
-          expected to happen, and what actually happened. Screenshots are always
-          appreciated too.
+          Found something that&apos;s not working right? We want to know. When reporting a bug, it
+          helps if you can tell us what you were doing when it happened, what you expected to
+          happen, and what actually happened. Screenshots are always appreciated too.
         </Section>
 
         <Section title="Business inquiries">
-          For partnerships, press inquiries, or other business related questions, reach
-          out to{' '}
+          For partnerships, press inquiries, or other business related questions, reach out to{' '}
           <a
             href="mailto:business@felt.co.nz"
             className="font-semibold text-[var(--c-text-2)] hover:underline"

@@ -44,7 +44,7 @@ export const colors = {
     border: 'rgba(255,255,255,0.07)',
     borderStrong: 'rgba(255,255,255,0.12)',
   },
-  
+
   semantic: {
     income: '#1D9E75',
     incomeLight: '#E1F5EE',

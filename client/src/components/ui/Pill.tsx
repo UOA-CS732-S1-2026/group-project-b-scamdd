@@ -1,5 +1,8 @@
 export default function Pill({
-  active, onClick, children, ...rest
+  active,
+  onClick,
+  children,
+  ...rest
 }: {
   active: boolean;
   onClick: () => void;
