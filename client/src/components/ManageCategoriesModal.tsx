@@ -116,7 +116,10 @@ export default function ManageCategoriesModal({ userCategories, onBack, onChange
         {userCategories.length > 0 && (
           <div className="flex flex-col gap-2">
             {userCategories.map((cat) => (
-              <div key={cat._id} className="rounded-2xl border border-[rgba(109,109,109,0.5)] bg-[var(--c-surface,var(--c-card))] p-3">
+              <div
+                key={cat._id}
+                className="rounded-2xl border border-[rgba(109,109,109,0.5)] bg-[var(--c-surface,var(--c-card))] p-3"
+              >
                 {editingId === cat._id ? (
                   <div className="flex flex-col gap-3">
                     <input
@@ -148,8 +151,13 @@ export default function ManageCategoriesModal({ userCategories, onBack, onChange
                   </div>
                 ) : (
                   <div className="flex items-center gap-3">
-                    <span className="w-5 h-5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
-                    <span className="flex-1 text-sm font-medium text-[var(--c-text)] capitalize">{cat.name}</span>
+                    <span
+                      className="w-5 h-5 rounded-full flex-shrink-0"
+                      style={{ background: cat.color }}
+                    />
+                    <span className="flex-1 text-sm font-medium text-[var(--c-text)] capitalize">
+                      {cat.name}
+                    </span>
                     <button
                       type="button"
                       onClick={() => startEdit(cat)}
@@ -172,7 +180,10 @@ export default function ManageCategoriesModal({ userCategories, onBack, onChange
           </div>
         )}
 
-        <form onSubmit={handleCreate} className="flex flex-col gap-3 pt-2 border-t border-[rgba(109,109,109,0.3)]">
+        <form
+          onSubmit={handleCreate}
+          className="flex flex-col gap-3 pt-2 border-t border-[rgba(109,109,109,0.3)]"
+        >
           <p className="text-sm font-semibold text-[var(--c-text)]">New category</p>
           <input
             type="text"

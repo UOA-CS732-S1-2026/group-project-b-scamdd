@@ -1,12 +1,16 @@
 import { z } from 'zod';
-import {
-  MAX_AMOUNT,
-  MAX_NAME,
-  budgetPeriodSchema,
-  objectIdLikeString,
-} from './common.js';
+import { MAX_AMOUNT, MAX_NAME, budgetPeriodSchema, objectIdLikeString } from './common.js';
 
-const ALLOWED = ['food', 'rent', 'transport', 'entertainment', 'utilities', 'shopping', 'health', 'other'] as const;
+const ALLOWED = [
+  'food',
+  'rent',
+  'transport',
+  'entertainment',
+  'utilities',
+  'shopping',
+  'health',
+  'other',
+] as const;
 const shareableCategory = z.enum(ALLOWED);
 
 const limit = z.number().positive().finite().max(MAX_AMOUNT);

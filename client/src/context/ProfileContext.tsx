@@ -25,7 +25,9 @@ export function ProfileAvatarProvider({
   const [avatarImage, setAvatarImage] = useState<string | null>(initial.avatarImage);
 
   return (
-    <ProfileAvatarContext.Provider value={{ avatarColor, avatarImage, setAvatarColor, setAvatarImage }}>
+    <ProfileAvatarContext.Provider
+      value={{ avatarColor, avatarImage, setAvatarColor, setAvatarImage }}
+    >
       {children}
     </ProfileAvatarContext.Provider>
   );

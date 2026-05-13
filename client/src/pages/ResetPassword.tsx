@@ -23,12 +23,18 @@ export default function ResetPassword() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (password !== confirm) { setError('Passwords do not match'); return; }
+    if (password !== confirm) {
+      setError('Passwords do not match');
+      return;
+    }
     setError('');
     setLoading(true);
     const { error: authError } = await resetPassword({ newPassword: password, token });
     setLoading(false);
-    if (authError) { setError(authError.message || 'Reset failed. The link may have expired.'); return; }
+    if (authError) {
+      setError(authError.message || 'Reset failed. The link may have expired.');
+      return;
+    }
     setDone(true);
   }
 
@@ -48,12 +54,28 @@ export default function ResetPassword() {
           aria-label="Toggle theme"
         >
           {isDark ? (
-            <svg width="14" height="14" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 15 15"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            >
               <circle cx="7.5" cy="7.5" r="2.5" />
               <path d="M7.5 1v1.5M7.5 12.5V14M1 7.5h1.5M12.5 7.5H14M2.93 2.93l1.06 1.06M11.01 11.01l1.06 1.06M2.93 12.07l1.06-1.06M11.01 3.99l1.06-1.06" />
             </svg>
           ) : (
-            <svg width="14" height="14" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 15 15"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            >
               <path d="M12.5 10A6 6 0 0 1 5 2.5a6 6 0 1 0 7.5 7.5z" />
             </svg>
           )}
@@ -62,11 +84,12 @@ export default function ResetPassword() {
 
       <div className="flex-1 flex items-center justify-center px-3 sm:px-6 pb-12">
         <div className="w-full max-w-sm bg-[var(--c-card)] border border-[var(--c-border)] rounded-3xl p-6 sm:p-8 shadow-sm">
-
           {!token ? (
             <>
               <h1 className="text-xl font-bold text-[var(--c-text)] mb-2">Invalid link</h1>
-              <p className="text-sm text-[var(--c-text-2)] mb-6">This reset link is missing or invalid.</p>
+              <p className="text-sm text-[var(--c-text-2)] mb-6">
+                This reset link is missing or invalid.
+              </p>
               <button className={primaryBtn} onClick={() => navigate('/auth?tab=signin')}>
                 Back to sign in
               </button>
@@ -74,7 +97,9 @@ export default function ResetPassword() {
           ) : done ? (
             <>
               <h1 className="text-xl font-bold text-[var(--c-text)] mb-2">Password updated</h1>
-              <p className="text-sm text-[var(--c-text-2)] mb-6">Your password has been reset successfully.</p>
+              <p className="text-sm text-[var(--c-text-2)] mb-6">
+                Your password has been reset successfully.
+              </p>
               <button className={primaryBtn} onClick={() => navigate('/auth?tab=signin')}>
                 Sign in
               </button>
@@ -82,19 +107,41 @@ export default function ResetPassword() {
           ) : (
             <>
               <h1 className="text-xl font-bold text-[var(--c-text)] mb-0.5">Set new password</h1>
-              <p className="text-sm text-[var(--c-text-2)] mb-6">Choose a strong password for your account.</p>
+              <p className="text-sm text-[var(--c-text-2)] mb-6">
+                Choose a strong password for your account.
+              </p>
               <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="new-password" className={labelCls}>New password</label>
-                  <input id="new-password" type="password" className={inputCls} value={password}
-                    onChange={e => setPassword(e.target.value)} required minLength={8}
-                    autoComplete="new-password" placeholder="••••••••" />
+                  <label htmlFor="new-password" className={labelCls}>
+                    New password
+                  </label>
+                  <input
+                    id="new-password"
+                    type="password"
+                    className={inputCls}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    placeholder="••••••••"
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="confirm-password" className={labelCls}>Confirm password</label>
-                  <input id="confirm-password" type="password" className={inputCls} value={confirm}
-                    onChange={e => setConfirm(e.target.value)} required minLength={8}
-                    autoComplete="new-password" placeholder="••••••••" />
+                  <label htmlFor="confirm-password" className={labelCls}>
+                    Confirm password
+                  </label>
+                  <input
+                    id="confirm-password"
+                    type="password"
+                    className={inputCls}
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    placeholder="••••••••"
+                  />
                 </div>
                 {error && <p className="text-sm text-[var(--c-expense)]">{error}</p>}
                 <button type="submit" className={primaryBtn} disabled={loading}>

@@ -43,7 +43,12 @@ type SharedBudgetPlain = {
   category: string;
   monthlyLimit: number;
   period: BudgetPeriod;
-  members: Array<{ userId: string; status: 'pending' | 'accepted'; invitedBy: string; joinedAt?: Date }>;
+  members: Array<{
+    userId: string;
+    status: 'pending' | 'accepted';
+    invitedBy: string;
+    joinedAt?: Date;
+  }>;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -120,13 +125,7 @@ router.post(
   validate({ body: createSharedBudgetSchema }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const {
-      name,
-      category,
-      monthlyLimit,
-      period,
-      inviteUserIds,
-    } = req.body as {
+    const { name, category, monthlyLimit, period, inviteUserIds } = req.body as {
       name?: string;
       category: string;
       monthlyLimit: number;

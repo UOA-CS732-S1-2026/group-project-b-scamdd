@@ -3,14 +3,14 @@ import type { BudgetPeriod } from '../types/budget';
 import { PERIOD_LABELS } from '../types/budget';
 
 const CAT_COLORS: Record<string, string> = {
-  food:          '#FFBDC2',
-  rent:          '#FDFBD4',
-  transport:     '#C5FFD8',
+  food: '#FFBDC2',
+  rent: '#FDFBD4',
+  transport: '#C5FFD8',
   entertainment: '#C68BE1',
-  utilities:     '#C5ECF9',
-  shopping:      '#CBCBCB',
-  health:        '#FFBDC2',
-  other:         '#CBCBCB',
+  utilities: '#C5ECF9',
+  shopping: '#CBCBCB',
+  health: '#FFBDC2',
+  other: '#CBCBCB',
 };
 
 const AVATAR_PALETTE = ['#FFBDC2', '#FDFBD4', '#C5FFD8', '#C68BE1', '#C5ECF9', '#CBCBCB'];
@@ -22,7 +22,11 @@ function hashIndex(id: string, mod: number) {
 }
 
 const initials = (name: string) =>
-  name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
+  name
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('') || '?';
 
 function memberColor(userId: string) {
   return AVATAR_PALETTE[hashIndex(userId, AVATAR_PALETTE.length)];
@@ -136,7 +140,12 @@ function MiniPie({ slices, size = 64 }: { slices: PieSlice[]; size?: number }) {
   }
   let acc = 0;
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-label="Per-member contribution">
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      aria-label="Per-member contribution"
+    >
       {slices.map((s, i) => {
         const startAngle = (acc / total) * Math.PI * 2;
         acc += s.value;
@@ -176,7 +185,9 @@ export default function SharedBudgetCard({
   const acceptedMembers = budget.members.filter((m) => m.status === 'accepted');
   const pendingMembers = budget.members.filter((m) => m.status === 'pending');
 
-  const isPendingForMe = Boolean(meId && budget.members.find((m) => m.userId === meId && m.status === 'pending'));
+  const isPendingForMe = Boolean(
+    meId && budget.members.find((m) => m.userId === meId && m.status === 'pending'),
+  );
   const isAcceptedMember = Boolean(meId && acceptedMembers.find((m) => m.userId === meId));
 
   // Segments: one per accepted member, in stable order by userId; width = amount / monthlyLimit
@@ -185,10 +196,17 @@ export default function SharedBudgetCard({
     .map((m) => ({ value: m.amount, color: memberColor(m.userId), label: memberLabel(m) }));
 
   const segments = acceptedMembers.map((m) => {
-    const width = budget.monthlyLimit > 0
-      ? Math.max(0, Math.min(100, (m.amount / budget.monthlyLimit) * 100))
-      : 0;
-    return { id: m.userId, width, color: memberColor(m.userId), label: memberLabel(m), amount: m.amount };
+    const width =
+      budget.monthlyLimit > 0
+        ? Math.max(0, Math.min(100, (m.amount / budget.monthlyLimit) * 100))
+        : 0;
+    return {
+      id: m.userId,
+      width,
+      color: memberColor(m.userId),
+      label: memberLabel(m),
+      amount: m.amount,
+    };
   });
 
   // Stack widths; bar is capped at 100% overall via overflow-hidden track.
@@ -196,7 +214,10 @@ export default function SharedBudgetCard({
     <div
       key={seg.id}
       title={`${seg.label}: $${seg.amount.toFixed(2)}`}
-      style={{ width: `${seg.width}%`, background: pace === 'exceeded' ? 'var(--c-negative)' : seg.color }}
+      style={{
+        width: `${seg.width}%`,
+        background: pace === 'exceeded' ? 'var(--c-negative)' : seg.color,
+      }}
       className="h-full"
     />
   ));
@@ -331,9 +352,7 @@ export default function SharedBudgetCard({
               <span className={`text-xs font-medium ${PACE_COLORS[pace]}`}>
                 {PACE_LABELS[pace]}
               </span>
-              <span className="text-xs text-[var(--c-text-2)]">
-                · {Math.round(spentPct)}%
-              </span>
+              <span className="text-xs text-[var(--c-text-2)]">· {Math.round(spentPct)}%</span>
             </div>
           </div>
         </div>

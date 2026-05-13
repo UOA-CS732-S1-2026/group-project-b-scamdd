@@ -1,11 +1,5 @@
 import { z } from 'zod';
-import {
-  MAX_AMOUNT,
-  MAX_NAME,
-  amountSchema,
-  dateInput,
-  trimmedString,
-} from './common.js';
+import { MAX_AMOUNT, MAX_NAME, amountSchema, dateInput, trimmedString } from './common.js';
 
 const nonNegativeAmount = z
   .number()

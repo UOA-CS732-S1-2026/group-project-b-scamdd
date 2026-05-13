@@ -10,8 +10,10 @@ router.use(requireAuth);
 router.get(
   '/',
   asyncHandler(async (req: Request, res: Response) => {
-    const wrapped = await MonthlyWrapped.find({ userId: req.user!._id })
-      .sort({ year: -1, month: -1 });
+    const wrapped = await MonthlyWrapped.find({ userId: req.user!._id }).sort({
+      year: -1,
+      month: -1,
+    });
     res.json(wrapped);
   }),
 );

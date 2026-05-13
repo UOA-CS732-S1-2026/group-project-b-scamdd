@@ -11,8 +11,8 @@ export interface IUserCategory extends Document {
 const UserCategorySchema = new Schema<IUserCategory>(
   {
     userId: { type: String, required: true },
-    name:   { type: String, required: true },
-    color:  { type: String, required: true, default: '#CBCBCB' },
+    name: { type: String, required: true },
+    color: { type: String, required: true, default: '#CBCBCB' },
   },
   { timestamps: true },
 );

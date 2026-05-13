@@ -224,9 +224,7 @@ router.get(
       $or: [{ requesterId: meId }, { addresseeId: meId }],
     }).lean();
 
-    const friendIds = accepted.map((f) =>
-      f.requesterId === meId ? f.addresseeId : f.requesterId,
-    );
+    const friendIds = accepted.map((f) => (f.requesterId === meId ? f.addresseeId : f.requesterId));
     if (friendIds.length === 0) {
       res.json([]);
       return;
@@ -282,9 +280,7 @@ router.get(
 
     const result = friends.map((u) => {
       const id = String(u._id);
-      const friendshipRow = accepted.find(
-        (f) => f.requesterId === id || f.addresseeId === id,
-      );
+      const friendshipRow = accepted.find((f) => f.requesterId === id || f.addresseeId === id);
       const userBudgets = budgetsByUser.get(id) ?? [];
       const avatar = avatarByUserId.get(id);
       return {

@@ -1,8 +1,4 @@
-import type {
-  SharedBudget,
-  SharedBudgetInput,
-  SharedBudgetUpdate,
-} from '../types/sharedBudget';
+import type { SharedBudget, SharedBudgetInput, SharedBudgetUpdate } from '../types/sharedBudget';
 import { apiFetch } from './_fetch';
 
 export function getSharedBudgets(): Promise<SharedBudget[]> {
@@ -17,10 +13,7 @@ export function createSharedBudget(data: SharedBudgetInput): Promise<SharedBudge
   return apiFetch<SharedBudget>('/shared-budgets', { method: 'POST', body: data });
 }
 
-export function updateSharedBudget(
-  id: string,
-  data: SharedBudgetUpdate,
-): Promise<SharedBudget> {
+export function updateSharedBudget(id: string, data: SharedBudgetUpdate): Promise<SharedBudget> {
   return apiFetch<SharedBudget>(`/shared-budgets/${id}`, { method: 'PATCH', body: data });
 }
 
@@ -28,10 +21,7 @@ export function deleteSharedBudget(id: string): Promise<void> {
   return apiFetch<void>(`/shared-budgets/${id}`, { method: 'DELETE' });
 }
 
-export function inviteToSharedBudget(
-  id: string,
-  userIds: string[],
-): Promise<SharedBudget> {
+export function inviteToSharedBudget(id: string, userIds: string[]): Promise<SharedBudget> {
   return apiFetch<SharedBudget>(`/shared-budgets/${id}/invite`, {
     method: 'POST',
     body: { userIds },

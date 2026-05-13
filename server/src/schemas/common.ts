@@ -23,10 +23,7 @@ export const amountSchema = z
 
 export const optionalAmount = amountSchema.optional();
 
-export const dateInput = z.union([
-  z.string().min(1),
-  z.date(),
-]);
+export const dateInput = z.union([z.string().min(1), z.date()]);
 
 export const trimmedString = (max: number) =>
   z

@@ -4,7 +4,7 @@ import { auth } from '../auth.js';
 import { HttpError } from '../lib/httpError.js';
 
 export async function requireAuth(req: Request, _res: Response, next: NextFunction) {
-  let session: Awaited<ReturnType<typeof auth.api.getSession>> | null = null;
+  let session: Awaited<ReturnType<typeof auth.api.getSession>> | null;
   try {
     session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
   } catch (err) {

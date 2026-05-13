@@ -25,9 +25,7 @@ export function errorHandler(
   } else if (err instanceof mongoose.Error.ValidationError) {
     status = 400;
     message = err.message;
-    details = Object.fromEntries(
-      Object.entries(err.errors).map(([k, v]) => [k, v.message]),
-    );
+    details = Object.fromEntries(Object.entries(err.errors).map(([k, v]) => [k, v.message]));
   } else if (err instanceof mongoose.Error.CastError) {
     status = 400;
     message = `Invalid ${err.path}`;

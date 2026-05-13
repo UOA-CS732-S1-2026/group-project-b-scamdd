@@ -21,9 +21,10 @@ export default function StatTiles({
     (t) => t.essential === false && t.mood && MOOD_VALUES[t.mood] !== undefined,
   );
   const moodTotal = moodTxns.reduce((s, t) => s + Math.abs(t.amount), 0);
-  const moodAvg = moodTotal > 0
-    ? moodTxns.reduce((s, t) => s + MOOD_VALUES[t.mood!] * Math.abs(t.amount), 0) / moodTotal
-    : 3;
+  const moodAvg =
+    moodTotal > 0
+      ? moodTxns.reduce((s, t) => s + MOOD_VALUES[t.mood!] * Math.abs(t.amount), 0) / moodTotal
+      : 3;
   const moodEmoji = MOOD_EMOJIS[Math.min(Math.max(Math.floor(moodAvg) - 1, 0), 4)];
   const { fmt } = useCurrency();
 
@@ -46,11 +47,15 @@ export default function StatTiles({
         <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">This month</div>
         <div className="text-2xl font-bold text-[var(--c-tint-text)]">{fmt(monthBiggest)}</div>
         {monthBiggestTxn && (
-          <div className="text-xs mt-1 truncate text-[var(--c-tint-text-2)]">{monthBiggestTxn.title}</div>
+          <div className="text-xs mt-1 truncate text-[var(--c-tint-text-2)]">
+            {monthBiggestTxn.title}
+          </div>
         )}
       </div>
       <div className={`${cardBase} bg-[var(--c-tint-mood)]`}>
-        <div className="text-sm font-semibold mb-1 text-[var(--c-tint-mood-text)]">Mood average</div>
+        <div className="text-sm font-semibold mb-1 text-[var(--c-tint-mood-text)]">
+          Mood average
+        </div>
         <div className="text-xs mb-4 text-[var(--c-tint-mood-sub)]">This month's average</div>
         <div className="text-2xl font-bold text-[var(--c-tint-mood-text)]">
           {moodAvg.toFixed(2)}/5 {moodEmoji}

@@ -1,4 +1,6 @@
-const API_BASE = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:4000');
+const API_BASE = import.meta.env.PROD
+  ? ''
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:4000');
 
 export class ApiError extends Error {
   status: number;
@@ -17,7 +19,9 @@ export type ApiFetchOptions = Omit<RequestInit, 'body'> & {
 };
 
 function buildUrl(path: string, query?: ApiFetchOptions['query']): string {
-  const base = path.startsWith('/api') ? `${API_BASE}${path}` : `${API_BASE}/api${path.startsWith('/') ? path : `/${path}`}`;
+  const base = path.startsWith('/api')
+    ? `${API_BASE}${path}`
+    : `${API_BASE}/api${path.startsWith('/') ? path : `/${path}`}`;
   if (!query) return base;
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(query)) {
@@ -66,7 +70,10 @@ export async function apiFetch<T = unknown>(
 
   if (!res.ok) {
     const message =
-      (payload && typeof payload === 'object' && 'message' in payload && typeof payload.message === 'string'
+      (payload &&
+      typeof payload === 'object' &&
+      'message' in payload &&
+      typeof payload.message === 'string'
         ? (payload as { message: string }).message
         : null) ?? `${res.status} ${res.statusText || 'Request failed'}`;
     const details =

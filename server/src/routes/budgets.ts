@@ -19,7 +19,10 @@ function fireAchievements(userId: string) {
   });
 }
 
-async function spentForPeriod(userId: string, period: BudgetPeriod): Promise<Record<string, number>> {
+async function spentForPeriod(
+  userId: string,
+  period: BudgetPeriod,
+): Promise<Record<string, number>> {
   const map = await spendByCategoryForUser(userId, period, {
     excludeCategories: ['emergency'],
   });
@@ -79,7 +82,12 @@ router.post(
       res.status(201).json(budget);
       fireAchievements(req.user!._id);
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'code' in err &&
+        (err as { code: number }).code === 11000
+      ) {
         throw HttpError.conflict('A budget for that category and period already exists');
       }
       throw err;
@@ -115,7 +123,12 @@ router.patch(
       }
       res.json(budget);
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'code' in err &&
+        (err as { code: number }).code === 11000
+      ) {
         throw HttpError.conflict('A budget for that category and period already exists');
       }
       throw err;
