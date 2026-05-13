@@ -52,12 +52,26 @@ router.get(
     );
     const allIds = [meId, ...friendIds];
 
-    const bestScores = await GameScore.aggregate([
+    const bestScores = await GameScore.aggregate<{
+      _id: string;
+      score: number;
+      earliest: Date;
+    }>([
       { $match: { game, userId: { $in: allIds } } },
-      { $group: { _id: '$userId', score: { $max: '$score' } } },
+      { $sort: { score: -1, createdAt: 1 } },
+      {
+        $group: {
+          _id: '$userId',
+          score: { $first: '$score' },
+          earliest: { $first: '$createdAt' },
+        },
+      },
     ]);
     const scoreMap: Record<string, number> = Object.fromEntries(
       bestScores.map((s) => [s._id, s.score]),
+    );
+    const earliestMap: Record<string, Date> = Object.fromEntries(
+      bestScores.map((s) => [s._id, s.earliest]),
     );
 
     const users = await User.find({ _id: { $in: allIds } }).lean();
@@ -72,6 +86,7 @@ router.get(
         name: u.displayName || u.name || u.username || 'Unknown',
         username: u.username ?? '',
         score: scoreMap[uid] ?? null,
+        earliest: earliestMap[uid] ?? null,
         isMe: uid === meId,
         avatarColor: av?.avatarColor ?? null,
         avatarImage: av?.avatarImage ?? null,
@@ -79,7 +94,14 @@ router.get(
     });
 
     entries.sort((a, b) => {
-      if (a.score !== null && b.score !== null) return b.score - a.score;
+      if (a.score !== null && b.score !== null) {
+        if (b.score !== a.score) return b.score - a.score;
+        // Stable tiebreak: whoever hit the score first wins.
+        const ad = a.earliest ? new Date(a.earliest).getTime() : Infinity;
+        const bd = b.earliest ? new Date(b.earliest).getTime() : Infinity;
+        if (ad !== bd) return ad - bd;
+        return a.userId.localeCompare(b.userId);
+      }
       if (a.score !== null) return -1;
       if (b.score !== null) return 1;
       return a.name.localeCompare(b.name);

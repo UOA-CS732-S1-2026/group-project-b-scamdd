@@ -106,6 +106,15 @@ router.post(
   validate({ params: idParam, body: contributeGoalSchema }),
   asyncHandler(async (req: Request, res: Response) => {
     const { amount } = req.body as { amount: number };
+    const before = await Goal.findOne(
+      { _id: req.params.id, userId: req.user!._id },
+      { currentAmount: 1, targetAmount: 1 },
+    ).lean();
+    if (!before) {
+      throw HttpError.notFound('Goal not found');
+    }
+    const wasComplete = before.currentAmount >= before.targetAmount;
+
     const goal = await Goal.findOneAndUpdate(
       { _id: req.params.id, userId: req.user!._id },
       { $inc: { currentAmount: amount } },
@@ -114,7 +123,10 @@ router.post(
     if (!goal) {
       throw HttpError.notFound('Goal not found');
     }
-    res.json(goal);
+    const isComplete = goal.currentAmount >= goal.targetAmount;
+    const justCompleted = !wasComplete && isComplete;
+
+    res.json({ goal, completed: isComplete, justCompleted });
     fireAchievements(req.user!._id);
   }),
 );

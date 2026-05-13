@@ -4,6 +4,7 @@ import { Friendship } from '../models/Friendship.js';
 import { checkAndAwardAchievements, listAchievements } from '../lib/achievements.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
+import { logger } from '../lib/logger.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -12,9 +13,18 @@ router.get(
   '/me',
   asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!._id;
-    await checkAndAwardAchievements(userId);
+    // Pure read path. Writes (awards) happen synchronously after every
+    // mutation that could trigger one — txn/budget/goal create + contribute.
+    // Phase 5 also revokes badges on tx delete. This route used to re-run
+    // checkAndAwardAchievements on every visit, which was an O(streak-scan)
+    // cost on every page load (audit C5).
     const achievements = await listAchievements(userId);
     res.json(achievements);
+    // Best-effort, async, after-response: pick up any badge that was missed
+    // due to an earlier server error in the write path. Logged on failure.
+    checkAndAwardAchievements(userId).catch((err) => {
+      logger.error({ err, userId }, 'background achievement check failed');
+    });
   }),
 );
 
