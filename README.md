@@ -1,40 +1,51 @@
-# CS732 project - Team B Scamdd
+# felt — Team B Scamdd
 
-Welcome to the CS732 project. We look forward to seeing the amazing things you create this semester! This is your team's repository.
-
-Your team members are:
-- Subeen Ban _(sban919@aucklanduni.ac.nz)_
-- Bailey Gibson _(bgib630@aucklanduni.ac.nz)_
-- JooHyun Kang _(jkan172@aucklanduni.ac.nz)_
-- Daniel Kim _(dkim848@aucklanduni.ac.nz)_
-- Daniel Kim _(mkim670@aucklanduni.ac.nz)_
-- Atul Kodla _(akod059@aucklanduni.ac.nz)_
-- Meara Keelty _(mkee115@aucklanduni.ac.nz)_
-
-You have complete control over how you run this repo. All your members will have admin access. The only thing setup by default is branch protections on `main`, requiring a PR with at least one code reviewer to modify `main` rather than direct pushes.
-
-Please use good version control practices, such as feature branching, both to make it easier for markers to see your group's history and to lower the chances of you tripping over each other during development
+**felt** is a finance tracker that pairs every purchase with a mood. After a month, you stop guessing where your money goes and start seeing where it actually feels good.
 
 ![](./B%20Scamdd.png)
 
+---
+
+## Team
+
+| Name | Email |
+|---|---|
+| Subeen Ban | sban919@aucklanduni.ac.nz |
+| Bailey Gibson | bgib630@aucklanduni.ac.nz |
+| JooHyun Kang | jkan172@aucklanduni.ac.nz |
+| Daniel Kim | dkim848@aucklanduni.ac.nz |
+| Daniel Kim | mkim670@aucklanduni.ac.nz |
+| Atul Kodla | akod059@aucklanduni.ac.nz |
+| Meara Keelty | mkee115@aucklanduni.ac.nz |
+
+---
+
 ## Tech stack
 
-- **Frontend:** Vite + React + TypeScript
-- **Backend:** Express + TypeScript on Node.js
-- **Database:** MongoDB Atlas (via Mongoose + Better Auth MongoDB adapter)
-- **Auth:** Better Auth (email/password + Google OAuth)
-- **Charts:** Recharts
-- **Package manager:** pnpm
+| Layer | Technology |
+|---|---|
+| Frontend | Vite + React + TypeScript |
+| Backend | Express + TypeScript on Node.js |
+| Database | MongoDB Atlas via Mongoose |
+| Auth | Better Auth (email/password + Google OAuth) |
+| Charts | Recharts |
+| Package manager | pnpm |
+
+---
 
 ## Getting started
 
 ### Prerequisites
-- Node.js 24 (see `.nvmrc`)
-- pnpm (`corepack enable && corepack prepare pnpm@latest --activate`)
-- A [MongoDB Atlas](https://cloud.mongodb.com) cluster (free M0 tier is fine)
-- A Google OAuth client ID/secret from [console.cloud.google.com](https://console.cloud.google.com) (optional for local dev)
 
-### First-time setup
+- Node.js 24 (see `.nvmrc`)
+- pnpm:
+  ```bash
+  corepack enable && corepack prepare pnpm@latest --activate
+  ```
+- Access to the shared MongoDB Atlas cluster (ask a team member for the `.env` values)
+- A Google OAuth client ID/secret — optional for local dev
+
+### Installation
 
 ```bash
 # Client
@@ -44,7 +55,7 @@ pnpm install
 # Server (in a second terminal)
 cd server
 pnpm install
-cp .env.example .env   # then fill in your values (see Environment variables below)
+cp .env.example .env   # then fill in your values
 ```
 
 ### Environment variables
@@ -54,38 +65,52 @@ Copy `server/.env.example` to `server/.env` and fill in:
 | Variable | Description |
 |---|---|
 | `MONGO_URI` | MongoDB Atlas connection string (include `/bscamdd` database name) |
-| `BETTER_AUTH_SECRET` | Random 32-byte hex string — generate with `openssl rand -hex 32` |
-| `BETTER_AUTH_URL` | URL the server is reachable at (default: `http://localhost:4000`) |
-| `CLIENT_URL` | URL the client is reachable at (default: `http://localhost:5173`) |
-| `GOOGLE_CLIENT_ID` | From Google Cloud Console → OAuth 2.0 credentials |
-| `GOOGLE_CLIENT_SECRET` | From Google Cloud Console → OAuth 2.0 credentials |
+| `BETTER_AUTH_SECRET` | Random 32-byte hex string (see below) |
+| `BETTER_AUTH_URL` | URL the server runs at — default: `http://localhost:4000` |
+| `CLIENT_URL` | URL the client runs at — default: `http://localhost:5173` |
+| `GOOGLE_CLIENT_ID` | From Google Cloud Console → OAuth 2.0 credentials (optional) |
+| `GOOGLE_CLIENT_SECRET` | From Google Cloud Console → OAuth 2.0 credentials (optional) |
 
-> **Atlas setup:** In your Atlas cluster, go to **Network Access** and add your IP (or `0.0.0.0/0` for dev). Go to **Database Access** and create a user with read/write permissions.
+**Generating `BETTER_AUTH_SECRET`:**
 
-> **Google OAuth setup:** Register a Web Application in Google Cloud Console. Add `http://localhost:4000/api/auth/callback/google` as an authorised redirect URI.
+macOS / Linux:
+```bash
+openssl rand -hex 32
+```
+
+Windows (PowerShell):
+```powershell
+-join ((1..32) | ForEach-Object { '{0:x2}' -f (Get-Random -Max 256) })
+```
+
+> **MongoDB Atlas setup:** Go to **Network Access** and add your IP (or `0.0.0.0/0` for dev). Go to **Database Access** and ensure a user with read/write permissions exists.
+
+> **Google OAuth setup:** Register a Web Application in Google Cloud Console. Add `http://localhost:4000/api/auth/callback/google` as an authorised redirect URI. This is optional — email/password auth works without it.
 
 ### Running in development
 
-The fastest way is the root `Makefile`, which runs both servers together:
-
+**macOS / Linux** — use the Makefile from the root directory:
 ```bash
-make install   # pnpm install in client and server
-make dev       # backend on :4000 and frontend on :5173
+make install   # install dependencies in client and server
+make dev       # runs backend on :4000 and frontend on :5173
 ```
 
-Or run them separately in two terminals:
-
+**Windows** — run each server in a separate terminal:
 ```bash
-# Terminal 1 - backend on http://localhost:4000
+# Terminal 1 — backend on http://localhost:4000
 cd server
 pnpm dev
 
-# Terminal 2 - frontend on http://localhost:5173
+# Terminal 2 — frontend on http://localhost:5173
 cd client
 pnpm dev
 ```
 
-The Vite dev server proxies `/api/*` to the Express server, so the client can call `fetch('/api/health')` directly.
+Then open `http://localhost:5173` in your browser.
+
+The Vite dev server proxies `/api/*` to the Express server, so the client can call `fetch('/api/health')` directly without CORS issues.
+
+---
 
 ## Authentication
 
@@ -93,10 +118,11 @@ Auth is handled by [Better Auth](https://better-auth.com) with a MongoDB adapter
 
 ### Supported methods
 - **Email / password** — sign up and sign in via `/auth`
-- **Google OAuth** — one-click sign in via Google
+- **Google OAuth** — one-click sign in via Google (requires credentials in `.env`)
 
 ### Auth routes (server)
-All auth endpoints are automatically mounted at `/api/auth/*` by Better Auth. Key ones:
+
+All auth endpoints are automatically mounted at `/api/auth/*` by Better Auth.
 
 | Method | Path | Description |
 |---|---|---|
@@ -111,19 +137,11 @@ All auth endpoints are automatically mounted at `/api/auth/*` by Better Auth. Ke
 ```ts
 import { signIn, signUp, signOut, useSession } from './lib/auth-client';
 
-// Sign up
 await signUp.email({ name, email, password });
-
-// Sign in
 await signIn.email({ email, password });
-
-// Google OAuth
 await signIn.social({ provider: 'google', callbackURL: '/' });
-
-// Sign out
 await signOut();
 
-// Get session in a component
 const { data: session } = useSession();
 ```
 
@@ -139,18 +157,39 @@ app.get('/api/protected', async (req, res) => {
 });
 ```
 
-### Building for production
+---
+
+## Project structure
+
+```
+group-project-b-scamdd/
+├── client/                 # Vite + React frontend
+│   └── src/
+│       ├── api/            # API call functions
+│       ├── components/     # Reusable UI components
+│       ├── hooks/          # Custom React hooks
+│       ├── lib/            # Auth client + utilities
+│       ├── pages/          # Page-level components
+│       └── types/          # Shared TypeScript types
+└── server/                 # Express backend
+    └── src/
+        ├── middleware/     # Express middleware
+        ├── models/         # Mongoose models
+        ├── routes/         # API route handlers
+        └── types/          # Shared TypeScript types
+```
+
+---
+
+## Building for production
 
 ```bash
 cd client && pnpm build
 cd server && pnpm build
 ```
 
-## Branching and commits
+---
 
-- Work on feature branches; open a PR into `main` (branch protection requires 1 reviewer).
-- Use [Conventional Commits](https://www.conventionalcommits.org/) for branch and commit names:
-  - `feat/<scope>` for new features
-  - `fix/<scope>` for bug fixes
-  - `chore/<scope>` for tooling/setup
-  - `docs/<scope>` for documentation
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for branching, commit, and PR guidelines.
