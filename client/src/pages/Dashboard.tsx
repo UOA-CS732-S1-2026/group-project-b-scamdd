@@ -548,6 +548,7 @@ export default function Dashboard() {
     (_, i) => nsPMin + i * nsStep,
   );
   const nsLastVal = netSavingsFull[drawUpToIdx] ?? 0;
+  const nsColor = nsLastVal >= 0 ? 'var(--c-income)' : 'var(--c-expense)';
 
   // Other maximums for bar charts
   const maxSegSpend = Math.max(...segSpending, 1);
@@ -890,7 +891,7 @@ export default function Dashboard() {
                 <h3 className="font-semibold text-base mb-1 text-[var(--c-text)]">Net savings</h3>
                 <div className="text-xs text-[var(--c-text-2)]">Cumulative income − expenses · {label}</div>
               </div>
-              <span className={`text-xl font-bold flex-shrink-0 ${nsLastVal >= 0 ? 'text-[#C68BE1]' : 'text-[var(--c-expense)]'}`}>
+              <span className={`text-xl font-bold flex-shrink-0 ${nsLastVal >= 0 ? 'text-[var(--c-income)]' : 'text-[var(--c-expense)]'}`}>
                 {nsLastVal >= 0 ? '+' : '−'}{fmt(Math.abs(nsLastVal))}
               </span>
             </div>
@@ -916,15 +917,15 @@ export default function Dashboard() {
                 {netSavingsPts.length > 1 && (
                   <path
                     d={`M ${cxFn(0).toFixed(1)},${nsZeroY.toFixed(1)} L ${netSavingsPts.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${nsZeroY.toFixed(1)} Z`}
-                    fill="#C68BE1" opacity="0.15"
+                    fill={nsColor} opacity="0.15"
                   />
                 )}
                 {netSavingsPts.length > 1 && (
-                  <polyline points={netSavingsPts.join(' ')} fill="none" stroke="#C68BE1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <polyline points={netSavingsPts.join(' ')} fill="none" stroke={nsColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 )}
                 {netSavingsPts.length > 0 && (() => {
                   const [lx, ly] = netSavingsPts[netSavingsPts.length - 1].split(',').map(Number);
-                  return <circle cx={lx} cy={ly} r="3" fill="#C68BE1" />;
+                  return <circle cx={lx} cy={ly} r="3" fill={nsColor} />;
                 })()}
                 {xTicks.map(({ idx, label: xl }) => (
                   <text key={idx} x={cxFn(idx)} y={NS_H - 3} textAnchor="middle" fontSize="9" fill="var(--c-text-2)">{xl}</text>
@@ -1054,7 +1055,7 @@ export default function Dashboard() {
               {visibleCounts.map((val, i) => (
                 <div key={i} className="flex-1 h-full flex items-end" title={`${val} transaction${val !== 1 ? 's' : ''}`}>
                   <div
-                    style={{ height: val > 0 ? `${Math.max((val / maxSegCount) * 100, 4)}%` : '0%', backgroundColor: '#C68BE1', opacity: 0.85 }}
+                    style={{ height: val > 0 ? `${Math.max((val / maxSegCount) * 100, 4)}%` : '0%', backgroundColor: 'var(--c-accent)', opacity: 0.85 }}
                     className="w-full rounded-t transition-all"
                   />
                 </div>
