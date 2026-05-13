@@ -548,7 +548,6 @@ export default function Dashboard() {
     (_, i) => nsPMin + i * nsStep,
   );
   const nsLastVal = netSavingsFull[drawUpToIdx] ?? 0;
-  const nsColor = nsLastVal >= 0 ? '#1D9E75' : '#D85A30';
 
   // Other maximums for bar charts
   const maxSegSpend = Math.max(...segSpending, 1);
