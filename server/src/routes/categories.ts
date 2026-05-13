@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { UserCategory } from '../models/UserCategory.js';
+import { Transaction } from '../models/Transaction.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
@@ -71,10 +72,33 @@ router.delete(
   '/:id',
   validate({ params: idParam }),
   asyncHandler(async (req: Request, res: Response) => {
-    const cat = await UserCategory.findOneAndDelete({ _id: req.params.id, userId: req.user!._id });
+    const userId = req.user!._id;
+    const cat = await UserCategory.findOne({ _id: req.params.id, userId });
     if (!cat) {
       throw HttpError.notFound('Category not found');
     }
+    const reassignTo =
+      typeof req.query.reassignTo === 'string' ? req.query.reassignTo.toLowerCase() : '';
+    const force = req.query.force === 'true';
+
+    const inUse = await Transaction.exists({ userId, category: cat.name });
+
+    if (inUse && !force && !reassignTo) {
+      const err = HttpError.conflict('Category is in use by existing transactions');
+      err.details = {
+        hint: 'Pass ?force=true to delete anyway (transactions keep the category string) or ?reassignTo=<name> to move them.',
+      };
+      throw err;
+    }
+
+    if (reassignTo && reassignTo !== cat.name) {
+      await Transaction.updateMany(
+        { userId, category: cat.name },
+        { $set: { category: reassignTo } },
+      );
+    }
+
+    await cat.deleteOne();
     res.status(204).send();
   }),
 );

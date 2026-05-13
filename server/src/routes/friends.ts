@@ -12,6 +12,7 @@ import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
 import { logger } from '../lib/logger.js';
 import { spendByCategoryForUser } from '../lib/spend.js';
+import { cascadeUnfriend } from '../lib/userCascade.js';
 import { validate } from '../middleware/validate.js';
 import { idParam } from '../schemas/common.js';
 import {
@@ -389,6 +390,11 @@ router.delete(
     });
     if (!removed) {
       throw HttpError.notFound('Friendship not found');
+    }
+    try {
+      await cascadeUnfriend(meId, String(friendId));
+    } catch (err) {
+      logger.warn({ err, meId, friendId }, 'cascadeUnfriend partial failure');
     }
     res.status(204).send();
   }),

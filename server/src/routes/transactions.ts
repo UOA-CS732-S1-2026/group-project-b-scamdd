@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { Transaction } from '../models/Transaction.js';
 import { requireAuth } from '../middleware/auth.js';
-import { checkAndAwardAchievements } from '../lib/achievements.js';
+import { checkAndAwardAchievements, revokeAchievementsIfUnearned } from '../lib/achievements.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
 import { logger } from '../lib/logger.js';
@@ -73,12 +73,19 @@ router.delete(
   '/:id',
   validate({ params: idParam }),
   asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!._id;
     const transaction = await Transaction.findOneAndDelete({
       _id: req.params.id,
-      userId: req.user!._id,
+      userId,
     });
     if (!transaction) throw HttpError.notFound('Transaction not found');
     res.status(204).send();
+    // Fire-and-forget: revoke any badges whose threshold this delete may
+    // have invalidated (txn_100, txn_500, first_transaction, safety_net,
+    // no_regret_14). Logging surfaces failures.
+    revokeAchievementsIfUnearned(userId).catch((err) => {
+      logger.error({ err, userId }, 'revokeAchievementsIfUnearned failed');
+    });
   }),
 );
 
