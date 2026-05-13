@@ -2,65 +2,74 @@ import { Router, Request, Response } from 'express';
 import { Goal } from '../models/Goal.js';
 import { requireAuth } from '../middleware/auth.js';
 import { checkAndAwardAchievements } from '../lib/achievements.js';
+import { asyncHandler } from '../lib/asyncHandler.js';
+import { HttpError } from '../lib/httpError.js';
+import { logger } from '../lib/logger.js';
+import { validate } from '../middleware/validate.js';
+import {
+  contributeGoalSchema,
+  createGoalSchema,
+  updateGoalSchema,
+} from '../schemas/goals.js';
+import { idParam } from '../schemas/common.js';
 
 const router = Router();
 
 router.use(requireAuth);
 
-router.get('/', async (req: Request, res: Response) => {
-  try {
+function fireAchievements(userId: string) {
+  checkAndAwardAchievements(userId).catch((err) => {
+    logger.error({ err, userId }, 'checkAndAwardAchievements failed');
+  });
+}
+
+router.get(
+  '/',
+  asyncHandler(async (req: Request, res: Response) => {
     const goals = await Goal.find({ userId: req.user!._id }).sort({ deadline: 1 });
     res.json(goals);
-  } catch {
-    res.status(500).json({ message: 'Failed to fetch goals' });
-  }
-});
+  }),
+);
 
-router.post('/', async (req: Request, res: Response) => {
-  try {
-    const { name, targetAmount, currentAmount, deadline, isPublic } = req.body ?? {};
-    if (!name || !deadline) {
-      res.status(400).json({ message: 'name and deadline are required' });
-      return;
-    }
-    if (typeof targetAmount !== 'number' || targetAmount <= 0) {
-      res.status(400).json({ message: 'targetAmount must be a positive number' });
-      return;
-    }
+router.post(
+  '/',
+  validate({ body: createGoalSchema }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { name, targetAmount, currentAmount, deadline, isPublic } = req.body as {
+      name: string;
+      targetAmount: number;
+      currentAmount?: number;
+      deadline: string | Date;
+      isPublic?: boolean;
+    };
     const goal = await Goal.create({
       userId: req.user!._id,
       name,
       targetAmount,
-      currentAmount: typeof currentAmount === 'number' && currentAmount >= 0 ? currentAmount : 0,
+      currentAmount: currentAmount ?? 0,
       deadline,
       isPublic: Boolean(isPublic),
     });
     res.status(201).json(goal);
-    checkAndAwardAchievements(req.user!._id).catch(() => { /* ignore */ });
-  } catch {
-    res.status(500).json({ message: 'Failed to create goal' });
-  }
-});
+    fireAchievements(req.user!._id);
+  }),
+);
 
-router.patch('/:id', async (req: Request, res: Response) => {
-  try {
-    const { name, targetAmount, currentAmount, deadline, isPublic } = req.body ?? {};
+router.patch(
+  '/:id',
+  validate({ params: idParam, body: updateGoalSchema }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { name, targetAmount, currentAmount, deadline, isPublic } = req.body as {
+      name?: string;
+      targetAmount?: number;
+      currentAmount?: number;
+      deadline?: string | Date;
+      isPublic?: boolean;
+    };
     const updates: Record<string, unknown> = {};
     if (name !== undefined) updates.name = name;
-    if (targetAmount !== undefined) {
-      if (typeof targetAmount !== 'number' || targetAmount <= 0) {
-        res.status(400).json({ message: 'targetAmount must be a positive number' });
-        return;
-      }
-      updates.targetAmount = targetAmount;
-    }
-    if (currentAmount !== undefined) {
-      if (typeof currentAmount !== 'number' || currentAmount < 0) {
-        res.status(400).json({ message: 'currentAmount must be a non-negative number' });
-        return;
-      }
-      updates.currentAmount = currentAmount;
-    }
+    if (targetAmount !== undefined) updates.targetAmount = targetAmount;
+    if (currentAmount !== undefined) updates.currentAmount = currentAmount;
     if (deadline !== undefined) updates.deadline = deadline;
     if (isPublic !== undefined) updates.isPublic = Boolean(isPublic);
 
@@ -70,53 +79,56 @@ router.patch('/:id', async (req: Request, res: Response) => {
       { new: true, runValidators: true },
     );
     if (!goal) {
-      res.status(404).json({ message: 'Goal not found' });
-      return;
+      throw HttpError.notFound('Goal not found');
     }
     res.json(goal);
-    checkAndAwardAchievements(req.user!._id).catch(() => { /* ignore */ });
-  } catch {
-    res.status(500).json({ message: 'Failed to update goal' });
-  }
-});
+    fireAchievements(req.user!._id);
+  }),
+);
 
-router.delete('/:id', async (req: Request, res: Response) => {
-  try {
+router.delete(
+  '/:id',
+  validate({ params: idParam }),
+  asyncHandler(async (req: Request, res: Response) => {
     const goal = await Goal.findOneAndDelete({
       _id: req.params.id,
       userId: req.user!._id,
     });
     if (!goal) {
-      res.status(404).json({ message: 'Goal not found' });
-      return;
+      throw HttpError.notFound('Goal not found');
     }
     res.status(204).send();
-  } catch {
-    res.status(500).json({ message: 'Failed to delete goal' });
-  }
-});
+  }),
+);
 
-router.post('/:id/contribute', async (req: Request, res: Response) => {
-  try {
-    const { amount } = req.body ?? {};
-    if (typeof amount !== 'number' || amount <= 0) {
-      res.status(400).json({ message: 'amount must be a positive number' });
-      return;
+router.post(
+  '/:id/contribute',
+  validate({ params: idParam, body: contributeGoalSchema }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { amount } = req.body as { amount: number };
+    const before = await Goal.findOne(
+      { _id: req.params.id, userId: req.user!._id },
+      { currentAmount: 1, targetAmount: 1 },
+    ).lean();
+    if (!before) {
+      throw HttpError.notFound('Goal not found');
     }
+    const wasComplete = before.currentAmount >= before.targetAmount;
+
     const goal = await Goal.findOneAndUpdate(
       { _id: req.params.id, userId: req.user!._id },
       { $inc: { currentAmount: amount } },
       { new: true, runValidators: true },
     );
     if (!goal) {
-      res.status(404).json({ message: 'Goal not found' });
-      return;
+      throw HttpError.notFound('Goal not found');
     }
-    res.json(goal);
-    checkAndAwardAchievements(req.user!._id).catch(() => { /* ignore */ });
-  } catch {
-    res.status(500).json({ message: 'Failed to record contribution' });
-  }
-});
+    const isComplete = goal.currentAmount >= goal.targetAmount;
+    const justCompleted = !wasComplete && isComplete;
+
+    res.json({ goal, completed: isComplete, justCompleted });
+    fireAchievements(req.user!._id);
+  }),
+);
 
 export default router;

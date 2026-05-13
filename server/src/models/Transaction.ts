@@ -29,4 +29,11 @@ const TransactionSchema = new Schema<ITransaction>(
   { timestamps: true },
 );
 
+// Indexes for the routes' actual query patterns (audit H3). These are not
+// auto-created in production — `autoIndex: false` is set on the connection.
+// Run `pnpm db:index` from server/ on deploy to sync them.
+TransactionSchema.index({ userId: 1, date: -1 });
+TransactionSchema.index({ userId: 1, category: 1, date: -1 });
+TransactionSchema.index({ userId: 1, type: 1, date: -1 });
+
 export const Transaction = mongoose.model<ITransaction>('Transaction', TransactionSchema);

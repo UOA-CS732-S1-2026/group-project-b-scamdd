@@ -4,64 +4,33 @@ import { User } from '../models/User.js';
 import { UserAvatar } from '../models/UserAvatar.js';
 import { Goal } from '../models/Goal.js';
 import { Budget } from '../models/Budget.js';
-import { Transaction } from '../models/Transaction.js';
 import { requireAuth } from '../middleware/auth.js';
 import { computeBudgetStreak } from '../lib/streaks.js';
 import { listAchievements } from '../lib/achievements.js';
 import type { BudgetPeriod } from '../models/Budget.js';
+import { asyncHandler } from '../lib/asyncHandler.js';
+import { HttpError } from '../lib/httpError.js';
+import { logger } from '../lib/logger.js';
+import { spendByCategoryForUser } from '../lib/spend.js';
+import { cascadeUnfriend } from '../lib/userCascade.js';
+import { validate } from '../middleware/validate.js';
+import { idParam } from '../schemas/common.js';
+import {
+  createFriendRequestSchema,
+  friendIdParam,
+  respondFriendRequestSchema,
+  searchFriendsQuery,
+} from '../schemas/friends.js';
 
 const router = Router();
 
 router.use(requireAuth);
 
-function periodRange(period: BudgetPeriod): { start: Date; end: Date } {
-  const now = new Date();
-  switch (period) {
-    case 'daily': {
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      return { start, end };
-    }
-    case 'weekly': {
-      const day = now.getDay() === 0 ? 7 : now.getDay();
-      const monday = new Date(now);
-      monday.setDate(now.getDate() - (day - 1));
-      monday.setHours(0, 0, 0, 0);
-      const nextMonday = new Date(monday);
-      nextMonday.setDate(monday.getDate() + 7);
-      return { start: monday, end: nextMonday };
-    }
-    case 'monthly':
-      return {
-        start: new Date(now.getFullYear(), now.getMonth(), 1),
-        end: new Date(now.getFullYear(), now.getMonth() + 1, 1),
-      };
-    case 'yearly':
-      return {
-        start: new Date(now.getFullYear(), 0, 1),
-        end: new Date(now.getFullYear() + 1, 0, 1),
-      };
-  }
-}
-
 async function spentByCategoryFor(
   userId: string,
   period: BudgetPeriod,
 ): Promise<Record<string, number>> {
-  const { start, end } = periodRange(period);
-  const rows = await Transaction.aggregate<{ _id: string; total: number }>([
-    {
-      $match: {
-        userId,
-        type: 'expense',
-        date: { $gte: start, $lt: end },
-      },
-    },
-    { $group: { _id: '$category', total: { $sum: '$amount' } } },
-  ]);
-  const map: Record<string, number> = {};
-  for (const r of rows) map[r._id] = r.total;
-  return map;
+  return spendByCategoryForUser(userId, period);
 }
 
 type Status = 'none' | 'pending-out' | 'pending-in' | 'accepted';
@@ -81,13 +50,11 @@ async function statusBetween(meId: string, otherId: string): Promise<Status> {
   return 'none';
 }
 
-router.get('/search', async (req: Request, res: Response) => {
-  try {
-    const q = String(req.query.q ?? '').trim();
-    if (!q || q.length < 2) {
-      res.status(400).json({ message: 'Query must be at least 2 characters' });
-      return;
-    }
+router.get(
+  '/search',
+  validate({ query: searchFriendsQuery }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { q } = req.query as { q: string };
     const meId = req.user!._id;
     const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(escaped, 'i');
@@ -112,27 +79,21 @@ router.get('/search', async (req: Request, res: Response) => {
       }),
     );
     res.json(results);
-  } catch {
-    res.status(500).json({ message: 'Search failed' });
-  }
-});
+  }),
+);
 
-router.post('/requests', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/requests',
+  validate({ body: createFriendRequestSchema }),
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const { addresseeId } = req.body ?? {};
-    if (!addresseeId || typeof addresseeId !== 'string') {
-      res.status(400).json({ message: 'addresseeId is required' });
-      return;
-    }
+    const { addresseeId } = req.body as { addresseeId: string };
     if (addresseeId === meId) {
-      res.status(400).json({ message: 'You cannot friend yourself' });
-      return;
+      throw HttpError.badRequest('You cannot friend yourself');
     }
     const target = await User.findById(addresseeId).lean();
     if (!target) {
-      res.status(404).json({ message: 'User not found' });
-      return;
+      throw HttpError.notFound('User not found');
     }
     const existing = await Friendship.findOne({
       $or: [
@@ -142,12 +103,10 @@ router.post('/requests', async (req: Request, res: Response) => {
     });
     if (existing) {
       if (existing.status === 'accepted') {
-        res.status(409).json({ message: 'Already friends' });
-        return;
+        throw HttpError.conflict('Already friends');
       }
       if (existing.status === 'pending') {
-        res.status(409).json({ message: 'A request already exists between you' });
-        return;
+        throw HttpError.conflict('A request already exists between you');
       }
       // rejected → allow re-request by overwriting
       existing.requesterId = meId;
@@ -163,13 +122,12 @@ router.post('/requests', async (req: Request, res: Response) => {
       status: 'pending',
     });
     res.status(201).json(created);
-  } catch {
-    res.status(500).json({ message: 'Failed to create friend request' });
-  }
-});
+  }),
+);
 
-router.get('/requests', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/requests',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const all = await Friendship.find({
       status: 'pending',
@@ -216,59 +174,50 @@ router.get('/requests', async (req: Request, res: Response) => {
       });
 
     res.json({ incoming, outgoing });
-  } catch {
-    res.status(500).json({ message: 'Failed to load requests' });
-  }
-});
+  }),
+);
 
-router.patch('/requests/:id', async (req: Request, res: Response) => {
-  try {
+router.patch(
+  '/requests/:id',
+  validate({ params: idParam, body: respondFriendRequestSchema }),
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const { action } = req.body ?? {};
-    if (action !== 'accept' && action !== 'reject') {
-      res.status(400).json({ message: "action must be 'accept' or 'reject'" });
-      return;
-    }
+    const { action } = req.body as { action: 'accept' | 'reject' };
     const f = await Friendship.findById(req.params.id);
     if (!f || f.status !== 'pending') {
-      res.status(404).json({ message: 'Pending request not found' });
-      return;
+      throw HttpError.notFound('Pending request not found');
     }
     if (f.addresseeId !== meId) {
-      res.status(403).json({ message: 'Only the addressee can act on this request' });
-      return;
+      throw HttpError.forbidden('Only the addressee can act on this request');
     }
     f.status = action === 'accept' ? 'accepted' : 'rejected';
     // Mark unseen for the requester only on accept; reject quietly removes.
     f.seenByRequester = action === 'accept' ? false : true;
     await f.save();
     res.json(f);
-  } catch {
-    res.status(500).json({ message: 'Failed to update request' });
-  }
-});
+  }),
+);
 
-router.delete('/requests/:id', async (req: Request, res: Response) => {
-  try {
+router.delete(
+  '/requests/:id',
+  validate({ params: idParam }),
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const f = await Friendship.findById(req.params.id);
     if (!f || f.status !== 'pending') {
-      res.status(404).json({ message: 'Pending request not found' });
-      return;
+      throw HttpError.notFound('Pending request not found');
     }
     if (f.requesterId !== meId) {
-      res.status(403).json({ message: 'Only the requester can cancel' });
-      return;
+      throw HttpError.forbidden('Only the requester can cancel');
     }
     await f.deleteOne();
     res.status(204).send();
-  } catch {
-    res.status(500).json({ message: 'Failed to cancel request' });
-  }
-});
+  }),
+);
 
-router.get('/', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const accepted = await Friendship.find({
       status: 'accepted',
@@ -371,13 +320,12 @@ router.get('/', async (req: Request, res: Response) => {
     });
 
     res.json(result);
-  } catch {
-    res.status(500).json({ message: 'Failed to load friends' });
-  }
-});
+  }),
+);
 
-router.get('/acceptances', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/acceptances',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const rows = await Friendship.find({
       requesterId: meId,
@@ -412,26 +360,25 @@ router.get('/acceptances', async (req: Request, res: Response) => {
         };
       }),
     );
-  } catch {
-    res.status(500).json({ message: 'Failed to load acceptances' });
-  }
-});
+  }),
+);
 
-router.post('/acceptances/seen', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/acceptances/seen',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     await Friendship.updateMany(
       { requesterId: meId, status: 'accepted', seenByRequester: false },
       { $set: { seenByRequester: true } },
     );
     res.status(204).send();
-  } catch {
-    res.status(500).json({ message: 'Failed to mark acceptances seen' });
-  }
-});
+  }),
+);
 
-router.delete('/:friendId', async (req: Request, res: Response) => {
-  try {
+router.delete(
+  '/:friendId',
+  validate({ params: friendIdParam }),
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const friendId = req.params.friendId;
     const removed = await Friendship.findOneAndDelete({
@@ -442,13 +389,15 @@ router.delete('/:friendId', async (req: Request, res: Response) => {
       ],
     });
     if (!removed) {
-      res.status(404).json({ message: 'Friendship not found' });
-      return;
+      throw HttpError.notFound('Friendship not found');
+    }
+    try {
+      await cascadeUnfriend(meId, String(friendId));
+    } catch (err) {
+      logger.warn({ err, meId, friendId }, 'cascadeUnfriend partial failure');
     }
     res.status(204).send();
-  } catch {
-    res.status(500).json({ message: 'Failed to unfriend' });
-  }
-});
+  }),
+);
 
 export default router;

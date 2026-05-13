@@ -1,70 +1,44 @@
 import type { Friend, FriendAcceptance, Requests, SearchResult } from '../types/friend';
+import { apiFetch } from './_fetch';
 
-const API = (import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:4000'));
-const BASE = `${API}/api/friends`;
-const opts: RequestInit = { credentials: 'include' };
-
-export async function searchUser(query: string): Promise<SearchResult[]> {
-  const res = await fetch(`${BASE}/search?q=${encodeURIComponent(query)}`, opts);
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? 'Search failed');
-  }
-  return res.json();
+export function searchUser(query: string): Promise<SearchResult[]> {
+  return apiFetch<SearchResult[]>('/friends/search', { query: { q: query } });
 }
 
-export async function sendRequest(addresseeId: string): Promise<void> {
-  const res = await fetch(`${BASE}/requests`, {
-    ...opts,
+export function sendRequest(addresseeId: string): Promise<void> {
+  return apiFetch<void>('/friends/requests', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ addresseeId }),
+    body: { addresseeId },
   });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? 'Failed to send request');
-  }
 }
 
-export async function getRequests(): Promise<Requests> {
-  const res = await fetch(`${BASE}/requests`, opts);
-  if (!res.ok) throw new Error('Failed to load requests');
-  return res.json();
+export function getRequests(): Promise<Requests> {
+  return apiFetch<Requests>('/friends/requests');
 }
 
-export async function respondToRequest(id: string, action: 'accept' | 'reject'): Promise<void> {
-  const res = await fetch(`${BASE}/requests/${id}`, {
-    ...opts,
+export function respondToRequest(id: string, action: 'accept' | 'reject'): Promise<void> {
+  return apiFetch<void>(`/friends/requests/${id}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action }),
+    body: { action },
   });
-  if (!res.ok) throw new Error('Failed to respond');
 }
 
-export async function cancelRequest(id: string): Promise<void> {
-  const res = await fetch(`${BASE}/requests/${id}`, { ...opts, method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to cancel');
+export function cancelRequest(id: string): Promise<void> {
+  return apiFetch<void>(`/friends/requests/${id}`, { method: 'DELETE' });
 }
 
-export async function getFriends(): Promise<Friend[]> {
-  const res = await fetch(BASE, opts);
-  if (!res.ok) throw new Error('Failed to load friends');
-  return res.json();
+export function getFriends(): Promise<Friend[]> {
+  return apiFetch<Friend[]>('/friends');
 }
 
-export async function unfriend(friendId: string): Promise<void> {
-  const res = await fetch(`${BASE}/${friendId}`, { ...opts, method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to unfriend');
+export function unfriend(friendId: string): Promise<void> {
+  return apiFetch<void>(`/friends/${friendId}`, { method: 'DELETE' });
 }
 
-export async function getAcceptances(): Promise<FriendAcceptance[]> {
-  const res = await fetch(`${BASE}/acceptances`, opts);
-  if (!res.ok) throw new Error('Failed to load acceptances');
-  return res.json();
+export function getAcceptances(): Promise<FriendAcceptance[]> {
+  return apiFetch<FriendAcceptance[]>('/friends/acceptances');
 }
 
-export async function markAcceptancesSeen(): Promise<void> {
-  const res = await fetch(`${BASE}/acceptances/seen`, { ...opts, method: 'POST' });
-  if (!res.ok) throw new Error('Failed to mark acceptances seen');
+export function markAcceptancesSeen(): Promise<void> {
+  return apiFetch<void>('/friends/acceptances/seen', { method: 'POST' });
 }

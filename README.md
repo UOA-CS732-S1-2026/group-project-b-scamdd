@@ -153,32 +153,28 @@ pnpm test          # run once
 pnpm test:watch    # re-run on file changes
 ```
 
+Or from the project root:
+
+```bash
+make test          # runs the server suite
+```
+
+(Client tests are not yet in place — Phase 6 introduces TanStack Query but the page-level fetch hooks aren't migrated, so component tests are deferred.)
+
 Covers:
-- `POST /api/auth/sign-up/email` — success, duplicate email, missing fields
-- `POST /api/auth/sign-in/email` — success, wrong password, unknown email
-- `GET /api/transactions` — only returns the signed-in user's own data, 401 without token
-- `POST /api/transactions` — creates correctly, rejects invalid data, 401 without token
-- `DELETE /api/transactions/:id` — deletes correctly, 404 for non-owner, 401 without token
-
-#### Client tests (component tests)
-
-```bash
-cd client
-pnpm test          # run once
-pnpm test:watch    # re-run on file changes
-```
-
-#### Run all tests from the project root
-
-```bash
-make test
-```
-
-Or without Make:
-
-```bash
-(cd server && pnpm test) && (cd client && pnpm test)
-```
+- `GET /api/health` and the central 404 handler
+- `requireAuth` middleware — 401 (no session), 502 (auth service throws), passthrough (valid session)
+- Transactions CRUD — create / update / delete + ownership isolation
+- Friend request lifecycle — request → accept → list, self-friend rejection, duplicate rejection
+- Shared-budget create / invite / accept, and concurrent-invite race (C2)
+- Game score ceiling rejection (C1)
+- Validation cap on `amount`, unknown-field stripping
+- Profile-delete cascade — every collection cleared
+- Category-delete refusal / reassign / force flows
+- Unfriend cascade (cheers + pending invites)
+- Achievement reversal on transaction delete
+- Goal contribute `{ completed, justCompleted }` semantics
+- Leaderboard stable tiebreak
 
 ### Building for production
 
@@ -186,6 +182,26 @@ Or without Make:
 cd client && pnpm build
 cd server && pnpm build
 ```
+
+### Database indexes
+
+Indexes are NOT created automatically (`autoIndex: false` on the connection). After deploying, run once against the target cluster:
+
+```bash
+cd server
+MONGO_URI=<prod-uri> pnpm db:index
+```
+
+This runs `syncIndexes()` on every model — creates new indexes declared in `models/*.ts`, drops obsolete ones. Idempotent.
+
+### Seeding demo data
+
+```bash
+cd server
+pnpm seed <email>   # populates the user found by email with realistic txns/budgets/goals
+```
+
+Dates seed relative to "today" so the demo always looks recent; historical month references stay as-is for the monthly-wrapped showcase.
 
 ## Branching and commits
 

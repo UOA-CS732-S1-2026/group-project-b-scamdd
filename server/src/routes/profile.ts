@@ -3,11 +3,20 @@ import { User } from '../models/User.js';
 import { UserAvatar } from '../models/UserAvatar.js';
 import { requireAuth } from '../middleware/auth.js';
 import { computeBudgetStreak } from '../lib/streaks.js';
+import { asyncHandler } from '../lib/asyncHandler.js';
+import { HttpError } from '../lib/httpError.js';
+import { logger } from '../lib/logger.js';
+import { cascadeDeleteUser } from '../lib/userCascade.js';
+import { validate } from '../middleware/validate.js';
+import {
+  checkUsernameQuery,
+  updateProfileSchema,
+  usernameParam,
+} from '../schemas/profile.js';
 
 const router = Router();
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
-const ALLOWED_CURRENCIES = ['NZD', 'USD', 'AUD', 'EUR', 'GBP'];
 
 function publicProfile(u: {
   _id: unknown;
@@ -23,16 +32,17 @@ function publicProfile(u: {
   };
 }
 
-router.get('/me', requireAuth, async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/me',
+  requireAuth,
+  asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!._id;
     const [user, userAvatar] = await Promise.all([
       User.findById(userId).lean(),
       UserAvatar.findOne({ userId }).lean(),
     ]);
     if (!user) {
-      res.status(404).json({ message: 'User not found' });
-      return;
+      throw HttpError.notFound('User not found');
     }
     const streak = await computeBudgetStreak(String(user._id));
     res.json({
@@ -49,101 +59,74 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
       profileComplete: Boolean(user.profileComplete),
       streak,
     });
-  } catch {
-    res.status(500).json({ message: 'Failed to load profile' });
-  }
-});
+  }),
+);
 
-router.patch('/me', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const { username, displayName, bio, currency, phone, profileComplete } = req.body ?? {};
+router.patch(
+  '/me',
+  requireAuth,
+  validate({ body: updateProfileSchema }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const {
+      username,
+      displayName,
+      bio,
+      currency,
+      phone,
+      avatarColor,
+      avatarImage,
+      profileComplete,
+    } = req.body as {
+      username?: string;
+      displayName?: string;
+      bio?: string;
+      currency?: string;
+      phone?: string;
+      avatarColor?: string;
+      avatarImage?: string;
+      profileComplete?: boolean;
+    };
     const updates: Record<string, unknown> = {};
 
     if (username !== undefined) {
-      const u = String(username).toLowerCase().trim();
-      if (!USERNAME_RE.test(u)) {
-        res.status(400).json({ message: 'Username must be 3-20 chars, lowercase letters, numbers, or underscore' });
-        return;
-      }
       // Fetch existing user to check if username is already set (immutable once set)
       const existingUser = await User.findById(req.user!._id).select('username').lean();
       if (existingUser?.username) {
-        res.status(400).json({ message: 'Username cannot be changed once set' });
-        return;
+        throw HttpError.badRequest('Username cannot be changed once set');
       }
-      const existing = await User.findOne({ username: u, _id: { $ne: req.user!._id } }).lean();
+      const existing = await User.findOne({ username, _id: { $ne: req.user!._id } }).lean();
       if (existing) {
-        res.status(409).json({ message: 'Username is taken' });
-        return;
+        throw HttpError.conflict('Username is taken');
       }
-      updates.username = u;
+      updates.username = username;
     }
 
     if (displayName !== undefined) {
-      const dn = String(displayName).trim();
-      if (dn.length < 1 || dn.length > 50) {
-        res.status(400).json({ message: 'Display name must be 1-50 chars' });
-        return;
-      }
-      updates.displayName = dn;
+      updates.displayName = displayName;
     }
 
     if (bio !== undefined) {
-      const b = String(bio).trim();
-      if (b.length > 200) {
-        res.status(400).json({ message: 'Bio must be 200 chars or fewer' });
-        return;
-      }
-      updates.bio = b;
+      updates.bio = bio;
     }
 
     if (currency !== undefined) {
-      const c = String(currency).toUpperCase();
-      if (!ALLOWED_CURRENCIES.includes(c)) {
-        res.status(400).json({ message: `Currency must be one of ${ALLOWED_CURRENCIES.join(', ')}` });
-        return;
-      }
-      updates.currency = c;
+      updates.currency = currency;
     }
 
     if (phone !== undefined) {
-      const p = String(phone).trim();
-      if (p.length > 30) {
-        res.status(400).json({ message: 'Phone number must be 30 chars or fewer' });
-        return;
-      }
-      updates.phone = p;
+      updates.phone = phone;
     }
 
-    if (req.body.avatarColor !== undefined) {
-      const ac = String(req.body.avatarColor).trim();
-      if (ac.length > 20) {
-        res.status(400).json({ message: 'Invalid avatar color' });
-        return;
-      }
-      updates.avatarColor = ac;
+    if (avatarColor !== undefined) {
+      updates.avatarColor = avatarColor;
     }
 
-    if (req.body.avatarImage !== undefined) {
-      const img = String(req.body.avatarImage);
-      if (img !== '' && !img.startsWith('data:image/')) {
-        res.status(400).json({ message: 'Invalid image format' });
-        return;
-      }
-      if (img.length > 1_500_000) {
-        res.status(400).json({ message: 'Image too large (max ~1 MB)' });
-        return;
-      }
-      updates.avatarImage = img === '' ? null : img;
+    if (avatarImage !== undefined) {
+      updates.avatarImage = avatarImage === '' ? null : avatarImage;
     }
 
     if (profileComplete !== undefined) {
-      updates.profileComplete = Boolean(profileComplete);
-    }
-
-    if (Object.keys(updates).length === 0) {
-      res.status(400).json({ message: 'No fields to update' });
-      return;
+      updates.profileComplete = profileComplete;
     }
 
     // Separate avatar fields — save to user_avatar collection so better-auth
@@ -167,10 +150,18 @@ router.patch('/me', requireAuth, async (req: Request, res: Response) => {
       ? User.findByIdAndUpdate(userId, { $set: updates }, { new: true }).lean()
       : User.findById(userId).lean();
 
-    const [user, userAvatar] = await Promise.all([userPromise, avatarPromise]);
+    let user;
+    let userAvatar;
+    try {
+      [user, userAvatar] = await Promise.all([userPromise, avatarPromise]);
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
+        throw HttpError.conflict('Username is taken');
+      }
+      throw err;
+    }
     if (!user) {
-      res.status(404).json({ message: 'User not found' });
-      return;
+      throw HttpError.notFound('User not found');
     }
     res.json({
       id: String(user._id),
@@ -185,45 +176,49 @@ router.patch('/me', requireAuth, async (req: Request, res: Response) => {
       avatarImage: userAvatar?.avatarImage ?? null,
       profileComplete: Boolean(user.profileComplete),
     });
-  } catch (err: unknown) {
-    if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
-      res.status(409).json({ message: 'Username is taken' });
-      return;
-    }
-    res.status(500).json({ message: 'Failed to update profile' });
-  }
-});
+  }),
+);
 
-router.get('/check-username', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const raw = String(req.query.u ?? '').toLowerCase().trim();
+router.get(
+  '/check-username',
+  requireAuth,
+  validate({ query: checkUsernameQuery }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const raw = String((req.query as { u?: string }).u ?? '').toLowerCase().trim();
     if (!USERNAME_RE.test(raw)) {
       res.json({ available: false, reason: 'invalid' });
       return;
     }
     const existing = await User.findOne({ username: raw, _id: { $ne: req.user!._id } }).lean();
     res.json({ available: !existing });
-  } catch {
-    res.status(500).json({ message: 'Failed to check username' });
-  }
-});
+  }),
+);
 
-router.get('/by-username/:username', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const u = String(req.params.username).toLowerCase().trim();
-    if (!USERNAME_RE.test(u)) {
-      res.status(400).json({ message: 'Invalid username' });
-      return;
-    }
+router.get(
+  '/by-username/:username',
+  requireAuth,
+  validate({ params: usernameParam }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const u = req.params.username;
     const user = await User.findOne({ username: u }).lean();
     if (!user) {
-      res.status(404).json({ message: 'User not found' });
-      return;
+      throw HttpError.notFound('User not found');
     }
     res.json(publicProfile(user));
-  } catch {
-    res.status(500).json({ message: 'Failed to look up user' });
-  }
-});
+  }),
+);
+
+router.delete(
+  '/me',
+  requireAuth,
+  asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!._id;
+    const report = await cascadeDeleteUser(userId);
+    logger.info({ userId, report }, 'user account deleted');
+    // Clear Better Auth's session cookie so the client lands on /auth.
+    res.clearCookie('better-auth.session_token', { path: '/' });
+    res.json({ ok: true, report });
+  }),
+);
 
 export default router;
