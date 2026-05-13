@@ -4,9 +4,19 @@ import { useSession } from '../lib/auth-client';
 import { getMyProfile, updateMyProfile } from '../api/profile';
 import { getTransactions } from '../api/transactions';
 import { getBudgets } from '../api/budgets';
-import { getRequests, respondToRequest, getFriends, getAcceptances, markAcceptancesSeen } from '../api/friends';
+import {
+  getRequests,
+  respondToRequest,
+  getFriends,
+  getAcceptances,
+  markAcceptancesSeen,
+} from '../api/friends';
 import { getReceivedCheers, markCheersSeen, type ReceivedCheer } from '../api/cheers';
-import { getSharedBudgetInvites, acceptSharedBudgetInvite, declineSharedBudgetInvite } from '../api/sharedBudgets';
+import {
+  getSharedBudgetInvites,
+  acceptSharedBudgetInvite,
+  declineSharedBudgetInvite,
+} from '../api/sharedBudgets';
 import { achievementMessage } from '../lib/achievementMeta';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -22,16 +32,23 @@ import type { SharedBudget } from '../types/sharedBudget';
 
 // ── Chart constants ───────────────────────────────────────────────────────────
 const CAT_COLORS: Record<string, string> = {
-  food: '#FFBDC2', rent: '#FDFBD4', transport: '#C5FFD8',
-  entertainment: '#C68BE1', utilities: '#C5ECF9', shopping: '#CBCBCB',
-  health: '#FFBDC2', other: '#CBCBCB',
+  food: '#FFBDC2',
+  rent: '#FDFBD4',
+  transport: '#C5FFD8',
+  entertainment: '#C68BE1',
+  utilities: '#C5ECF9',
+  shopping: '#CBCBCB',
+  health: '#FFBDC2',
+  other: '#CBCBCB',
 };
-const MOOD_KEYS   = ['regret', 'meh', 'okay', 'glad', 'worth-it'] as const;
+const MOOD_KEYS = ['regret', 'meh', 'okay', 'glad', 'worth-it'] as const;
 const MOOD_LABELS = ['Regret', 'Meh', 'Okay', 'Glad', 'Worth It'] as const;
 const MOOD_COLORS = ['#FFBDC2', '#CBCBCB', '#FDFBD4', '#C5FFD8', '#C68BE1'];
 
 function PieChart({ slices }: { slices: { value: number; color: string }[] }) {
-  const cx = 60, cy = 60, r = 56;
+  const cx = 60,
+    cy = 60,
+    r = 56;
   const total = slices.reduce((s, d) => s + d.value, 0);
   if (total === 0) return null;
   let angle = -Math.PI / 2;
@@ -47,8 +64,11 @@ function PieChart({ slices }: { slices: { value: number; color: string }[] }) {
         const y2 = cy + r * Math.sin(angle);
         const large = fraction > 0.5 ? 1 : 0;
         return (
-          <path key={i} fill={slice.color}
-            d={`M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`} />
+          <path
+            key={i}
+            fill={slice.color}
+            d={`M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`}
+          />
         );
       })}
     </svg>
@@ -66,18 +86,32 @@ const CURRENCIES = [
   { code: 'GBP', label: 'GBP (£)' },
 ];
 
-const AVATAR_COLORS = ['#C68BE1', '#1D9E75', '#3B82F6', '#F59E0B', '#EC4899', '#EF4444', '#8B5CF6', '#10B981'];
+const AVATAR_COLORS = [
+  '#C68BE1',
+  '#1D9E75',
+  '#3B82F6',
+  '#F59E0B',
+  '#EC4899',
+  '#EF4444',
+  '#8B5CF6',
+  '#10B981',
+];
 const AVATAR_PALETTE = ['#FFBDC2', '#FDFBD4', '#C5FFD8', '#C68BE1', '#C5ECF9', '#CBCBCB'];
 
 const initials = (name: string) =>
-  name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
+  name
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('') || '?';
 
 export default function Profile() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
   const { fmt, fmtY, setCurrency: setGlobalCurrency } = useCurrency();
-  const { setAvatarColor: setGlobalAvatarColor, setAvatarImage: setGlobalAvatarImage } = useProfileAvatar();
+  const { setAvatarColor: setGlobalAvatarColor, setAvatarImage: setGlobalAvatarImage } =
+    useProfileAvatar();
 
   const [tab, setTab] = useState<ProfileTab>('home');
   const [profile, setProfile] = useState<ProfileType | null>(null);
@@ -91,7 +125,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
 
   // Account form state
-  const [username, setUsername] = useState('');          // read-only after profile setup
+  const [username, setUsername] = useState(''); // read-only after profile setup
   const [displayName, setDisplayName] = useState('');
   const [phone, setPhone] = useState('');
   const [currency, setCurrency] = useState('NZD');
@@ -108,7 +142,16 @@ export default function Profile() {
 
   const loadData = useCallback(async () => {
     try {
-      const [prof, transactions, budgets, reqs, friendList, receivedCheers, receivedAcceptances, invites] = await Promise.all([
+      const [
+        prof,
+        transactions,
+        budgets,
+        reqs,
+        friendList,
+        receivedCheers,
+        receivedAcceptances,
+        invites,
+      ] = await Promise.all([
         getMyProfile(),
         getTransactions(),
         getBudgets(),
@@ -148,18 +191,24 @@ export default function Profile() {
     try {
       await respondToRequest(id, 'accept');
       await loadData();
-    } catch { alert('Failed to accept request'); }
+    } catch {
+      alert('Failed to accept request');
+    }
   };
 
   const handleDeclineRequest = async (id: string) => {
     try {
       await respondToRequest(id, 'reject');
       await loadData();
-    } catch { alert('Failed to decline request'); }
+    } catch {
+      alert('Failed to decline request');
+    }
   };
 
   const handleSaveProfile = async () => {
-    setSaving(true); setSaveError(''); setSaveSuccess(false);
+    setSaving(true);
+    setSaveError('');
+    setSaveSuccess(false);
     try {
       const update: ProfileUpdate = {};
       const dn = displayName.trim();
@@ -170,7 +219,7 @@ export default function Profile() {
       update.avatarColor = avatarColor;
       // include avatarImage if changed (empty string means removed)
       const incomingImage = imageUrl ?? '';
-      const storedImage   = profile?.avatarImage ?? '';
+      const storedImage = profile?.avatarImage ?? '';
       if (incomingImage !== storedImage) update.avatarImage = incomingImage;
       if (Object.keys(update).length > 0) {
         const updated = await updateMyProfile(update);
@@ -197,7 +246,8 @@ export default function Profile() {
       const updated = await updateMyProfile(patch);
       setProfile(updated);
       if (patch.avatarColor !== undefined) setGlobalAvatarColor(patch.avatarColor);
-      if (patch.avatarImage !== undefined) setGlobalAvatarImage(patch.avatarImage === '' ? null : patch.avatarImage);
+      if (patch.avatarImage !== undefined)
+        setGlobalAvatarImage(patch.avatarImage === '' ? null : patch.avatarImage);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save');
     }
@@ -254,80 +304,127 @@ export default function Profile() {
   // ── Stats: current month computations ────────────────────────────────────────
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const monthLabel = monthStart.toLocaleDateString('en', { month: 'long', year: 'numeric' });
 
-  const monthTxns  = allTransactions.filter(t => { const d = new Date(t.date); return d >= monthStart && d < monthEnd; });
-  const expenses   = monthTxns.filter(t => t.type === 'expense');
-  const totalSpent  = expenses.reduce((s, t) => s + Math.abs(t.amount), 0);
+  const monthTxns = allTransactions.filter((t) => {
+    const d = new Date(t.date);
+    return d >= monthStart && d < monthEnd;
+  });
+  const expenses = monthTxns.filter((t) => t.type === 'expense');
+  const totalSpent = expenses.reduce((s, t) => s + Math.abs(t.amount), 0);
 
   const periodBudgetTotal = rawBudgets
-    .filter(b => (b.period ?? 'monthly') === 'monthly')
+    .filter((b) => (b.period ?? 'monthly') === 'monthly')
     .reduce((s, b) => s + b.monthlyLimit, 0);
 
   // Cumulative spending chart
   const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const cumulativePoints = Array.from({ length: dim }, (_, i) =>
-    expenses.filter(t => new Date(t.date).getDate() <= i + 1).reduce((s, t) => s + Math.abs(t.amount), 0),
+    expenses
+      .filter((t) => new Date(t.date).getDate() <= i + 1)
+      .reduce((s, t) => s + Math.abs(t.amount), 0),
   );
   const N = cumulativePoints.length;
   const drawUpToIdx = Math.min(now.getDate() - 1, N - 1);
-  const SVG_W = 400, SVG_H = 120;
-  const PAD_L = 40, PAD_R = 8, PAD_T = 8, PAD_B = 18;
+  const SVG_W = 400,
+    SVG_H = 120;
+  const PAD_L = 40,
+    PAD_R = 8,
+    PAD_T = 8,
+    PAD_B = 18;
   const PLOT_W = SVG_W - PAD_L - PAD_R;
   const PLOT_H = SVG_H - PAD_T - PAD_B;
 
   const rawYMax = Math.max(...cumulativePoints, periodBudgetTotal, 10);
   const approxStep = rawYMax / 4;
   const stepMag = Math.pow(10, Math.floor(Math.log10(Math.max(approxStep, 1))));
-  const yStep = ([1, 2, 5, 10].map(s => s * stepMag).find(s => rawYMax / s <= 5)) ?? stepMag * 10;
+  const yStep = [1, 2, 5, 10].map((s) => s * stepMag).find((s) => rawYMax / s <= 5) ?? stepMag * 10;
   const yMax = yStep * Math.ceil(rawYMax / yStep);
   const yTicks = Array.from({ length: Math.floor(yMax / yStep) + 1 }, (_, i) => i * yStep);
 
   const cxFn = (idx: number) => PAD_L + (N <= 1 ? 0 : idx / (N - 1)) * PLOT_W;
-  const cyFn = (v: number)   => PAD_T + PLOT_H - (v / yMax) * PLOT_H;
+  const cyFn = (v: number) => PAD_T + PLOT_H - (v / yMax) * PLOT_H;
   const chartBottom = PAD_T + PLOT_H;
 
   const xTicks = [1, 5, 10, 15, 20, 25, dim]
     .filter((d, i, a) => a.indexOf(d) === i && d <= dim)
-    .map(d => ({ idx: d - 1, label: String(d) }));
+    .map((d) => ({ idx: d - 1, label: String(d) }));
 
-  const spendPts = cumulativePoints.slice(0, drawUpToIdx + 1)
+  const spendPts = cumulativePoints
+    .slice(0, drawUpToIdx + 1)
     .map((v, i) => `${cxFn(i).toFixed(1)},${cyFn(v).toFixed(1)}`);
   const budgetLineY = periodBudgetTotal > 0 ? cyFn(periodBudgetTotal) : null;
-  const areaD = spendPts.length > 0
-    ? `M ${cxFn(0).toFixed(1)},${chartBottom} L ${spendPts.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${chartBottom} Z`
-    : '';
+  const areaD =
+    spendPts.length > 0
+      ? `M ${cxFn(0).toFixed(1)},${chartBottom} L ${spendPts.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${chartBottom} Z`
+      : '';
   const lastSpendPt = spendPts[spendPts.length - 1];
   const [lastPtX, lastPtY] = lastSpendPt ? lastSpendPt.split(',').map(Number) : [0, 0];
 
   // Mood chart
   const moodSpending = [0, 0, 0, 0, 0];
-  for (const t of monthTxns.filter(t => t.essential === false && t.mood)) {
-    const idx = MOOD_KEYS.indexOf(t.mood as typeof MOOD_KEYS[number]);
+  for (const t of monthTxns.filter((t) => t.essential === false && t.mood)) {
+    const idx = MOOD_KEYS.indexOf(t.mood as (typeof MOOD_KEYS)[number]);
     if (idx >= 0) moodSpending[idx] += Math.abs(t.amount);
   }
   const maxMood = Math.max(...moodSpending, 1);
 
   // Category chart
-  const catSpending = expenses.reduce((acc, t) => {
-    const cat = t.category ?? 'other';
-    acc[cat] = (acc[cat] || 0) + Math.abs(t.amount);
-    return acc;
-  }, {} as Record<string, number>);
+  const catSpending = expenses.reduce(
+    (acc, t) => {
+      const cat = t.category ?? 'other';
+      acc[cat] = (acc[cat] || 0) + Math.abs(t.amount);
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
   const catSlices = Object.entries(catSpending)
-    .sort((a, b) => b[1] - a[1]).slice(0, 6)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
     .map(([cat, amount]) => ({ label: cat, value: amount, color: CAT_COLORS[cat] || '#EF9F27' }));
   const catTotal = catSlices.reduce((s, d) => s + d.value, 0);
 
   // Breakdown bars
-  const essentialSpent    = expenses.filter(t => t.essential === true) .reduce((s, t) => s + Math.abs(t.amount), 0);
-  const nonEssentialSpent = expenses.filter(t => t.essential === false).reduce((s, t) => s + Math.abs(t.amount), 0);
+  const essentialSpent = expenses
+    .filter((t) => t.essential === true)
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
+  const nonEssentialSpent = expenses
+    .filter((t) => t.essential === false)
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
   const breakdownRows = [
-    { left: 'Essential',    right: 'Non-essential',   slices: [{ label: 'Essential', value: essentialSpent, color: '#C5FFD8' }, { label: 'Non-essential', value: nonEssentialSpent, color: '#C68BE1' }].filter(s => s.value > 0) },
-    { left: 'Food / Drink', right: 'Other spending',  slices: [{ label: 'Food / Drink', value: catSpending['food'] || 0, color: '#FFBDC2' }, { label: 'Other', value: totalSpent - (catSpending['food'] || 0), color: '#C5FFD8' }].filter(s => s.value > 0) },
-    { left: 'Personal',     right: 'Shared expenses', slices: [{ label: 'Personal', value: totalSpent * 0.6, color: '#FDFBD4' }, { label: 'Shared expenses', value: totalSpent * 0.4, color: '#FFBDC2' }].filter(s => s.value > 0) },
-    { left: 'Reoccurring',  right: 'One-off',         slices: [{ label: 'Reoccurring', value: totalSpent * 0.45, color: '#FFBDC2' }, { label: 'One-off', value: totalSpent * 0.55, color: '#FDFBD4' }].filter(s => s.value > 0) },
+    {
+      left: 'Essential',
+      right: 'Non-essential',
+      slices: [
+        { label: 'Essential', value: essentialSpent, color: '#C5FFD8' },
+        { label: 'Non-essential', value: nonEssentialSpent, color: '#C68BE1' },
+      ].filter((s) => s.value > 0),
+    },
+    {
+      left: 'Food / Drink',
+      right: 'Other spending',
+      slices: [
+        { label: 'Food / Drink', value: catSpending['food'] || 0, color: '#FFBDC2' },
+        { label: 'Other', value: totalSpent - (catSpending['food'] || 0), color: '#C5FFD8' },
+      ].filter((s) => s.value > 0),
+    },
+    {
+      left: 'Personal',
+      right: 'Shared expenses',
+      slices: [
+        { label: 'Personal', value: totalSpent * 0.6, color: '#FDFBD4' },
+        { label: 'Shared expenses', value: totalSpent * 0.4, color: '#FFBDC2' },
+      ].filter((s) => s.value > 0),
+    },
+    {
+      left: 'Reoccurring',
+      right: 'One-off',
+      slices: [
+        { label: 'Reoccurring', value: totalSpent * 0.45, color: '#FFBDC2' },
+        { label: 'One-off', value: totalSpent * 0.55, color: '#FDFBD4' },
+      ].filter((s) => s.value > 0),
+    },
   ];
 
   // Milestone notifications
@@ -336,37 +433,45 @@ export default function Profile() {
   for (const thr of [50, 100, 200, 500]) {
     if (txnCount >= thr) milestones.push(`You just hit ${thr} logged transactions!`);
   }
-  const regretThisMonth = monthTxns.filter(t => t.mood === 'regret').length;
-  if (regretThisMonth === 0 && monthTxns.length > 0) milestones.push('This is your best month yet — no regret tags!');
+  const regretThisMonth = monthTxns.filter((t) => t.mood === 'regret').length;
+  if (regretThisMonth === 0 && monthTxns.length > 0)
+    milestones.push('This is your best month yet — no regret tags!');
 
-  const panelClass = 'p-4 sm:p-6 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-card)] flex flex-col overflow-hidden';
-  const inputClass = 'w-full px-4 py-2.5 border border-[var(--c-border)] rounded-xl text-sm focus:outline-none focus:border-[var(--c-accent)] bg-[var(--c-bg)] text-[var(--c-text)]';
+  const panelClass =
+    'p-4 sm:p-6 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-card)] flex flex-col overflow-hidden';
+  const inputClass =
+    'w-full px-4 py-2.5 border border-[var(--c-border)] rounded-xl text-sm focus:outline-none focus:border-[var(--c-accent)] bg-[var(--c-bg)] text-[var(--c-text)]';
 
   // ── Tab renderers ─────────────────────────────────────────────────────────────
   const handleAcceptSharedInvite = async (id: string) => {
     try {
       await acceptSharedBudgetInvite(id);
       setSharedInvites((prev) => prev.filter((sb) => sb._id !== id));
-    } catch { alert('Failed to accept invite'); }
+    } catch {
+      alert('Failed to accept invite');
+    }
   };
 
   const handleDeclineSharedInvite = async (id: string) => {
     try {
       await declineSharedBudgetInvite(id);
       setSharedInvites((prev) => prev.filter((sb) => sb._id !== id));
-    } catch { alert('Failed to decline invite'); }
+    } catch {
+      alert('Failed to decline invite');
+    }
   };
 
   const renderHome = () => (
     <div className="border border-[var(--c-border)] rounded-2xl p-4 sm:p-6 bg-[var(--c-card)]">
       <h2 className="text-base font-bold text-[var(--c-text)] mb-4">Recent notifications</h2>
       <div className="flex flex-col divide-y divide-[var(--c-border)]">
-
         {/* Pending friend requests */}
-        {requests.incoming.map(req => {
+        {requests.incoming.map((req) => {
           const name = req.displayName || req.username || 'Someone';
           const ini = initials(name);
-          const reqColor = req.avatarColor ?? AVATAR_PALETTE[Math.abs(req.fromId.charCodeAt(0)) % AVATAR_PALETTE.length];
+          const reqColor =
+            req.avatarColor ??
+            AVATAR_PALETTE[Math.abs(req.fromId.charCodeAt(0)) % AVATAR_PALETTE.length];
           const reqImage = req.avatarImage ?? null;
           return (
             <div key={req.id} className="flex items-center gap-3 py-3 flex-wrap">
@@ -374,24 +479,39 @@ export default function Profile() {
                 className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] flex-shrink-0 overflow-hidden"
                 style={{ backgroundColor: reqImage ? 'transparent' : reqColor }}
               >
-                {reqImage ? <img src={reqImage} alt={name} className="w-full h-full object-cover" /> : ini}
+                {reqImage ? (
+                  <img src={reqImage} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                  ini
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-semibold text-[var(--c-text)]">{name}</span>
                 <span className="text-sm text-[var(--c-text-2)]"> • Sent you a friend request</span>
               </div>
               <div className="flex gap-2 flex-shrink-0">
-                <button onClick={() => handleAcceptRequest(req.id)} className="px-3 py-1 rounded-lg text-xs font-semibold bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-80 transition-opacity">Accept</button>
-                <button onClick={() => handleDeclineRequest(req.id)} className="px-3 py-1 rounded-lg text-xs font-semibold border border-[var(--c-border)] text-[var(--c-text)] hover:opacity-70 transition-opacity">Decline</button>
+                <button
+                  onClick={() => handleAcceptRequest(req.id)}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-80 transition-opacity"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={() => handleDeclineRequest(req.id)}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold border border-[var(--c-border)] text-[var(--c-text)] hover:opacity-70 transition-opacity"
+                >
+                  Decline
+                </button>
               </div>
             </div>
           );
         })}
 
         {/* Shared budget invites */}
-        {sharedInvites.map(sb => {
-          const inviter = sb.members.find((m) => m.userId === sb.ownerId)
-            ?? sb.members.find((m) => m.status === 'accepted');
+        {sharedInvites.map((sb) => {
+          const inviter =
+            sb.members.find((m) => m.userId === sb.ownerId) ??
+            sb.members.find((m) => m.status === 'accepted');
           const name = inviter?.displayName ?? inviter?.username ?? 'Someone';
           const label = sb.name?.trim() || sb.category;
           const inviterFriend = friends.find((fr) => fr.id === inviter?.userId);
@@ -403,22 +523,39 @@ export default function Profile() {
                 className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] flex-shrink-0 overflow-hidden"
                 style={{ backgroundColor: sbImage ? 'transparent' : sbColor }}
               >
-                {sbImage ? <img src={sbImage} alt={name} className="w-full h-full object-cover" /> : initials(name)}
+                {sbImage ? (
+                  <img src={sbImage} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                  initials(name)
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-semibold text-[var(--c-text)]">{name}</span>
-                <span className="text-sm text-[var(--c-text-2)]"> • Invited you to share a <span className="capitalize">{label}</span> budget</span>
+                <span className="text-sm text-[var(--c-text-2)]">
+                  {' '}
+                  • Invited you to share a <span className="capitalize">{label}</span> budget
+                </span>
               </div>
               <div className="flex gap-2 flex-shrink-0">
-                <button onClick={() => handleAcceptSharedInvite(sb._id)} className="px-3 py-1 rounded-lg text-xs font-semibold bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-80 transition-opacity">Accept</button>
-                <button onClick={() => handleDeclineSharedInvite(sb._id)} className="px-3 py-1 rounded-lg text-xs font-semibold border border-[var(--c-border)] text-[var(--c-text)] hover:opacity-70 transition-opacity">Decline</button>
+                <button
+                  onClick={() => handleAcceptSharedInvite(sb._id)}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-80 transition-opacity"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={() => handleDeclineSharedInvite(sb._id)}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold border border-[var(--c-border)] text-[var(--c-text)] hover:opacity-70 transition-opacity"
+                >
+                  Decline
+                </button>
               </div>
             </div>
           );
         })}
 
         {/* Friend acceptances */}
-        {acceptances.map(a => {
+        {acceptances.map((a) => {
           const name = a.displayName ?? a.username ?? 'Someone';
           const aColor = a.avatarColor ?? '#C68BE1';
           const aImage = a.avatarImage ?? null;
@@ -428,7 +565,11 @@ export default function Profile() {
                 className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] flex-shrink-0 overflow-hidden"
                 style={{ backgroundColor: aImage ? 'transparent' : aColor }}
               >
-                {aImage ? <img src={aImage} alt={name} className="w-full h-full object-cover" /> : initials(name)}
+                {aImage ? (
+                  <img src={aImage} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                  initials(name)
+                )}
               </div>
               <div className="flex-1 min-w-0 text-sm">
                 <span className="font-semibold text-[var(--c-text)]">{name}</span>
@@ -439,7 +580,7 @@ export default function Profile() {
         })}
 
         {/* Cheers */}
-        {cheers.map(c => {
+        {cheers.map((c) => {
           const name = c.fromDisplayName ?? c.fromUsername ?? 'Friend';
           const cheerFriend = friends.find((fr) => fr.id === c.fromId);
           const cColor = cheerFriend?.avatarColor ?? '#C68BE1';
@@ -451,14 +592,28 @@ export default function Profile() {
                 className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] flex-shrink-0 overflow-hidden"
                 style={{ backgroundColor: cImage ? 'transparent' : cColor }}
               >
-                {cImage ? <img src={cImage} alt={name} className="w-full h-full object-cover" /> : initials(name)}
+                {cImage ? (
+                  <img src={cImage} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                  initials(name)
+                )}
               </div>
               <div className="flex-1 min-w-0 text-sm">
                 <span className="font-semibold text-[var(--c-text)]">{name}</span>
                 <span className="text-[var(--c-text-2)]"> • liked: {achMsg}</span>
               </div>
               <span className="text-[#E11D48] flex-shrink-0">
-                <svg width="16" height="16" viewBox="0 0 15 15" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 15 15"
+                  fill="currentColor"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
                   <path d="M7.5 13s-5-3.1-5-6.6A2.7 2.7 0 0 1 7.5 4.6a2.7 2.7 0 0 1 5 1.8C12.5 9.9 7.5 13 7.5 13z" />
                 </svg>
               </span>
@@ -469,7 +624,12 @@ export default function Profile() {
         {/* Milestones */}
         {milestones.map((msg, i) => (
           <div key={i} className="flex items-center gap-3 py-3">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ backgroundColor: avatarColor }}>{userInitials}</div>
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+              style={{ backgroundColor: avatarColor }}
+            >
+              {userInitials}
+            </div>
             <div className="flex-1 min-w-0 text-sm">
               <span className="font-semibold text-[var(--c-text)]">You</span>
               <span className="text-[var(--c-text-2)]"> • {msg}</span>
@@ -478,9 +638,15 @@ export default function Profile() {
           </div>
         ))}
 
-        {requests.incoming.length === 0 && sharedInvites.length === 0 && acceptances.length === 0 && cheers.length === 0 && milestones.length === 0 && (
-          <div className="py-8 text-center text-sm text-[var(--c-text-2)]">No notifications yet</div>
-        )}
+        {requests.incoming.length === 0 &&
+          sharedInvites.length === 0 &&
+          acceptances.length === 0 &&
+          cheers.length === 0 &&
+          milestones.length === 0 && (
+            <div className="py-8 text-center text-sm text-[var(--c-text-2)]">
+              No notifications yet
+            </div>
+          )}
       </div>
     </div>
   );
@@ -492,47 +658,98 @@ export default function Profile() {
         <div className="flex justify-between items-start mb-2 flex-wrap gap-2">
           <div>
             <h3 className="font-semibold text-base text-[var(--c-text)]">Cumulative spending</h3>
-            <div className="text-xs text-[var(--c-text-2)] mt-0.5">{monthLabel} · {fmt(totalSpent)} spent</div>
+            <div className="text-xs text-[var(--c-text-2)] mt-0.5">
+              {monthLabel} · {fmt(totalSpent)} spent
+            </div>
           </div>
           {periodBudgetTotal > 0 && (
             <div className="flex items-center gap-3 text-xs text-[var(--c-text-2)]">
               <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block w-5 border-t-2 border-dashed border-[var(--c-text-2)]" />Budget
+                <span className="inline-block w-5 border-t-2 border-dashed border-[var(--c-text-2)]" />
+                Budget
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block w-5 border-t-2 border-[var(--c-accent)]" />Spent
+                <span className="inline-block w-5 border-t-2 border-[var(--c-accent)]" />
+                Spent
               </span>
             </div>
           )}
         </div>
-        <svg width="100%" viewBox={`0 0 ${SVG_W} ${SVG_H}`} style={{ display: 'block', overflow: 'visible' }}>
-          {yTicks.map(tick => {
+        <svg
+          width="100%"
+          viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+          style={{ display: 'block', overflow: 'visible' }}
+        >
+          {yTicks.map((tick) => {
             const y = cyFn(tick);
             return (
               <g key={tick}>
-                <line x1={PAD_L} y1={y} x2={PAD_L + PLOT_W} y2={y} stroke="var(--c-grid)" strokeWidth="1" />
-                <text x={PAD_L - 4} y={y + 3} textAnchor="end" fontSize="9" fill="var(--c-text-2)">{fmtY(tick)}</text>
+                <line
+                  x1={PAD_L}
+                  y1={y}
+                  x2={PAD_L + PLOT_W}
+                  y2={y}
+                  stroke="var(--c-grid)"
+                  strokeWidth="1"
+                />
+                <text x={PAD_L - 4} y={y + 3} textAnchor="end" fontSize="9" fill="var(--c-text-2)">
+                  {fmtY(tick)}
+                </text>
               </g>
             );
           })}
           {budgetLineY !== null && (
             <>
-              <line x1={PAD_L} y1={budgetLineY} x2={PAD_L + PLOT_W} y2={budgetLineY} stroke="var(--c-text-2)" strokeWidth="1.5" strokeDasharray="5 4" />
-              <text x={PAD_L + PLOT_W - 2} y={budgetLineY - 4} textAnchor="end" fontSize="9" fill="var(--c-text-2)">Budget · ${periodBudgetTotal.toFixed(0)}</text>
+              <line
+                x1={PAD_L}
+                y1={budgetLineY}
+                x2={PAD_L + PLOT_W}
+                y2={budgetLineY}
+                stroke="var(--c-text-2)"
+                strokeWidth="1.5"
+                strokeDasharray="5 4"
+              />
+              <text
+                x={PAD_L + PLOT_W - 2}
+                y={budgetLineY - 4}
+                textAnchor="end"
+                fontSize="9"
+                fill="var(--c-text-2)"
+              >
+                Budget · ${periodBudgetTotal.toFixed(0)}
+              </text>
             </>
           )}
           {areaD && <path d={areaD} fill="var(--c-accent)" opacity="0.15" />}
           {spendPts.length > 1 && (
-            <polyline points={spendPts.join(' ')} fill="none" stroke="var(--c-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <polyline
+              points={spendPts.join(' ')}
+              fill="none"
+              stroke="var(--c-accent)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           )}
           {spendPts.length > 0 && (
             <>
               <circle cx={lastPtX} cy={lastPtY} r="4" fill="var(--c-accent)" />
-              <text x={lastPtX + 6} y={lastPtY - 5} fontSize="9" fill="var(--c-text)">{fmt(cumulativePoints[drawUpToIdx])}</text>
+              <text x={lastPtX + 6} y={lastPtY - 5} fontSize="9" fill="var(--c-text)">
+                {fmt(cumulativePoints[drawUpToIdx])}
+              </text>
             </>
           )}
           {xTicks.map(({ idx, label }) => (
-            <text key={idx} x={cxFn(idx)} y={SVG_H - 2} textAnchor="middle" fontSize="9" fill="var(--c-text-2)">{label}</text>
+            <text
+              key={idx}
+              x={cxFn(idx)}
+              y={SVG_H - 2}
+              textAnchor="middle"
+              fontSize="9"
+              fill="var(--c-text-2)"
+            >
+              {label}
+            </text>
           ))}
         </svg>
       </div>
@@ -540,31 +757,52 @@ export default function Profile() {
       {/* Spend by mood */}
       <div className={panelClass}>
         <h3 className="font-semibold text-base text-[var(--c-text)] mb-1">Spend by mood</h3>
-        <div className="text-xs text-[var(--c-text-2)] mb-4">{monthLabel} · {fmt(totalSpent)} spent</div>
+        <div className="text-xs text-[var(--c-text-2)] mb-4">
+          {monthLabel} · {fmt(totalSpent)} spent
+        </div>
         <div className="flex gap-2" style={{ minHeight: '160px' }}>
           <div className="flex flex-col justify-between items-end text-xs text-[var(--c-text-2)] pb-6 flex-shrink-0 w-12">
             <span>${maxMood >= 1000 ? `${(maxMood / 1000).toFixed(1)}k` : maxMood.toFixed(0)}</span>
-            <span>${maxMood >= 1000 ? `${(maxMood / 2000).toFixed(1)}k` : (maxMood / 2).toFixed(0)}</span>
+            <span>
+              ${maxMood >= 1000 ? `${(maxMood / 2000).toFixed(1)}k` : (maxMood / 2).toFixed(0)}
+            </span>
             <span>$0</span>
           </div>
           <div className="flex-1 flex flex-col">
             <div className="flex-1 relative" style={{ minHeight: '120px' }}>
-              {[0, 0.5, 1].map(pos => (
-                <div key={pos} className="absolute left-0 right-0 border-t border-[var(--c-grid)]" style={{ top: `${(1 - pos) * 100}%` }} />
+              {[0, 0.5, 1].map((pos) => (
+                <div
+                  key={pos}
+                  className="absolute left-0 right-0 border-t border-[var(--c-grid)]"
+                  style={{ top: `${(1 - pos) * 100}%` }}
+                />
               ))}
               <div className="absolute inset-0 flex items-end gap-2 pb-px">
                 {MOOD_LABELS.map((lbl, i) => (
                   <div key={lbl} className="flex-1 h-full flex items-end">
-                    <div title={`${fmt(moodSpending[i])}`}
-                      style={{ backgroundColor: MOOD_COLORS[i], height: moodSpending[i] > 0 ? `${Math.max((moodSpending[i] / maxMood) * 100, 2)}%` : '0%' }}
-                      className="w-full rounded-t-lg transition-all" />
+                    <div
+                      title={`${fmt(moodSpending[i])}`}
+                      style={{
+                        backgroundColor: MOOD_COLORS[i],
+                        height:
+                          moodSpending[i] > 0
+                            ? `${Math.max((moodSpending[i] / maxMood) * 100, 2)}%`
+                            : '0%',
+                      }}
+                      className="w-full rounded-t-lg transition-all"
+                    />
                   </div>
                 ))}
               </div>
             </div>
             <div className="flex gap-2 mt-2">
               {MOOD_LABELS.map((lbl, i) => (
-                <div key={i} className="flex-1 text-xs text-center text-[var(--c-text-2)] leading-tight">{lbl}</div>
+                <div
+                  key={i}
+                  className="flex-1 text-xs text-center text-[var(--c-text-2)] leading-tight"
+                >
+                  {lbl}
+                </div>
               ))}
             </div>
           </div>
@@ -584,7 +822,10 @@ export default function Profile() {
               {catSlices.map(({ label: cl, value, color }) => (
                 <div key={cl} className="flex items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                    <div
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: color }}
+                    />
                     <span className="text-sm capitalize truncate text-[var(--c-text-2)]">{cl}</span>
                   </div>
                   <span className="text-sm font-medium flex-shrink-0 text-[var(--c-text)]">
@@ -599,10 +840,14 @@ export default function Profile() {
 
       {/* How you've been spending */}
       <div className={`${panelClass} !bg-[#C5ECF9]`}>
-        <h3 className="font-semibold text-base text-[var(--c-tint-text)] mb-1">How you've been spending your money</h3>
+        <h3 className="font-semibold text-base text-[var(--c-tint-text)] mb-1">
+          How you've been spending your money
+        </h3>
         <div className="text-xs text-[var(--c-tint-text-2)] mb-5">By attribute · {monthLabel}</div>
         {totalSpent === 0 ? (
-          <div className="text-sm text-center py-4 text-[var(--c-tint-text-2)]">No spending data yet</div>
+          <div className="text-sm text-center py-4 text-[var(--c-tint-text-2)]">
+            No spending data yet
+          </div>
         ) : (
           <div className="flex flex-col gap-5">
             {breakdownRows.map(({ left, right, slices }) => {
@@ -616,10 +861,16 @@ export default function Profile() {
                   ) : (
                     <>
                       <div className="h-6 rounded-full overflow-hidden flex gap-px">
-                        {slices.map(sl => (
-                          <div key={sl.label} title={`${sl.label}: ${fmt(sl.value)}`}
-                            style={{ width: `${(sl.value / total) * 100}%`, backgroundColor: sl.color }}
-                            className="h-full" />
+                        {slices.map((sl) => (
+                          <div
+                            key={sl.label}
+                            title={`${sl.label}: ${fmt(sl.value)}`}
+                            style={{
+                              width: `${(sl.value / total) * 100}%`,
+                              backgroundColor: sl.color,
+                            }}
+                            className="h-full"
+                          />
                         ))}
                       </div>
                       <div className="flex justify-between mt-1.5">
@@ -645,25 +896,39 @@ export default function Profile() {
         <div className="flex items-start gap-6 flex-wrap">
           {/* Avatar circle */}
           <div className="relative flex-shrink-0">
-            <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-2xl font-bold text-white"
-              style={{ backgroundColor: imageUrl ? 'transparent' : avatarColor }}>
-              {imageUrl
-                ? <img src={imageUrl} alt="avatar" className="w-full h-full object-cover" />
-                : userInitials}
+            <div
+              className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-2xl font-bold text-white"
+              style={{ backgroundColor: imageUrl ? 'transparent' : avatarColor }}
+            >
+              {imageUrl ? (
+                <img src={imageUrl} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                userInitials
+              )}
             </div>
           </div>
 
           <div className="flex flex-col gap-3">
             {/* Upload button */}
-            <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+            <input
+              ref={imgInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageChange}
+            />
             <div className="flex gap-2">
-              <button onClick={() => imgInputRef.current?.click()}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[var(--c-border)] text-[var(--c-text)] hover:opacity-70 transition-opacity">
+              <button
+                onClick={() => imgInputRef.current?.click()}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[var(--c-border)] text-[var(--c-text)] hover:opacity-70 transition-opacity"
+              >
                 {imageUrl ? 'Change photo' : 'Upload photo'}
               </button>
               {imageUrl && (
-                <button onClick={handleRemoveImage}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[var(--c-border)] text-red-500 hover:opacity-70 transition-opacity">
+                <button
+                  onClick={handleRemoveImage}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[var(--c-border)] text-red-500 hover:opacity-70 transition-opacity"
+                >
                   Remove
                 </button>
               )}
@@ -675,10 +940,14 @@ export default function Profile() {
               <div>
                 <p className="text-xs font-medium text-[var(--c-text-2)] mb-2">Avatar colour</p>
                 <div className="flex gap-2 flex-wrap">
-                  {AVATAR_COLORS.map(c => (
-                    <button key={c} onClick={() => handleSetColor(c)}
+                  {AVATAR_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => handleSetColor(c)}
                       className={`w-7 h-7 rounded-full transition-all ${avatarColor === c ? 'ring-2 ring-offset-2 ring-[var(--c-accent)]' : 'hover:scale-110'}`}
-                      style={{ backgroundColor: c }} title={c} />
+                      style={{ backgroundColor: c }}
+                      title={c}
+                    />
                   ))}
                 </div>
               </div>
@@ -691,7 +960,9 @@ export default function Profile() {
       <div className="border border-[var(--c-border)] rounded-2xl p-4 sm:p-6 bg-[var(--c-card)] flex flex-col gap-5">
         {username && (
           <div>
-            <label className="block text-sm font-semibold text-[var(--c-text)] mb-1.5">Username</label>
+            <label className="block text-sm font-semibold text-[var(--c-text)] mb-1.5">
+              Username
+            </label>
             <div className="w-full px-4 py-2.5 border border-[var(--c-border)] rounded-xl text-sm bg-[var(--c-surface)] text-[var(--c-text-2)] cursor-not-allowed select-none">
               @{username}
             </div>
@@ -700,34 +971,57 @@ export default function Profile() {
         )}
 
         <div>
-          <label className="block text-sm font-semibold text-[var(--c-text)] mb-1.5">Display Name</label>
-          <input type="text" value={displayName}
-            onChange={e => setDisplayName(e.target.value)}
+          <label className="block text-sm font-semibold text-[var(--c-text)] mb-1.5">
+            Display Name
+          </label>
+          <input
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
             className={inputClass}
-            placeholder="Your display name" />
+            placeholder="Your display name"
+          />
         </div>
 
         <div>
           <label className="block text-sm font-semibold text-[var(--c-text)] mb-1.5">Email</label>
-          <input type="email" value={profile.email} readOnly
-            className="w-full px-4 py-2.5 border border-[var(--c-border)] rounded-xl text-sm bg-[var(--c-surface)] text-[var(--c-text-2)] cursor-not-allowed" />
+          <input
+            type="email"
+            value={profile.email}
+            readOnly
+            className="w-full px-4 py-2.5 border border-[var(--c-border)] rounded-xl text-sm bg-[var(--c-surface)] text-[var(--c-text-2)] cursor-not-allowed"
+          />
           <p className="text-xs text-[var(--c-text-2)] mt-1">Email cannot be changed here</p>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-[var(--c-text)] mb-1.5">Phone Number</label>
-          <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-            className={inputClass} placeholder="(+64) 000 0000" />
+          <label className="block text-sm font-semibold text-[var(--c-text)] mb-1.5">
+            Phone Number
+          </label>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className={inputClass}
+            placeholder="(+64) 000 0000"
+          />
         </div>
 
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
             <label className="block text-sm font-semibold text-[var(--c-text)]">Currency</label>
             <div className="relative group">
-              <button type="button" className="w-4 h-4 rounded-full text-[9px] font-bold bg-[var(--c-border)] text-[var(--c-text-2)] flex items-center justify-center hover:bg-[var(--c-accent)] hover:text-white transition-colors">?</button>
+              <button
+                type="button"
+                className="w-4 h-4 rounded-full text-[9px] font-bold bg-[var(--c-border)] text-[var(--c-text-2)] flex items-center justify-center hover:bg-[var(--c-accent)] hover:text-white transition-colors"
+              >
+                ?
+              </button>
               {/* Rates tooltip */}
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 rounded-xl border border-[var(--c-border)] bg-[var(--c-card)] shadow-lg p-3 text-xs z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                <p className="font-semibold text-[var(--c-text)] mb-2">Conversion rates (base: NZD)</p>
+                <p className="font-semibold text-[var(--c-text)] mb-2">
+                  Conversion rates (base: NZD)
+                </p>
                 {currency === 'NZD' ? (
                   <div className="flex flex-col gap-1 text-[var(--c-text-2)]">
                     <span>1 NZD ≈ 0.60 USD</span>
@@ -756,30 +1050,50 @@ export default function Profile() {
                     <span>1 GBP ≈ 2.27 NZD</span>
                   </div>
                 ) : null}
-                <p className="mt-2 text-[var(--c-text-2)] opacity-70">All amounts are stored in NZD and converted on display.</p>
+                <p className="mt-2 text-[var(--c-text-2)] opacity-70">
+                  All amounts are stored in NZD and converted on display.
+                </p>
               </div>
             </div>
           </div>
           <div className="relative">
-            <select value={currency} onChange={e => setCurrency(e.target.value)}
-              className={`${inputClass} appearance-none pr-8`}>
-              {CURRENCIES.map(c => (
-                <option key={c.code} value={c.code}>{c.label}</option>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className={`${inputClass} appearance-none pr-8`}
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
               ))}
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--c-text-2)]">
-                <polyline points="6 9 12 15 18 9"/>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-[var(--c-text-2)]"
+              >
+                <polyline points="6 9 12 15 18 9" />
               </svg>
             </div>
           </div>
         </div>
 
-        {saveError   && <p className="text-sm text-red-500">{saveError}</p>}
+        {saveError && <p className="text-sm text-red-500">{saveError}</p>}
         {saveSuccess && <p className="text-sm text-[var(--c-income)]">Saved successfully!</p>}
 
-        <button onClick={handleSaveProfile} disabled={saving}
-          className="self-start px-6 py-2.5 rounded-xl text-sm font-semibold bg-[var(--c-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+        <button
+          onClick={handleSaveProfile}
+          disabled={saving}
+          className="self-start px-6 py-2.5 rounded-xl text-sm font-semibold bg-[var(--c-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           {saving ? 'Saving…' : 'Save changes'}
         </button>
       </div>
@@ -787,8 +1101,8 @@ export default function Profile() {
   );
 
   const TAB_ITEMS: { id: ProfileTab; label: string }[] = [
-    { id: 'home',    label: 'Home' },
-    { id: 'stats',   label: 'Your stats' },
+    { id: 'home', label: 'Home' },
+    { id: 'stats', label: 'Your stats' },
     { id: 'account', label: 'Account' },
   ];
 
@@ -805,8 +1119,8 @@ export default function Profile() {
             subtitle="Welcome to your profile! Access all your information and detailed graphs in this page."
           />
           <div className="mt-6 md:mt-8">
-            {tab === 'home'    && renderHome()}
-            {tab === 'stats'   && renderStats()}
+            {tab === 'home' && renderHome()}
+            {tab === 'stats' && renderStats()}
             {tab === 'account' && renderAccount()}
           </div>
         </main>
@@ -816,21 +1130,41 @@ export default function Profile() {
           {/* Overlapping circles logo – matches brand mark (desktop only) */}
           <div className="relative flex-shrink-0 hidden md:block" style={{ width: 76, height: 76 }}>
             {/* purple – top-left */}
-            <div className="absolute rounded-full" style={{ width: 46, height: 46, background: '#C68BE1', top: 0, left: 0 }} />
+            <div
+              className="absolute rounded-full"
+              style={{ width: 46, height: 46, background: '#C68BE1', top: 0, left: 0 }}
+            />
             {/* cream – top-right */}
-            <div className="absolute rounded-full" style={{ width: 46, height: 46, background: '#FDFBD4', top: 0, right: 0 }} />
+            <div
+              className="absolute rounded-full"
+              style={{ width: 46, height: 46, background: '#FDFBD4', top: 0, right: 0 }}
+            />
             {/* mint – bottom-center, slightly larger */}
-            <div className="absolute rounded-full" style={{ width: 52, height: 52, background: '#C5FFD8', bottom: 0, left: '50%', transform: 'translateX(-50%)' }} />
+            <div
+              className="absolute rounded-full"
+              style={{
+                width: 52,
+                height: 52,
+                background: '#C5FFD8',
+                bottom: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+              }}
+            />
           </div>
 
           <span className="text-lg font-bold text-[var(--c-text)] hidden md:inline">felt</span>
 
           {/* User avatar */}
-          <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-            style={{ backgroundColor: imageUrl ? 'transparent' : avatarColor }}>
-            {imageUrl
-              ? <img src={imageUrl} alt="avatar" className="w-full h-full object-cover" />
-              : userInitials}
+          <div
+            className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+            style={{ backgroundColor: imageUrl ? 'transparent' : avatarColor }}
+          >
+            {imageUrl ? (
+              <img src={imageUrl} alt="avatar" className="w-full h-full object-cover" />
+            ) : (
+              userInitials
+            )}
           </div>
 
           {/* Tab nav */}

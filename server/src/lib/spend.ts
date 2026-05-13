@@ -58,7 +58,10 @@ export async function aggregateSpendByUser(
     return out;
   }
 
-  const rows = await Transaction.aggregate<{ _id: { userId: string; category: string }; total: number }>([
+  const rows = await Transaction.aggregate<{
+    _id: { userId: string; category: string };
+    total: number;
+  }>([
     { $match: match },
     {
       $group: {

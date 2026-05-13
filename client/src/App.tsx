@@ -39,22 +39,22 @@ export default function App() {
         <ScrollToTop />
         <Toaster richColors position="top-right" closeButton />
         <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/auth/reset-password" element={<ResetPassword />} />
-        <Route path="/profile/setup" element={<ProfileSetup />} />
-        <Route element={<RequireProfile />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/transactions" element={<Transactions />} />
-          <Route path="/goals" element={<Goals />} />
-          <Route path="/budgets" element={<Budgets />} />
-          <Route path="/friends" element={<Friends />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/games" element={<Games />} />
-        </Route>
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/reset-password" element={<ResetPassword />} />
+          <Route path="/profile/setup" element={<ProfileSetup />} />
+          <Route element={<RequireProfile />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/goals" element={<Goals />} />
+            <Route path="/budgets" element={<Budgets />} />
+            <Route path="/friends" element={<Friends />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/games" element={<Games />} />
+          </Route>
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
@@ -79,7 +79,10 @@ export function RequireProfile() {
       try {
         const me = await getMyProfile();
         if (cancelled) return;
-        if (!me.profileComplete) { navigate('/profile/setup'); return; }
+        if (!me.profileComplete) {
+          navigate('/profile/setup');
+          return;
+        }
         setCurrency(me.currency ?? 'NZD');
         setAvatarColor(me.avatarColor ?? '#C68BE1');
         setAvatarImage(me.avatarImage ?? null);
@@ -90,7 +93,9 @@ export function RequireProfile() {
         if (!cancelled) setChecking(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [session, isPending, navigate, ok]);
 
   if (isPending || checking) {
@@ -230,10 +235,7 @@ function CategoryPreviewCard() {
         <ul className="text-sm space-y-1.5 flex-1">
           {CATEGORY_SLICES.map((s) => (
             <li key={s.label} className="flex items-center gap-2 text-[var(--c-text-2)]">
-              <span
-                className="inline-block w-3 h-3 rounded-sm"
-                style={{ background: s.color }}
-              />
+              <span className="inline-block w-3 h-3 rounded-sm" style={{ background: s.color }} />
               {s.label}
             </li>
           ))}
@@ -252,18 +254,15 @@ function Home() {
         <div className="grid md:grid-cols-[3fr_1fr] gap-6 sm:gap-8 items-center">
           <div className="text-left">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[var(--c-text)] leading-[1.1] tracking-tight">
-              <span className="block sm:whitespace-nowrap">
-                The finance website that asks
-              </span>
+              <span className="block sm:whitespace-nowrap">The finance website that asks</span>
               <span className="block">
                 <Highlight className="px-3 py-1">how you felt</Highlight> about it.
               </span>
             </h1>
             <p className="text-base sm:text-lg text-[var(--c-text-2)] max-w-xl leading-relaxed mt-6">
-              <span className="font-bold text-[var(--c-text)]">felt</span> is a finance
-              tracker that pairs every purchase with a mood. After a month, you stop
-              guessing where your money goes, and start seeing where it actually feels
-              good.
+              <span className="font-bold text-[var(--c-text)]">felt</span> is a finance tracker that
+              pairs every purchase with a mood. After a month, you stop guessing where your money
+              goes, and start seeing where it actually feels good.
             </p>
             <div className="mt-8">
               <HeroCtas />

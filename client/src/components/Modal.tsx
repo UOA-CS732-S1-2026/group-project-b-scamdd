@@ -52,9 +52,9 @@ export default function Modal({
     document.body.style.overflow = 'hidden';
 
     const focusables = () =>
-      Array.from(
-        dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [],
-      ).filter((el) => !el.hasAttribute('aria-hidden') && el.offsetParent !== null);
+      Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? []).filter(
+        (el) => !el.hasAttribute('aria-hidden') && el.offsetParent !== null,
+      );
 
     const first = focusables()[0];
     first?.focus();

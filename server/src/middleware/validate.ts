@@ -29,7 +29,8 @@ export function getValidated<T>(req: Request, slot: keyof ValidatedBag): T {
 export function validate(schemas: Schemas): RequestHandler {
   return (req: Request, _res: Response, next: NextFunction) => {
     try {
-      const bag: ValidatedBag = ((req as unknown as Record<symbol, ValidatedBag>)[VALIDATED] ??= {});
+      const bag: ValidatedBag = ((req as unknown as Record<symbol, ValidatedBag>)[VALIDATED] ??=
+        {});
       if (schemas.body) {
         const parsed = schemas.body.parse(req.body);
         req.body = parsed;

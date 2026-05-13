@@ -64,12 +64,14 @@ describe('DELETE /api/profile/me cascade', () => {
   });
 
   it('removes every row owned by or referencing the user', async () => {
-    const sb = await request(app).post('/api/shared-budgets').send({
-      category: 'food',
-      monthlyLimit: 100,
-      period: 'monthly',
-      inviteUserIds: [userB],
-    });
+    const sb = await request(app)
+      .post('/api/shared-budgets')
+      .send({
+        category: 'food',
+        monthlyLimit: 100,
+        period: 'monthly',
+        inviteUserIds: [userB],
+      });
     expect(sb.status).toBe(201);
 
     const res = await request(app).delete('/api/profile/me');
@@ -77,8 +79,12 @@ describe('DELETE /api/profile/me cascade', () => {
 
     expect(await Transaction.countDocuments({ userId: userA })).toBe(0);
     expect(await Budget.countDocuments({ userId: userA })).toBe(0);
-    expect(await Cheer.countDocuments({ $or: [{ fromUserId: userA }, { toUserId: userA }] })).toBe(0);
-    expect(await Friendship.countDocuments({ $or: [{ requesterId: userA }, { addresseeId: userA }] })).toBe(0);
+    expect(await Cheer.countDocuments({ $or: [{ fromUserId: userA }, { toUserId: userA }] })).toBe(
+      0,
+    );
+    expect(
+      await Friendship.countDocuments({ $or: [{ requesterId: userA }, { addresseeId: userA }] }),
+    ).toBe(0);
     expect(await User.findById(userA)).toBeNull();
     // Shared budget userA created should be gone (zero accepted left after pull).
     const sbAfter = await SharedBudget.findById(sb.body._id);
@@ -199,10 +205,14 @@ describe('Achievement reversal on transaction delete', () => {
     const id = created.body._id as string;
     // Wait for the fire-and-forget achievement award.
     await new Promise((r) => setTimeout(r, 100));
-    expect(await Achievement.findOne({ userId: 'test-user-1', key: 'first_transaction' })).toBeTruthy();
+    expect(
+      await Achievement.findOne({ userId: 'test-user-1', key: 'first_transaction' }),
+    ).toBeTruthy();
 
     await request(app).delete(`/api/transactions/${id}`);
     await new Promise((r) => setTimeout(r, 100));
-    expect(await Achievement.findOne({ userId: 'test-user-1', key: 'first_transaction' })).toBeNull();
+    expect(
+      await Achievement.findOne({ userId: 'test-user-1', key: 'first_transaction' }),
+    ).toBeNull();
   });
 });

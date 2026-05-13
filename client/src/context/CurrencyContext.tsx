@@ -20,13 +20,7 @@ const CurrencyContext = createContext<CurrencyCtx>({
   setCurrency: () => {},
 });
 
-export function CurrencyProvider({
-  initial,
-  children,
-}: {
-  initial: string;
-  children: ReactNode;
-}) {
+export function CurrencyProvider({ initial, children }: { initial: string; children: ReactNode }) {
   const [currency, setCurrencyState] = useState(initial);
 
   const symbol = symbolFor(currency);

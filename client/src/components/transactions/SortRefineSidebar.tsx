@@ -1,4 +1,10 @@
-import { MOOD_KEYS, MOOD_LABELS, MOOD_EMOJIS, SORT_OPTIONS, TIME_OPTIONS } from '../../lib/transactions';
+import {
+  MOOD_KEYS,
+  MOOD_LABELS,
+  MOOD_EMOJIS,
+  SORT_OPTIONS,
+  TIME_OPTIONS,
+} from '../../lib/transactions';
 import type { SortBy, TimeRange, TypeFilter } from '../../lib/transactions';
 import FilterSection from '../ui/FilterSection';
 import Pill from '../ui/Pill';
@@ -12,8 +18,8 @@ interface SortRefineSidebarProps {
   onTypeFilter: (v: TypeFilter) => void;
   timeRange: TimeRange;
   onTimeRange: (v: TimeRange) => void;
-  moodFilter: 'all' | typeof MOOD_KEYS[number];
-  onMoodFilter: (v: 'all' | typeof MOOD_KEYS[number]) => void;
+  moodFilter: 'all' | (typeof MOOD_KEYS)[number];
+  onMoodFilter: (v: 'all' | (typeof MOOD_KEYS)[number]) => void;
   categoryFilters: Set<string>;
   onToggleCategory: (cat: string) => void;
   amountRange: [number, number];
@@ -22,12 +28,18 @@ interface SortRefineSidebarProps {
 }
 
 export default function SortRefineSidebar({
-  sortBy, onSortBy,
-  typeFilter, onTypeFilter,
-  timeRange, onTimeRange,
-  moodFilter, onMoodFilter,
-  categoryFilters, onToggleCategory,
-  amountRange, onAmountRange,
+  sortBy,
+  onSortBy,
+  typeFilter,
+  onTypeFilter,
+  timeRange,
+  onTimeRange,
+  moodFilter,
+  onMoodFilter,
+  categoryFilters,
+  onToggleCategory,
+  amountRange,
+  onAmountRange,
   dataMaxAmount,
 }: SortRefineSidebarProps) {
   const panelClass = 'p-6 rounded-3xl border border-[var(--c-border)] bg-[var(--c-card)]';
@@ -49,7 +61,10 @@ export default function SortRefineSidebar({
       <FilterSection title="Sort by">
         <div className="flex flex-col gap-2">
           {SORT_OPTIONS.map(({ key, label }) => (
-            <label key={key} className="flex items-center gap-2.5 cursor-pointer text-sm text-[var(--c-text)] hover:opacity-80 transition-opacity">
+            <label
+              key={key}
+              className="flex items-center gap-2.5 cursor-pointer text-sm text-[var(--c-text)] hover:opacity-80 transition-opacity"
+            >
               <input
                 type="radio"
                 name="sortby"
@@ -75,7 +90,9 @@ export default function SortRefineSidebar({
 
       <FilterSection title="Mood">
         <div className="flex flex-wrap gap-2">
-          <Pill active={moodFilter === 'all'} onClick={() => onMoodFilter('all')}>All</Pill>
+          <Pill active={moodFilter === 'all'} onClick={() => onMoodFilter('all')}>
+            All
+          </Pill>
           {MOOD_KEYS.map((m, i) => (
             <Pill
               key={m}
@@ -93,7 +110,10 @@ export default function SortRefineSidebar({
       <FilterSection title="Category">
         <div className="flex flex-col gap-2">
           {CATEGORIES.map((c) => (
-            <label key={c} className="flex items-center gap-2.5 cursor-pointer text-sm text-[var(--c-text)] capitalize hover:opacity-80 transition-opacity">
+            <label
+              key={c}
+              className="flex items-center gap-2.5 cursor-pointer text-sm text-[var(--c-text)] capitalize hover:opacity-80 transition-opacity"
+            >
               <input
                 type="checkbox"
                 checked={categoryFilters.has(c)}
@@ -107,12 +127,7 @@ export default function SortRefineSidebar({
       </FilterSection>
 
       <FilterSection title="Amount" last>
-        <RangeSlider
-          min={0}
-          max={dataMaxAmount}
-          value={amountRange}
-          onChange={onAmountRange}
-        />
+        <RangeSlider min={0} max={dataMaxAmount} value={amountRange} onChange={onAmountRange} />
       </FilterSection>
     </aside>
   );

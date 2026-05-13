@@ -30,8 +30,7 @@ export function useTransactions() {
 export function useTransactionsPaginated(page: number, limit: number) {
   return useQuery({
     queryKey: KEYS.list({ page, limit }),
-    queryFn: () =>
-      apiFetch<PaginatedTransactions>('/transactions', { query: { page, limit } }),
+    queryFn: () => apiFetch<PaginatedTransactions>('/transactions', { query: { page, limit } }),
     placeholderData: keepPreviousData,
   });
 }

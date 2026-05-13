@@ -12,30 +12,29 @@ export default function AboutPage() {
           className="text-base sm:text-lg text-[var(--c-text-2)] leading-relaxed"
           style={{ marginBottom: '36px' }}
         >
-          We&apos;re building a different kind of finance tracker — one that pairs every
-          purchase with how it made you feel.
+          We&apos;re building a different kind of finance tracker — one that pairs every purchase
+          with how it made you feel.
         </p>
 
         <Section title="Our mission">
           Money management should be more than spreadsheets and numbers. We believe that
-          understanding the emotional side of spending helps you make better financial
-          decisions. felt helps you see not just where your money goes, but how each
-          purchase actually made you feel.
+          understanding the emotional side of spending helps you make better financial decisions.
+          felt helps you see not just where your money goes, but how each purchase actually made you
+          feel.
         </Section>
 
         <Section title="What we believe">
-          Every purchase carries a feeling. That coffee might have felt necessary at 8am,
-          but regretted by noon. The impulse buy that brought genuine joy. The
-          &ldquo;essential&rdquo; expense that left you stressed. When you track both the
-          transaction and the emotion, you start spending with more intention and less
-          regret.
+          Every purchase carries a feeling. That coffee might have felt necessary at 8am, but
+          regretted by noon. The impulse buy that brought genuine joy. The &ldquo;essential&rdquo;
+          expense that left you stressed. When you track both the transaction and the emotion, you
+          start spending with more intention and less regret.
         </Section>
 
         <Section title="Why felt exists">
-          Traditional finance apps focus on budgets and categories. But knowing you spent
-          $200 on &ldquo;entertainment&rdquo; doesn&apos;t tell you if it was worth it.
-          felt adds the missing piece: how you actually felt about each purchase. Over
-          time, patterns emerge. You learn what brings value and what brings regret.
+          Traditional finance apps focus on budgets and categories. But knowing you spent $200 on
+          &ldquo;entertainment&rdquo; doesn&apos;t tell you if it was worth it. felt adds the
+          missing piece: how you actually felt about each purchase. Over time, patterns emerge. You
+          learn what brings value and what brings regret.
         </Section>
       </article>
     </MarketingLayout>

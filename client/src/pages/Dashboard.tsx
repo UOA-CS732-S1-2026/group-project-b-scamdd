@@ -23,6 +23,7 @@ import type { Transaction } from '../types/transaction';
 import type { Budget } from '../types/budget';
 import type { Friend } from '../types/friend';
 import type { SharedBudget } from '../types/sharedBudget';
+import type { Profile } from '../types/profile';
 import { sharedBudgetPace } from '../components/SharedBudgetCard';
 
 // ── Period helpers ────────────────────────────────────────────────────────────
@@ -30,7 +31,10 @@ import { sharedBudgetPace } from '../components/SharedBudgetCard';
 type DashPeriod = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 const PERIOD_DISPLAY: Record<DashPeriod, string> = {
-  daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly',
+  daily: 'Daily',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+  yearly: 'Yearly',
 };
 
 function periodBounds(period: DashPeriod, anchor: Date): { start: Date; end: Date } {
@@ -51,12 +55,12 @@ function periodBounds(period: DashPeriod, anchor: Date): { start: Date; end: Dat
     case 'monthly':
       return {
         start: new Date(anchor.getFullYear(), anchor.getMonth(), 1),
-        end:   new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1),
+        end: new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1),
       };
     case 'yearly':
       return {
         start: new Date(anchor.getFullYear(), 0, 1),
-        end:   new Date(anchor.getFullYear() + 1, 0, 1),
+        end: new Date(anchor.getFullYear() + 1, 0, 1),
       };
   }
 }
@@ -65,9 +69,15 @@ function periodLabel(period: DashPeriod, anchor: Date): string {
   const { start } = periodBounds(period, anchor);
   switch (period) {
     case 'daily':
-      return start.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      return start.toLocaleDateString('en', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
     case 'weekly': {
-      const end = new Date(start); end.setDate(start.getDate() + 6);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
       const s = start.toLocaleDateString('en', { month: 'short', day: 'numeric' });
       const e = end.toLocaleDateString('en', {
         month: start.getMonth() === end.getMonth() ? undefined : 'short',
@@ -85,10 +95,18 @@ function periodLabel(period: DashPeriod, anchor: Date): string {
 function shiftAnchor(period: DashPeriod, anchor: Date, dir: -1 | 1): Date {
   const d = new Date(anchor);
   switch (period) {
-    case 'daily':   d.setDate(d.getDate() + dir); break;
-    case 'weekly':  d.setDate(d.getDate() + dir * 7); break;
-    case 'monthly': d.setMonth(d.getMonth() + dir); break;
-    case 'yearly':  d.setFullYear(d.getFullYear() + dir); break;
+    case 'daily':
+      d.setDate(d.getDate() + dir);
+      break;
+    case 'weekly':
+      d.setDate(d.getDate() + dir * 7);
+      break;
+    case 'monthly':
+      d.setMonth(d.getMonth() + dir);
+      break;
+    case 'yearly':
+      d.setFullYear(d.getFullYear() + dir);
+      break;
   }
   return d;
 }
@@ -103,33 +121,114 @@ function isCurrentOrFuturePeriod(period: DashPeriod, anchor: Date): boolean {
 function currentPointIdx(period: DashPeriod): number {
   const now = new Date();
   switch (period) {
-    case 'daily':   return now.getHours();
-    case 'weekly':  return now.getDay() === 0 ? 6 : now.getDay() - 1;
-    case 'monthly': return now.getDate() - 1;
-    case 'yearly':  return now.getMonth();
+    case 'daily':
+      return now.getHours();
+    case 'weekly':
+      return now.getDay() === 0 ? 6 : now.getDay() - 1;
+    case 'monthly':
+      return now.getDate() - 1;
+    case 'yearly':
+      return now.getMonth();
   }
 }
 
 // ── Panel definitions ─────────────────────────────────────────────────────────
 
 const PANEL_DEFS = [
-  { id: 'mood'               as const, title: 'Spend by mood',       desc: 'Non-essential spending broken down by mood rating',            width: 5, height: 4,  defaultOn: true  },
-  { id: 'category'           as const, title: 'Where it goes',       desc: 'Expense breakdown by category with donut chart',               width: 5, height: 4,  defaultOn: true  },
-  { id: 'transactions'       as const, title: 'Recent transactions', desc: 'Scrollable list of all transactions in the period',            width: 4, height: 9,  defaultOn: true  },
-  { id: 'breakdown'          as const, title: 'Spending breakdown',  desc: 'Proportional bars across 5 spending dimensions',               width: 6, height: 4,  defaultOn: true  },
-  { id: 'leaderboard'        as const, title: 'Friends',             desc: 'Streaks & recent achievements from friends',                   width: 6, height: 5,  defaultOn: true  },
-  { id: 'net-savings'        as const, title: 'Net savings',         desc: 'Cumulative income minus expenses over the period',             width: 5, height: 4,  defaultOn: false },
-  { id: 'daily-spending'     as const, title: 'Period spending',     desc: 'Spending per time segment as individual bars (not cumulative)', width: 5, height: 3,  defaultOn: false },
-  { id: 'top-categories'     as const, title: 'Top categories',      desc: 'Ranked horizontal bars of spending per category',             width: 5, height: 5,  defaultOn: false },
-  { id: 'budget-utilization' as const, title: 'Budget utilisation',  desc: 'Budget used versus limit for each budget category',           width: 5, height: 5,  defaultOn: false },
-  { id: 'txn-count'          as const, title: 'Transaction count',   desc: 'Number of transactions logged per time segment',              width: 5, height: 3,  defaultOn: false },
-  { id: 'monthly-wrapped'   as const, title: 'Monthly Wrapped',      desc: 'End-of-month snapshot with key spending insights',             width: 10, height: 5, defaultOn: true  },
+  {
+    id: 'mood' as const,
+    title: 'Spend by mood',
+    desc: 'Non-essential spending broken down by mood rating',
+    width: 5,
+    height: 4,
+    defaultOn: true,
+  },
+  {
+    id: 'category' as const,
+    title: 'Where it goes',
+    desc: 'Expense breakdown by category with donut chart',
+    width: 5,
+    height: 4,
+    defaultOn: true,
+  },
+  {
+    id: 'transactions' as const,
+    title: 'Recent transactions',
+    desc: 'Scrollable list of all transactions in the period',
+    width: 4,
+    height: 9,
+    defaultOn: true,
+  },
+  {
+    id: 'breakdown' as const,
+    title: 'Spending breakdown',
+    desc: 'Proportional bars across 5 spending dimensions',
+    width: 6,
+    height: 4,
+    defaultOn: true,
+  },
+  {
+    id: 'leaderboard' as const,
+    title: 'Friends',
+    desc: 'Streaks & recent achievements from friends',
+    width: 6,
+    height: 5,
+    defaultOn: true,
+  },
+  {
+    id: 'net-savings' as const,
+    title: 'Net savings',
+    desc: 'Cumulative income minus expenses over the period',
+    width: 5,
+    height: 4,
+    defaultOn: false,
+  },
+  {
+    id: 'daily-spending' as const,
+    title: 'Period spending',
+    desc: 'Spending per time segment as individual bars (not cumulative)',
+    width: 5,
+    height: 3,
+    defaultOn: false,
+  },
+  {
+    id: 'top-categories' as const,
+    title: 'Top categories',
+    desc: 'Ranked horizontal bars of spending per category',
+    width: 5,
+    height: 5,
+    defaultOn: false,
+  },
+  {
+    id: 'budget-utilization' as const,
+    title: 'Budget utilisation',
+    desc: 'Budget used versus limit for each budget category',
+    width: 5,
+    height: 5,
+    defaultOn: false,
+  },
+  {
+    id: 'txn-count' as const,
+    title: 'Transaction count',
+    desc: 'Number of transactions logged per time segment',
+    width: 5,
+    height: 3,
+    defaultOn: false,
+  },
+  {
+    id: 'monthly-wrapped' as const,
+    title: 'Monthly Wrapped',
+    desc: 'End-of-month snapshot with key spending insights',
+    width: 10,
+    height: 5,
+    defaultOn: true,
+  },
 ];
 
-type PanelId = typeof PANEL_DEFS[number]['id'];
+type PanelId = (typeof PANEL_DEFS)[number]['id'];
 type PanelConfig = { id: PanelId; visible: boolean; width?: number; height?: number };
 
-const DEFAULT_CONFIG: PanelConfig[] = PANEL_DEFS.map(p => ({ id: p.id, visible: p.defaultOn }));
+const DEFAULT_CONFIG: PanelConfig[] = PANEL_DEFS.map((p) => ({ id: p.id, visible: p.defaultOn }));
 const LS_KEY = 'dashboard-panels-v14';
 
 function loadPanelConfig(): PanelConfig[] {
@@ -137,9 +236,9 @@ function loadPanelConfig(): PanelConfig[] {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return DEFAULT_CONFIG;
     const parsed: PanelConfig[] = JSON.parse(raw);
-    const savedIds = new Set(parsed.map(p => p.id));
-    const extras = DEFAULT_CONFIG.filter(p => !savedIds.has(p.id));
-    return [...parsed.filter(p => PANEL_DEFS.some(d => d.id === p.id)), ...extras];
+    const savedIds = new Set(parsed.map((p) => p.id));
+    const extras = DEFAULT_CONFIG.filter((p) => !savedIds.has(p.id));
+    return [...parsed.filter((p) => PANEL_DEFS.some((d) => d.id === p.id)), ...extras];
   } catch {
     return DEFAULT_CONFIG;
   }
@@ -147,13 +246,14 @@ function loadPanelConfig(): PanelConfig[] {
 
 // ── Chart constants ───────────────────────────────────────────────────────────
 
-
-const MOOD_KEYS   = ['regret', 'meh', 'okay', 'glad', 'worth-it'] as const;
+const MOOD_KEYS = ['regret', 'meh', 'okay', 'glad', 'worth-it'] as const;
 const MOOD_LABELS = ['Regret', 'Meh', 'Okay', 'Glad', 'Worth It'] as const;
 const MOOD_COLORS = ['#FFBDC2', '#CBCBCB', '#FDFBD4', '#C5FFD8', '#C68BE1'];
 
 function PieChart({ slices }: { slices: { value: number; color: string }[] }) {
-  const cx = 60, cy = 60, r = 56;
+  const cx = 60,
+    cy = 60,
+    r = 56;
   const total = slices.reduce((s, d) => s + d.value, 0);
   if (total === 0) return null;
   let angle = -Math.PI / 2;
@@ -169,15 +269,16 @@ function PieChart({ slices }: { slices: { value: number; color: string }[] }) {
         const y2 = cy + r * Math.sin(angle);
         const large = fraction > 0.5 ? 1 : 0;
         return (
-          <path key={i} fill={slice.color}
-            d={`M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`} />
+          <path
+            key={i}
+            fill={slice.color}
+            d={`M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`}
+          />
         );
       })}
     </svg>
   );
 }
-
-
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
@@ -191,7 +292,7 @@ export default function Dashboard() {
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [rawBudgets, setRawBudgets] = useState<Budget[]>([]);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [myAchievements, setMyAchievements] = useState<Achievement[]>([]);
   const [sharedBudgets, setSharedBudgets] = useState<SharedBudget[]>([]);
@@ -201,29 +302,36 @@ export default function Dashboard() {
   useEffect(() => {
     if (!session) return;
     getSentCheers()
-      .then(list => setLikedAchievements(new Set(list.map(c => `${c.toUserId}|${c.achievementKey}`))))
+      .then((list) =>
+        setLikedAchievements(new Set(list.map((c) => `${c.toUserId}|${c.achievementKey}`))),
+      )
       .catch(() => {});
   }, [session]);
 
-  const toggleCheer = useCallback(async (toUserId: string, key: string) => {
-    const id = `${toUserId}|${key}`;
-    const wasLiked = likedAchievements.has(id);
-    setLikedAchievements(s => {
-      const next = new Set(s);
-      if (wasLiked) next.delete(id); else next.add(id);
-      return next;
-    });
-    try {
-      if (wasLiked) await apiUncheer(toUserId, key);
-      else await apiCheer(toUserId, key);
-    } catch {
-      setLikedAchievements(s => {
+  const toggleCheer = useCallback(
+    async (toUserId: string, key: string) => {
+      const id = `${toUserId}|${key}`;
+      const wasLiked = likedAchievements.has(id);
+      setLikedAchievements((s) => {
         const next = new Set(s);
-        if (wasLiked) next.add(id); else next.delete(id);
+        if (wasLiked) next.delete(id);
+        else next.add(id);
         return next;
       });
-    }
-  }, [likedAchievements]);
+      try {
+        if (wasLiked) await apiUncheer(toUserId, key);
+        else await apiCheer(toUserId, key);
+      } catch {
+        setLikedAchievements((s) => {
+          const next = new Set(s);
+          if (wasLiked) next.add(id);
+          else next.delete(id);
+          return next;
+        });
+      }
+    },
+    [likedAchievements],
+  );
   const [wrappedMonths, setWrappedMonths] = useState<WrappedMonth[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewPeriod, setViewPeriod] = useState<DashPeriod>('monthly');
@@ -237,17 +345,17 @@ export default function Dashboard() {
 
   const fetchData = useCallback(async () => {
     try {
-
-      const [transactions, budgets, prof, friendList, ach, shared, invites, wrapped] = await Promise.all([
-        getTransactions(),
-        getBudgets(),
-        getMyProfile(),
-        getFriends().catch(() => [] as Friend[]),
-        getMyAchievements().catch(() => [] as Achievement[]),
-        getSharedBudgets().catch(() => [] as SharedBudget[]),
-        getSharedBudgetInvites().catch(() => [] as SharedBudget[]),
-        getWrapped().catch(() => [] as WrappedMonth[]),
-      ]);
+      const [transactions, budgets, prof, friendList, ach, shared, invites, wrapped] =
+        await Promise.all([
+          getTransactions(),
+          getBudgets(),
+          getMyProfile(),
+          getFriends().catch(() => [] as Friend[]),
+          getMyAchievements().catch(() => [] as Achievement[]),
+          getSharedBudgets().catch(() => [] as SharedBudget[]),
+          getSharedBudgetInvites().catch(() => [] as SharedBudget[]),
+          getWrapped().catch(() => [] as WrappedMonth[]),
+        ]);
       setAllTransactions(transactions);
       setRawBudgets(budgets);
       setProfile(prof);
@@ -271,13 +379,13 @@ export default function Dashboard() {
   };
 
   const togglePanel = (id: PanelId) => {
-    const next = panelConfig.map(p => p.id === id ? { ...p, visible: !p.visible } : p);
+    const next = panelConfig.map((p) => (p.id === id ? { ...p, visible: !p.visible } : p));
     setPanelConfig(next);
     localStorage.setItem(LS_KEY, JSON.stringify(next));
   };
 
   const movePanel = (id: PanelId, dir: -1 | 1) => {
-    const idx = panelConfig.findIndex(p => p.id === id);
+    const idx = panelConfig.findIndex((p) => p.id === id);
     if (idx < 0) return;
     const swap = idx + dir;
     if (swap < 0 || swap >= panelConfig.length) return;
@@ -288,13 +396,13 @@ export default function Dashboard() {
   };
 
   const setHeight = (id: PanelId, height: number) => {
-    const next = panelConfig.map(p => p.id === id ? { ...p, height } : p);
+    const next = panelConfig.map((p) => (p.id === id ? { ...p, height } : p));
     setPanelConfig(next);
     localStorage.setItem(LS_KEY, JSON.stringify(next));
   };
 
   const setWidth = (id: PanelId, width: number) => {
-    const next = panelConfig.map(p => p.id === id ? { ...p, width } : p);
+    const next = panelConfig.map((p) => (p.id === id ? { ...p, width } : p));
     setPanelConfig(next);
     localStorage.setItem(LS_KEY, JSON.stringify(next));
   };
@@ -314,32 +422,41 @@ export default function Dashboard() {
 
   // ── Derived data ─────────────────────────────────────────────────────────────
   const { start: pStart, end: pEnd } = periodBounds(viewPeriod, periodAnchor);
-  const label    = periodLabel(viewPeriod, periodAnchor);
+  const label = periodLabel(viewPeriod, periodAnchor);
   const isCurrent = isCurrentOrFuturePeriod(viewPeriod, periodAnchor);
 
   const periodTxns = allTransactions.filter((t) => {
     const d = new Date(t.date);
     return d >= pStart && d < pEnd;
   });
-  const expenses = periodTxns.filter(t => t.type === 'expense');
-  const incomes  = periodTxns.filter(t => t.type === 'income');
+  const expenses = periodTxns.filter((t) => t.type === 'expense');
+  const incomes = periodTxns.filter((t) => t.type === 'income');
 
-  const totalSpent  = expenses.reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalSpent = expenses.reduce((s, t) => s + Math.abs(t.amount), 0);
   const totalIncome = incomes.reduce((s, t) => s + t.amount, 0);
 
-  const periodBudgets = rawBudgets.filter(b => (b.period ?? 'monthly') === viewPeriod);
-  const overallBudget = periodBudgets.find(b => b.category === 'overall');
-  const categoryBudgets = periodBudgets.filter(b => b.category !== 'overall');
+  const periodBudgets = rawBudgets.filter((b) => (b.period ?? 'monthly') === viewPeriod);
+  const overallBudget = periodBudgets.find((b) => b.category === 'overall');
+  const categoryBudgets = periodBudgets.filter((b) => b.category !== 'overall');
   const periodBudgetTotal = overallBudget
     ? overallBudget.monthlyLimit
     : categoryBudgets.reduce((s, b) => s + b.monthlyLimit, 0);
 
-  const MOOD_VALUES: Record<string, number> = { regret: 1, meh: 2, okay: 3, glad: 4, 'worth-it': 5 };
-  const moodTxns = periodTxns.filter(t => t.essential === false && t.mood && MOOD_VALUES[t.mood] !== undefined);
+  const MOOD_VALUES: Record<string, number> = {
+    regret: 1,
+    meh: 2,
+    okay: 3,
+    glad: 4,
+    'worth-it': 5,
+  };
+  const moodTxns = periodTxns.filter(
+    (t) => t.essential === false && t.mood && MOOD_VALUES[t.mood] !== undefined,
+  );
   const moodTotalSpent = moodTxns.reduce((s, t) => s + Math.abs(t.amount), 0);
-  const moodAvg = moodTotalSpent > 0
-    ? moodTxns.reduce((s, t) => s + MOOD_VALUES[t.mood!] * Math.abs(t.amount), 0) / moodTotalSpent
-    : 3;
+  const moodAvg =
+    moodTotalSpent > 0
+      ? moodTxns.reduce((s, t) => s + MOOD_VALUES[t.mood!] * Math.abs(t.amount), 0) / moodTotalSpent
+      : 3;
   const moodEmoji = ['😢', '😕', '😐', '🙂', '😊'][Math.min(Math.floor(moodAvg) - 1, 4)];
 
   const recentAll = [...periodTxns].sort(
@@ -347,55 +464,93 @@ export default function Dashboard() {
   );
 
   // ── Cumulative chart ──────────────────────────────────────────────────────────
-  const SVG_W = 400, SVG_H = 110;
-  const PAD_L = 36, PAD_R = 8, PAD_T = 6, PAD_B = 16;
+  const SVG_W = 400,
+    SVG_H = 110;
+  const PAD_L = 36,
+    PAD_R = 8,
+    PAD_T = 6,
+    PAD_B = 16;
   const PLOT_W = SVG_W - PAD_L - PAD_R;
   const PLOT_H = SVG_H - PAD_T - PAD_B;
 
-  const nonEmergencyExpenses = expenses.filter(t => t.category !== 'emergency');
+  const nonEmergencyExpenses = expenses.filter((t) => t.category !== 'emergency');
 
-  let cumulativePoints: number[] = [];
+  let cumulativePoints: number[];
   let cumulativeNonEmerg: number[] = [];
   let xTicks: Array<{ idx: number; label: string }> = [];
-  const N_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const N_MONTHS = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
 
   if (viewPeriod === 'daily') {
     cumulativePoints = Array.from({ length: 24 }, (_, h) =>
-      expenses.filter(t => new Date(t.date).getHours() <= h).reduce((s, t) => s + Math.abs(t.amount), 0),
+      expenses
+        .filter((t) => new Date(t.date).getHours() <= h)
+        .reduce((s, t) => s + Math.abs(t.amount), 0),
     );
     cumulativeNonEmerg = Array.from({ length: 24 }, (_, h) =>
-      nonEmergencyExpenses.filter(t => new Date(t.date).getHours() <= h).reduce((s, t) => s + Math.abs(t.amount), 0),
+      nonEmergencyExpenses
+        .filter((t) => new Date(t.date).getHours() <= h)
+        .reduce((s, t) => s + Math.abs(t.amount), 0),
     );
-    xTicks = [0, 6, 12, 18, 23].map(h => ({
-      idx: h, label: h === 0 ? '12am' : h === 12 ? '12pm' : h < 12 ? `${h}am` : `${h - 12}pm`,
+    xTicks = [0, 6, 12, 18, 23].map((h) => ({
+      idx: h,
+      label: h === 0 ? '12am' : h === 12 ? '12pm' : h < 12 ? `${h}am` : `${h - 12}pm`,
     }));
   } else if (viewPeriod === 'weekly') {
     cumulativePoints = Array.from({ length: 7 }, (_, i) =>
-      expenses.filter(t => { const d = new Date(t.date).getDay(); return (d === 0 ? 6 : d - 1) <= i; })
-              .reduce((s, t) => s + Math.abs(t.amount), 0),
+      expenses
+        .filter((t) => {
+          const d = new Date(t.date).getDay();
+          return (d === 0 ? 6 : d - 1) <= i;
+        })
+        .reduce((s, t) => s + Math.abs(t.amount), 0),
     );
     cumulativeNonEmerg = Array.from({ length: 7 }, (_, i) =>
-      nonEmergencyExpenses.filter(t => { const d = new Date(t.date).getDay(); return (d === 0 ? 6 : d - 1) <= i; })
-              .reduce((s, t) => s + Math.abs(t.amount), 0),
+      nonEmergencyExpenses
+        .filter((t) => {
+          const d = new Date(t.date).getDay();
+          return (d === 0 ? 6 : d - 1) <= i;
+        })
+        .reduce((s, t) => s + Math.abs(t.amount), 0),
     );
-    xTicks = ['M','T','W','T','F','S','S'].map((l, i) => ({ idx: i, label: l }));
+    xTicks = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => ({ idx: i, label: l }));
   } else if (viewPeriod === 'monthly') {
     const dim = new Date(pStart.getFullYear(), pStart.getMonth() + 1, 0).getDate();
     cumulativePoints = Array.from({ length: dim }, (_, i) =>
-      expenses.filter(t => new Date(t.date).getDate() <= i + 1).reduce((s, t) => s + Math.abs(t.amount), 0),
+      expenses
+        .filter((t) => new Date(t.date).getDate() <= i + 1)
+        .reduce((s, t) => s + Math.abs(t.amount), 0),
     );
     cumulativeNonEmerg = Array.from({ length: dim }, (_, i) =>
-      nonEmergencyExpenses.filter(t => new Date(t.date).getDate() <= i + 1).reduce((s, t) => s + Math.abs(t.amount), 0),
+      nonEmergencyExpenses
+        .filter((t) => new Date(t.date).getDate() <= i + 1)
+        .reduce((s, t) => s + Math.abs(t.amount), 0),
     );
     xTicks = [1, 5, 10, 15, 20, 25, dim]
       .filter((d, i, a) => a.indexOf(d) === i && d <= dim)
-      .map(d => ({ idx: d - 1, label: String(d) }));
+      .map((d) => ({ idx: d - 1, label: String(d) }));
   } else {
     cumulativePoints = Array.from({ length: 12 }, (_, m) =>
-      expenses.filter(t => new Date(t.date).getMonth() <= m).reduce((s, t) => s + Math.abs(t.amount), 0),
+      expenses
+        .filter((t) => new Date(t.date).getMonth() <= m)
+        .reduce((s, t) => s + Math.abs(t.amount), 0),
     );
     cumulativeNonEmerg = Array.from({ length: 12 }, (_, m) =>
-      nonEmergencyExpenses.filter(t => new Date(t.date).getMonth() <= m).reduce((s, t) => s + Math.abs(t.amount), 0),
+      nonEmergencyExpenses
+        .filter((t) => new Date(t.date).getMonth() <= m)
+        .reduce((s, t) => s + Math.abs(t.amount), 0),
     );
     xTicks = N_MONTHS.map((l, i) => ({ idx: i, label: l }));
   }
@@ -407,41 +562,49 @@ export default function Dashboard() {
   const rawYMax = Math.max(...cumulativePoints, periodBudgetTotal, 10);
   const approxStep = rawYMax / 4;
   const stepMag = Math.pow(10, Math.floor(Math.log10(Math.max(approxStep, 1))));
-  const yStep = ([1, 2, 5, 10].map(s => s * stepMag).find(s => rawYMax / s <= 5)) ?? stepMag * 10;
+  const yStep = [1, 2, 5, 10].map((s) => s * stepMag).find((s) => rawYMax / s <= 5) ?? stepMag * 10;
   const yMax = yStep * Math.ceil(rawYMax / yStep);
   const yTicks = Array.from({ length: Math.floor(yMax / yStep) + 1 }, (_, i) => i * yStep);
 
   const cxFn = (idx: number) => PAD_L + (N <= 1 ? 0 : idx / (N - 1)) * PLOT_W;
-  const cyFn = (v: number)   => PAD_T + PLOT_H - (v / yMax) * PLOT_H;
+  const cyFn = (v: number) => PAD_T + PLOT_H - (v / yMax) * PLOT_H;
   const chartBottom = PAD_T + PLOT_H;
 
-  const spendPts = cumulativePoints.slice(0, drawUpToIdx + 1)
+  const spendPts = cumulativePoints
+    .slice(0, drawUpToIdx + 1)
     .map((v, i) => `${cxFn(i).toFixed(1)},${cyFn(v).toFixed(1)}`);
-  const spendPtsNonEmerg = cumulativeNonEmerg.slice(0, drawUpToIdx + 1)
+  const spendPtsNonEmerg = cumulativeNonEmerg
+    .slice(0, drawUpToIdx + 1)
     .map((v, i) => `${cxFn(i).toFixed(1)},${cyFn(v).toFixed(1)}`);
   const budgetLineY = overallBudget ? cyFn(overallBudget.monthlyLimit) : null;
-  const areaInclD = spendPts.length > 0
-    ? `M ${cxFn(0).toFixed(1)},${chartBottom} L ${spendPts.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${chartBottom} Z`
-    : '';
-  const areaExclD = spendPtsNonEmerg.length > 0
-    ? `M ${cxFn(0).toFixed(1)},${chartBottom} L ${spendPtsNonEmerg.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${chartBottom} Z`
-    : '';
+  const areaInclD =
+    spendPts.length > 0
+      ? `M ${cxFn(0).toFixed(1)},${chartBottom} L ${spendPts.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${chartBottom} Z`
+      : '';
+  const areaExclD =
+    spendPtsNonEmerg.length > 0
+      ? `M ${cxFn(0).toFixed(1)},${chartBottom} L ${spendPtsNonEmerg.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${chartBottom} Z`
+      : '';
 
   // ── Mood & category ───────────────────────────────────────────────────────────
   const moodSpending = [0, 0, 0, 0, 0];
-  for (const t of periodTxns.filter(t => t.essential === false && t.mood)) {
-    const idx = MOOD_KEYS.indexOf(t.mood as typeof MOOD_KEYS[number]);
+  for (const t of periodTxns.filter((t) => t.essential === false && t.mood)) {
+    const idx = MOOD_KEYS.indexOf(t.mood as (typeof MOOD_KEYS)[number]);
     if (idx >= 0) moodSpending[idx] += Math.abs(t.amount);
   }
   const maxMood = Math.max(...moodSpending, 1);
 
-  const catSpending = expenses.reduce((acc, t) => {
-    const cat = t.category ?? 'other';
-    acc[cat] = (acc[cat] || 0) + Math.abs(t.amount);
-    return acc;
-  }, {} as Record<string, number>);
+  const catSpending = expenses.reduce(
+    (acc, t) => {
+      const cat = t.category ?? 'other';
+      acc[cat] = (acc[cat] || 0) + Math.abs(t.amount);
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
   const catSlices = Object.entries(catSpending)
-    .sort((a, b) => b[1] - a[1]).slice(0, 6)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
     .map(([cat, amount]) => ({ label: cat, value: amount, color: getCategoryColor(cat) }));
   const catTotal = catSlices.reduce((s, d) => s + d.value, 0);
   const catAllSlices = Object.entries(catSpending)
@@ -449,43 +612,70 @@ export default function Dashboard() {
     .map(([cat, amount]) => ({ label: cat, value: amount, color: getCategoryColor(cat) }));
 
   // ── Breakdown rows ────────────────────────────────────────────────────────────
-  const essentialSpent    = expenses.filter(t => t.essential === true) .reduce((s, t) => s + Math.abs(t.amount), 0);
-  const nonEssentialSpent = expenses.filter(t => t.essential === false).reduce((s, t) => s + Math.abs(t.amount), 0);
+  const essentialSpent = expenses
+    .filter((t) => t.essential === true)
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
+  const nonEssentialSpent = expenses
+    .filter((t) => t.essential === false)
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
   // Personal vs Shared: "Shared" = my own contribution to shared budgets as
   // reported by the server (matches what each Shared Budget card shows for me).
   // "Personal" = the rest of my expenses in the current view period.
   const meId = session?.user?.id ?? '';
   const mySharedSpent = sharedBudgets.reduce((sum, sb) => {
-    const mine = sb.members?.find(m => m.userId === meId);
+    const mine = sb.members?.find((m) => m.userId === meId);
     return sum + (mine?.amount ?? 0);
   }, 0);
   const personalSpent = Math.max(0, totalSpent - mySharedSpent);
   const breakdownRows = [
     { label: 'By category', slices: catAllSlices },
-    { label: 'Essential vs Non-essential', slices: [
+    {
+      label: 'Essential vs Non-essential',
+      slices: [
         { label: 'Essential', value: essentialSpent, color: '#C5FFD8' },
         { label: 'Non-essential', value: nonEssentialSpent, color: '#C68BE1' },
-      ].filter(s => s.value > 0) },
-    { label: 'Income vs Expenses', slices: [
+      ].filter((s) => s.value > 0),
+    },
+    {
+      label: 'Income vs Expenses',
+      slices: [
         { label: 'Income', value: totalIncome, color: '#C5FFD8' },
         { label: 'Expenses', value: totalSpent, color: '#C68BE1' },
-      ].filter(s => s.value > 0) },
+      ].filter((s) => s.value > 0),
+    },
     ...(sharedBudgets.length > 0
-      ? [{
-          label: 'Personal vs Shared expenses',
-          slices: [
-            { label: 'Personal', value: personalSpent, color: '#FDFBD4' },
-            { label: 'Shared', value: mySharedSpent, color: '#C68BE1' },
-          ].filter(s => s.value > 0),
-        }]
+      ? [
+          {
+            label: 'Personal vs Shared expenses',
+            slices: [
+              { label: 'Personal', value: personalSpent, color: '#FDFBD4' },
+              { label: 'Shared', value: mySharedSpent, color: '#C68BE1' },
+            ].filter((s) => s.value > 0),
+          },
+        ]
       : []),
   ];
 
   // ── Leaderboard ───────────────────────────────────────────────────────────────
   const myStreak = profile?.streak ?? 0;
-  const AVATAR_PALETTE = ['#C68BE1','#1D9E75','#D85A30','#3B82F6','#F59E0B','#EC4899','#8B5CF6'];
+  const AVATAR_PALETTE = [
+    '#C68BE1',
+    '#1D9E75',
+    '#D85A30',
+    '#3B82F6',
+    '#F59E0B',
+    '#EC4899',
+    '#8B5CF6',
+  ];
   const leaderboard = [
-    { id: 'me', name: profile?.displayName || profile?.name || 'You', streak: myStreak, isMe: true, color: myAvatarColor, image: myAvatarImage },
+    {
+      id: 'me',
+      name: profile?.displayName || profile?.name || 'You',
+      streak: myStreak,
+      isMe: true,
+      color: myAvatarColor,
+      image: myAvatarImage,
+    },
     ...friends.map((f, i) => ({
       id: f.id,
       name: f.displayName || f.username || 'Friend',
@@ -497,33 +687,48 @@ export default function Dashboard() {
   ].sort((a, b) => b.streak - a.streak);
 
   const getInitials = (name: string) =>
-    name.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('');
+    name
+      .split(' ')
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() ?? '')
+      .join('');
 
   // ── Segment-based chart data ──────────────────────────────────────────────────
   const getSegIdx = (t: Transaction): number => {
     const d = new Date(t.date);
-    if (viewPeriod === 'daily')   return d.getHours();
-    if (viewPeriod === 'weekly')  return d.getDay() === 0 ? 6 : d.getDay() - 1;
+    if (viewPeriod === 'daily') return d.getHours();
+    if (viewPeriod === 'weekly') return d.getDay() === 0 ? 6 : d.getDay() - 1;
     if (viewPeriod === 'monthly') return d.getDate() - 1;
     return d.getMonth();
   };
 
   const segSpending = Array.from({ length: N }, (_, i) =>
-    expenses.filter(t => getSegIdx(t) === i).reduce((s, t) => s + Math.abs(t.amount), 0),
+    expenses.filter((t) => getSegIdx(t) === i).reduce((s, t) => s + Math.abs(t.amount), 0),
   );
-  const segTxnCount = Array.from({ length: N }, (_, i) =>
-    periodTxns.filter(t => getSegIdx(t) === i).length,
+  const segTxnCount = Array.from(
+    { length: N },
+    (_, i) => periodTxns.filter((t) => getSegIdx(t) === i).length,
   );
   const segLabels: string[] = Array.from({ length: N }, (_, i) => {
-    if (viewPeriod === 'daily')   return i % 6 === 0 ? (i === 0 ? '12am' : i === 12 ? '12pm' : i < 12 ? `${i}am` : `${i - 12}pm`) : '';
-    if (viewPeriod === 'weekly')  return ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i];
+    if (viewPeriod === 'daily')
+      return i % 6 === 0
+        ? i === 0
+          ? '12am'
+          : i === 12
+            ? '12pm'
+            : i < 12
+              ? `${i}am`
+              : `${i - 12}pm`
+        : '';
+    if (viewPeriod === 'weekly') return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i];
     if (viewPeriod === 'monthly') return (i + 1) % 5 === 1 || i === N - 1 ? String(i + 1) : '';
     return N_MONTHS[i];
   });
 
   // Net savings (cumulative income – expenses per segment)
   const netSavingsFull = Array.from({ length: N }, (_, i) =>
-    periodTxns.filter(t => getSegIdx(t) <= i)
+    periodTxns
+      .filter((t) => getSegIdx(t) <= i)
       .reduce((s, t) => s + (t.type === 'income' ? t.amount : -Math.abs(t.amount)), 0),
   );
 
@@ -532,7 +737,8 @@ export default function Dashboard() {
   const nsYMin = Math.min(0, ...netSavingsFull, -1);
   const nsAbsMax = Math.max(Math.abs(nsYMax), Math.abs(nsYMin));
   const nsStepMag = Math.pow(10, Math.floor(Math.log10(Math.max(nsAbsMax / 2, 1))));
-  const nsStep = ([1, 2, 5, 10].map(s => s * nsStepMag).find(s => nsAbsMax / s <= 3)) ?? nsStepMag * 10;
+  const nsStep =
+    [1, 2, 5, 10].map((s) => s * nsStepMag).find((s) => nsAbsMax / s <= 3) ?? nsStepMag * 10;
   const nsPMax = nsStep * (Math.ceil(nsYMax / nsStep) || 1);
   const nsPMin = nsYMin < 0 ? -(nsStep * (Math.ceil(-nsYMin / nsStep) || 1)) : 0;
   const nsRange = nsPMax - nsPMin || 1;
@@ -540,7 +746,8 @@ export default function Dashboard() {
   const NS_PLOT_H = NS_H - PAD_T - PAD_B;
   const nsCyFn = (v: number) => PAD_T + NS_PLOT_H - ((v - nsPMin) / nsRange) * NS_PLOT_H;
 
-  const netSavingsPts = netSavingsFull.slice(0, drawUpToIdx + 1)
+  const netSavingsPts = netSavingsFull
+    .slice(0, drawUpToIdx + 1)
     .map((v, i) => `${cxFn(i).toFixed(1)},${nsCyFn(v).toFixed(1)}`);
   const nsZeroY = nsCyFn(0);
   const nsYTicks = Array.from(
@@ -558,42 +765,58 @@ export default function Dashboard() {
 
   // Budget utilisation
   const budgetUtil = rawBudgets
-    .filter(b => (b.period ?? 'monthly') === viewPeriod)
-    .map(b => ({
+    .filter((b) => (b.period ?? 'monthly') === viewPeriod)
+    .map((b) => ({
       category: b.category,
       limit: b.monthlyLimit,
       spent: catSpending[b.category] ?? 0,
-      pct: b.monthlyLimit > 0 ? Math.round(((catSpending[b.category] ?? 0) / b.monthlyLimit) * 100) : 0,
+      pct:
+        b.monthlyLimit > 0
+          ? Math.round(((catSpending[b.category] ?? 0) / b.monthlyLimit) * 100)
+          : 0,
     }))
     .sort((a, b) => b.pct - a.pct);
 
   // ── Shared styles ─────────────────────────────────────────────────────────────
-  const panelClass = 'p-6 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-card)] h-full flex flex-col overflow-hidden';
-  const cardBase   = 'p-5 rounded-3xl border border-[rgba(109,109,109,0.8)]';
+  const panelClass =
+    'p-6 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-card)] h-full flex flex-col overflow-hidden';
+  const cardBase = 'p-5 rounded-3xl border border-[rgba(109,109,109,0.8)]';
 
   // ── Panel renderer ────────────────────────────────────────────────────────────
   const renderPanel = (id: PanelId) => {
     switch (id) {
-
       // ── Spend by mood ──
       case 'mood':
         return (
           <div className={panelClass}>
             <div className="flex justify-between items-center mb-1">
               <h3 className="font-semibold text-base text-[var(--c-text)]">Spend by mood</h3>
-              <button onClick={() => navigate('/transactions')} className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-text)] hover:opacity-90 transition-opacity">View more</button>
+              <button
+                onClick={() => navigate('/transactions')}
+                className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-text)] hover:opacity-90 transition-opacity"
+              >
+                View more
+              </button>
             </div>
             <div className="text-xs mb-4 text-[var(--c-text-2)]">Non-essential · {label}</div>
             <div className="flex gap-2 flex-1 min-h-0">
               <div className="flex flex-col justify-between items-end text-xs text-[var(--c-text-2)] pb-6 flex-shrink-0 w-10">
-                <span>${maxMood >= 1000 ? `${(maxMood / 1000).toFixed(1)}k` : maxMood.toFixed(0)}</span>
-                <span>${maxMood >= 1000 ? `${(maxMood / 2000).toFixed(1)}k` : (maxMood / 2).toFixed(0)}</span>
+                <span>
+                  ${maxMood >= 1000 ? `${(maxMood / 1000).toFixed(1)}k` : maxMood.toFixed(0)}
+                </span>
+                <span>
+                  ${maxMood >= 1000 ? `${(maxMood / 2000).toFixed(1)}k` : (maxMood / 2).toFixed(0)}
+                </span>
                 <span>$0</span>
               </div>
               <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex-1 relative" style={{ minHeight: '120px' }}>
-                  {[0, 0.5, 1].map(pos => (
-                    <div key={pos} className="absolute left-0 right-0 border-t border-[var(--c-grid)]" style={{ top: `${(1 - pos) * 100}%` }} />
+                  {[0, 0.5, 1].map((pos) => (
+                    <div
+                      key={pos}
+                      className="absolute left-0 right-0 border-t border-[var(--c-grid)]"
+                      style={{ top: `${(1 - pos) * 100}%` }}
+                    />
                   ))}
                   <div className="absolute inset-0 flex items-end gap-2 pb-px">
                     {MOOD_LABELS.map((lbl, i) => {
@@ -602,7 +825,11 @@ export default function Dashboard() {
                         <div key={lbl} className="flex-1 h-full flex items-end">
                           <div
                             title={`${fmt(amount)}`}
-                            style={{ backgroundColor: MOOD_COLORS[i], height: amount > 0 ? `${Math.max((amount / maxMood) * 100, 2)}%` : '0%' }}
+                            style={{
+                              backgroundColor: MOOD_COLORS[i],
+                              height:
+                                amount > 0 ? `${Math.max((amount / maxMood) * 100, 2)}%` : '0%',
+                            }}
                             className="w-full rounded-t-lg transition-all"
                           />
                         </div>
@@ -612,7 +839,12 @@ export default function Dashboard() {
                 </div>
                 <div className="flex gap-2 mt-2">
                   {MOOD_LABELS.map((lbl, i) => (
-                    <div key={i} className="flex-1 text-xs text-center text-[var(--c-text-2)] leading-tight">{lbl}</div>
+                    <div
+                      key={i}
+                      className="flex-1 text-xs text-center text-[var(--c-text-2)] leading-tight"
+                    >
+                      {lbl}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -626,7 +858,12 @@ export default function Dashboard() {
           <div className={panelClass}>
             <div className="flex justify-between items-center mb-1">
               <h3 className="font-semibold text-base text-[var(--c-text)]">Where it goes</h3>
-              <button onClick={() => navigate('/transactions')} className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-text)] hover:opacity-90 transition-opacity">View more</button>
+              <button
+                onClick={() => navigate('/transactions')}
+                className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-text)] hover:opacity-90 transition-opacity"
+              >
+                View more
+              </button>
             </div>
             <div className="text-xs mb-4 text-[var(--c-text-2)]">By category · {label}</div>
             {catSlices.length === 0 ? (
@@ -638,8 +875,13 @@ export default function Dashboard() {
                   {catSlices.map(({ label: cl, value, color }) => (
                     <div key={cl} className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                        <span className="text-sm capitalize truncate text-[var(--c-text-2)]">{cl}</span>
+                        <div
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="text-sm capitalize truncate text-[var(--c-text-2)]">
+                          {cl}
+                        </span>
                       </div>
                       <span className="text-sm font-medium flex-shrink-0 text-[var(--c-text)]">
                         {catTotal > 0 ? Math.round((value / catTotal) * 100) : 0}%
@@ -657,16 +899,28 @@ export default function Dashboard() {
         return (
           <div className={`${panelClass} !p-5`} style={{ background: '#FDFBD4' }}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-base text-[var(--c-tint-text)]">Recent transactions</h3>
-              <button onClick={() => navigate('/transactions')} className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-tint-text)] hover:opacity-90 transition-opacity">View more</button>
+              <h3 className="font-semibold text-base text-[var(--c-tint-text)]">
+                Recent transactions
+              </h3>
+              <button
+                onClick={() => navigate('/transactions')}
+                className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-tint-text)] hover:opacity-90 transition-opacity"
+              >
+                View more
+              </button>
             </div>
             <div className="flex-1 overflow-y-auto min-h-0">
               {recentAll.length === 0 ? (
-                <p className="text-sm text-center py-8 text-[var(--c-tint-text-2)]">No transactions for this period.</p>
+                <p className="text-sm text-center py-8 text-[var(--c-tint-text-2)]">
+                  No transactions for this period.
+                </p>
               ) : (
                 <div className="space-y-0.5">
-                  {recentAll.map(t => (
-                    <div key={t._id} className="flex justify-between items-center py-2.5 px-3 rounded-xl hover:bg-white/40 transition-colors">
+                  {recentAll.map((t) => (
+                    <div
+                      key={t._id}
+                      className="flex justify-between items-center py-2.5 px-3 rounded-xl hover:bg-white/40 transition-colors"
+                    >
                       <div className="flex items-center gap-3 min-w-0">
                         <span
                           className="w-7 h-7 rounded-full flex-shrink-0 border-[3px] border-white"
@@ -674,14 +928,17 @@ export default function Dashboard() {
                           aria-hidden
                         />
                         <div className="min-w-0">
-                          <div className="text-sm font-medium text-[var(--c-tint-text)] truncate">{t.title}</div>
+                          <div className="text-sm font-medium text-[var(--c-tint-text)] truncate">
+                            {t.title}
+                          </div>
                           {t.category && (
                             <div className="text-xs text-[var(--c-tint-text-2)]">{t.category}</div>
                           )}
                         </div>
                       </div>
                       <div className="text-sm font-semibold flex-shrink-0 ml-4 text-[var(--c-tint-text-2)]">
-                        {t.type === 'income' ? '+' : '−'}{fmt(t.amount)}
+                        {t.type === 'income' ? '+' : '−'}
+                        {fmt(t.amount)}
                       </div>
                     </div>
                   ))}
@@ -695,65 +952,90 @@ export default function Dashboard() {
       case 'breakdown':
         return (
           <div className={panelClass} style={{ background: '#C5ECF9' }}>
-            <h3 className="font-semibold text-base text-[var(--c-tint-text)] mb-5">How you've been spending your money</h3>
+            <h3 className="font-semibold text-base text-[var(--c-tint-text)] mb-5">
+              How you've been spending your money
+            </h3>
             <div className="flex flex-col gap-5">
-              {breakdownRows.filter(r => r.label !== 'By category').map(({ label: rowLabel, slices }) => {
-                const total = slices.reduce((s, sl) => s + sl.value, 0);
-                const isPair = slices.length === 2;
-                return (
-                  <div key={rowLabel}>
-                    {!isPair && (
-                      <div className="text-xs font-medium text-[var(--c-tint-text-2)] mb-2">{rowLabel}</div>
-                    )}
-                    {total === 0 ? (
-                      <div className="h-6 rounded-full bg-white/40 flex items-center pl-3">
-                        <span className="text-xs text-[var(--c-tint-text-2)]">No data</span>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="h-6 rounded-full overflow-hidden flex gap-px">
-                          {slices.map(sl => (
-                            <div
-                              key={sl.label}
-                              title={`${sl.label}: ${fmt(sl.value)} (${Math.round((sl.value / total) * 100)}%)`}
-                              style={{ width: `${(sl.value / total) * 100}%`, backgroundColor: sl.color }}
-                              className="h-full"
-                            />
-                          ))}
+              {breakdownRows
+                .filter((r) => r.label !== 'By category')
+                .map(({ label: rowLabel, slices }) => {
+                  const total = slices.reduce((s, sl) => s + sl.value, 0);
+                  const isPair = slices.length === 2;
+                  return (
+                    <div key={rowLabel}>
+                      {!isPair && (
+                        <div className="text-xs font-medium text-[var(--c-tint-text-2)] mb-2">
+                          {rowLabel}
                         </div>
-                        {isPair ? (
-                          <div className="flex justify-between mt-1.5">
-                            {slices.map((sl, i) => (
-                              <span
+                      )}
+                      {total === 0 ? (
+                        <div className="h-6 rounded-full bg-white/40 flex items-center pl-3">
+                          <span className="text-xs text-[var(--c-tint-text-2)]">No data</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="h-6 rounded-full overflow-hidden flex gap-px">
+                            {slices.map((sl) => (
+                              <div
                                 key={sl.label}
-                                className={`text-xs text-[var(--c-tint-text-2)] capitalize ${i === slices.length - 1 ? 'text-right' : ''}`}
-                              >
-                                {sl.label}
-                              </span>
+                                title={`${sl.label}: ${fmt(sl.value)} (${Math.round((sl.value / total) * 100)}%)`}
+                                style={{
+                                  width: `${(sl.value / total) * 100}%`,
+                                  backgroundColor: sl.color,
+                                }}
+                                className="h-full"
+                              />
                             ))}
                           </div>
-                        ) : (
-                          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
-                            {slices.map(sl => (
-                              <div key={sl.label} className="flex items-center gap-1.5">
-                                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: sl.color }} />
-                                <span className="text-xs text-[var(--c-tint-text-2)] capitalize">{sl.label}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+                          {isPair ? (
+                            <div className="flex justify-between mt-1.5">
+                              {slices.map((sl, i) => (
+                                <span
+                                  key={sl.label}
+                                  className={`text-xs text-[var(--c-tint-text-2)] capitalize ${i === slices.length - 1 ? 'text-right' : ''}`}
+                                >
+                                  {sl.label}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+                              {slices.map((sl) => (
+                                <div key={sl.label} className="flex items-center gap-1.5">
+                                  <div
+                                    className="w-2 h-2 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: sl.color }}
+                                  />
+                                  <span className="text-xs text-[var(--c-tint-text-2)] capitalize">
+                                    {sl.label}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           </div>
         );
 
       // ── Friends (streaks + achievements) ──
       case 'leaderboard': {
-        type AchRow = { id: string; key: string; toUserId: string; color: string; image: string | null; initials: string; name: string; isMe: boolean; message: string; earnedAt: string };
+        type AchRow = {
+          id: string;
+          key: string;
+          toUserId: string;
+          color: string;
+          image: string | null;
+          initials: string;
+          name: string;
+          isMe: boolean;
+          message: string;
+          earnedAt: string;
+        };
         const achRows: AchRow[] = [];
         for (const a of myAchievements) {
           const meName = profile?.displayName || profile?.name || 'You';
@@ -791,13 +1073,33 @@ export default function Dashboard() {
         achRows.sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime());
         const achievementSamples = achRows.slice(0, 3);
         const FireIcon = (
-          <svg width="14" height="14" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 15 15"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
             <path d="M7.5 13.5c2.6 0 4.5-1.9 4.5-4.2 0-1.6-.9-2.7-2-3.6-.4 1.1-1.3 1.6-2 1.6 0-1.6-.6-3.7-2.8-6 0 4.2-2.7 5.3-2.7 8.4 0 2.3 1.9 3.8 5 3.8z" />
             <path d="M7.5 11c1 0 1.8-.7 1.8-1.7 0-1.1-1-1.5-1.5-3-.4 1-1.2 1.4-2 1.4 0 1.4.7 3.3 1.7 3.3z" />
           </svg>
         );
         const HeartIcon = ({ filled = false }: { filled?: boolean }) => (
-          <svg width="14" height="14" viewBox="0 0 15 15" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 15 15"
+            fill={filled ? 'currentColor' : 'none'}
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
             <path d="M7.5 13s-5-3.1-5-6.6A2.7 2.7 0 0 1 7.5 4.6a2.7 2.7 0 0 1 5 1.8C12.5 9.9 7.5 13 7.5 13z" />
           </svg>
         );
@@ -805,14 +1107,24 @@ export default function Dashboard() {
           <div className={panelClass} style={{ background: '#FFD5D8' }}>
             <div className="flex justify-between items-center mb-1">
               <h3 className="font-semibold text-base text-[var(--c-tint-text)]">Friends</h3>
-              <button onClick={() => navigate('/friends')} className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-tint-text)] hover:opacity-90 transition-opacity">View more</button>
+              <button
+                onClick={() => navigate('/friends')}
+                className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-tint-text)] hover:opacity-90 transition-opacity"
+              >
+                View more
+              </button>
             </div>
-            <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">Streaks &amp; recent achievements</div>
+            <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">
+              Streaks &amp; recent achievements
+            </div>
 
             {friends.length === 0 ? (
               <div className="text-center py-4">
                 <p className="text-sm text-[var(--c-tint-text-2)] mb-3">No friends yet.</p>
-                <button onClick={() => navigate('/friends')} className="px-4 py-2 rounded-[20px] text-sm font-medium bg-[#1a1a1a] text-white hover:opacity-90 transition-opacity">
+                <button
+                  onClick={() => navigate('/friends')}
+                  className="px-4 py-2 rounded-[20px] text-sm font-medium bg-[#1a1a1a] text-white hover:opacity-90 transition-opacity"
+                >
                   Add friends
                 </button>
               </div>
@@ -824,14 +1136,24 @@ export default function Dashboard() {
                       key={entry.id}
                       className="w-14 flex-shrink-0 flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-xl border border-[rgba(109,109,109,0.4)] bg-white"
                     >
-                      <span className="text-[9px] font-bold text-[var(--c-tint-text-2)] leading-tight">#{idx + 1}</span>
+                      <span className="text-[9px] font-bold text-[var(--c-tint-text-2)] leading-tight">
+                        #{idx + 1}
+                      </span>
                       <div
                         className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-[var(--c-tint-text)] border-2 border-white overflow-hidden"
                         style={{ backgroundColor: entry.image ? 'transparent' : entry.color }}
                       >
-                        {entry.image
-                          ? <img src={entry.image} alt={entry.name} className="w-full h-full object-cover" />
-                          : (entry.isMe ? 'You' : getInitials(entry.name))}
+                        {entry.image ? (
+                          <img
+                            src={entry.image}
+                            alt={entry.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : entry.isMe ? (
+                          'You'
+                        ) : (
+                          getInitials(entry.name)
+                        )}
                       </div>
                       <span className="text-[11px] font-semibold text-[var(--c-tint-text)] inline-flex items-center gap-0.5 leading-tight">
                         <span className="text-[#F97316]">{FireIcon}</span>
@@ -841,7 +1163,7 @@ export default function Dashboard() {
                   ))}
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  {achievementSamples.map(a => {
+                  {achievementSamples.map((a) => {
                     const liked = likedAchievements.has(`${a.toUserId}|${a.key}`);
                     return (
                       <div
@@ -852,15 +1174,29 @@ export default function Dashboard() {
                           className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] border-2 border-white flex-shrink-0 overflow-hidden"
                           style={{ backgroundColor: a.image ? 'transparent' : a.color }}
                         >
-                          {a.image
-                            ? <img src={a.image} alt={a.name} className="w-full h-full object-cover" />
-                            : a.initials}
+                          {a.image ? (
+                            <img
+                              src={a.image}
+                              alt={a.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            a.initials
+                          )}
                         </div>
                         <div className="text-xs text-[var(--c-tint-text)] truncate flex-1 min-w-0">
-                          {a.isMe ? a.message : (<><span className="font-semibold">{a.name}</span> {a.message}</>)}
+                          {a.isMe ? (
+                            a.message
+                          ) : (
+                            <>
+                              <span className="font-semibold">{a.name}</span> {a.message}
+                            </>
+                          )}
                         </div>
                         {a.isMe ? (
-                          <span className="flex-shrink-0 text-[#E11D48]"><HeartIcon filled /></span>
+                          <span className="flex-shrink-0 text-[#E11D48]">
+                            <HeartIcon filled />
+                          </span>
                         ) : (
                           <button
                             type="button"
@@ -889,27 +1225,52 @@ export default function Dashboard() {
             <div className="flex justify-between items-start mb-3">
               <div>
                 <h3 className="font-semibold text-base mb-1 text-[var(--c-text)]">Net savings</h3>
-                <div className="text-xs text-[var(--c-text-2)]">Cumulative income − expenses · {label}</div>
+                <div className="text-xs text-[var(--c-text-2)]">
+                  Cumulative income − expenses · {label}
+                </div>
               </div>
-              <span className={`text-xl font-bold flex-shrink-0 ${nsLastVal >= 0 ? 'text-[var(--c-income)]' : 'text-[var(--c-expense)]'}`}>
-                {nsLastVal >= 0 ? '+' : '−'}{fmt(Math.abs(nsLastVal))}
+              <span
+                className={`text-xl font-bold flex-shrink-0 ${nsLastVal >= 0 ? 'text-[var(--c-income)]' : 'text-[var(--c-expense)]'}`}
+              >
+                {nsLastVal >= 0 ? '+' : '−'}
+                {fmt(Math.abs(nsLastVal))}
               </span>
             </div>
             <div className="flex-1 min-h-0 relative">
               <svg
                 viewBox={`0 0 ${SVG_W} ${NS_H}`}
                 preserveAspectRatio="xMidYMid meet"
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', overflow: 'visible' }}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  display: 'block',
+                  overflow: 'visible',
+                }}
               >
-                {nsYTicks.map(tick => {
+                {nsYTicks.map((tick) => {
                   const y = nsCyFn(tick);
                   return (
                     <g key={tick}>
-                      <line x1={PAD_L} y1={y} x2={PAD_L + PLOT_W} y2={y}
+                      <line
+                        x1={PAD_L}
+                        y1={y}
+                        x2={PAD_L + PLOT_W}
+                        y2={y}
                         stroke={tick === 0 ? 'var(--c-text-2)' : 'var(--c-grid)'}
                         strokeWidth={tick === 0 ? 1.5 : 1}
-                        strokeDasharray={tick === 0 ? '4 3' : undefined} />
-                      <text x={PAD_L - 4} y={y + 3} textAnchor="end" fontSize="9" fill="var(--c-text-2)">{fmtY(tick)}</text>
+                        strokeDasharray={tick === 0 ? '4 3' : undefined}
+                      />
+                      <text
+                        x={PAD_L - 4}
+                        y={y + 3}
+                        textAnchor="end"
+                        fontSize="9"
+                        fill="var(--c-text-2)"
+                      >
+                        {fmtY(tick)}
+                      </text>
                     </g>
                   );
                 })}
@@ -917,18 +1278,36 @@ export default function Dashboard() {
                 {netSavingsPts.length > 1 && (
                   <path
                     d={`M ${cxFn(0).toFixed(1)},${nsZeroY.toFixed(1)} L ${netSavingsPts.join(' L ')} L ${cxFn(drawUpToIdx).toFixed(1)},${nsZeroY.toFixed(1)} Z`}
-                    fill={nsColor} opacity="0.15"
+                    fill={nsColor}
+                    opacity="0.15"
                   />
                 )}
                 {netSavingsPts.length > 1 && (
-                  <polyline points={netSavingsPts.join(' ')} fill="none" stroke={nsColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <polyline
+                    points={netSavingsPts.join(' ')}
+                    fill="none"
+                    stroke={nsColor}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 )}
-                {netSavingsPts.length > 0 && (() => {
-                  const [lx, ly] = netSavingsPts[netSavingsPts.length - 1].split(',').map(Number);
-                  return <circle cx={lx} cy={ly} r="3" fill={nsColor} />;
-                })()}
+                {netSavingsPts.length > 0 &&
+                  (() => {
+                    const [lx, ly] = netSavingsPts[netSavingsPts.length - 1].split(',').map(Number);
+                    return <circle cx={lx} cy={ly} r="3" fill={nsColor} />;
+                  })()}
                 {xTicks.map(({ idx, label: xl }) => (
-                  <text key={idx} x={cxFn(idx)} y={NS_H - 3} textAnchor="middle" fontSize="9" fill="var(--c-text-2)">{xl}</text>
+                  <text
+                    key={idx}
+                    x={cxFn(idx)}
+                    y={NS_H - 3}
+                    textAnchor="middle"
+                    fontSize="9"
+                    fill="var(--c-text-2)"
+                  >
+                    {xl}
+                  </text>
                 ))}
               </svg>
             </div>
@@ -943,16 +1322,34 @@ export default function Dashboard() {
           <div className={panelClass}>
             <div className="flex justify-between items-start mb-3">
               <div>
-                <h3 className="font-semibold text-base mb-1 text-[var(--c-text)]">Period spending</h3>
-                <div className="text-xs text-[var(--c-text-2)]">Per {viewPeriod === 'daily' ? 'hour' : viewPeriod === 'weekly' ? 'day' : viewPeriod === 'monthly' ? 'day' : 'month'} (not cumulative) · {label}</div>
+                <h3 className="font-semibold text-base mb-1 text-[var(--c-text)]">
+                  Period spending
+                </h3>
+                <div className="text-xs text-[var(--c-text-2)]">
+                  Per{' '}
+                  {viewPeriod === 'daily'
+                    ? 'hour'
+                    : viewPeriod === 'weekly'
+                      ? 'day'
+                      : viewPeriod === 'monthly'
+                        ? 'day'
+                        : 'month'}{' '}
+                  (not cumulative) · {label}
+                </div>
               </div>
-              <span className="text-sm font-semibold text-[var(--c-text)]">{fmt(totalSpent)} total</span>
+              <span className="text-sm font-semibold text-[var(--c-text)]">
+                {fmt(totalSpent)} total
+              </span>
             </div>
             <div className="flex items-end gap-px" style={{ height: '96px' }}>
               {visibleSegs.map((val, i) => (
                 <div key={i} className="flex-1 h-full flex items-end" title={`${fmt(val)}`}>
                   <div
-                    style={{ height: val > 0 ? `${Math.max((val / maxSegSpend) * 100, 2)}%` : '0%', backgroundColor: 'var(--c-accent)', opacity: 0.85 }}
+                    style={{
+                      height: val > 0 ? `${Math.max((val / maxSegSpend) * 100, 2)}%` : '0%',
+                      backgroundColor: 'var(--c-accent)',
+                      opacity: 0.85,
+                    }}
                     className="w-full rounded-t transition-all"
                   />
                 </div>
@@ -960,7 +1357,13 @@ export default function Dashboard() {
             </div>
             <div className="flex mt-1">
               {visibleLabels.map((lbl, i) => (
-                <div key={i} className="flex-1 text-center" style={{ fontSize: '9px', color: 'var(--c-text-2)', lineHeight: 1.4 }}>{lbl}</div>
+                <div
+                  key={i}
+                  className="flex-1 text-center"
+                  style={{ fontSize: '9px', color: 'var(--c-text-2)', lineHeight: 1.4 }}
+                >
+                  {lbl}
+                </div>
               ))}
             </div>
           </div>
@@ -977,12 +1380,17 @@ export default function Dashboard() {
               <div className="text-sm text-center py-8 text-[var(--c-text-2)]">No expenses yet</div>
             ) : (
               <div className="flex flex-col gap-3">
-                {topCats.map(cat => (
+                {topCats.map((cat) => (
                   <div key={cat.label} className="flex items-center gap-3">
-                    <div className="w-20 text-xs capitalize text-right text-[var(--c-text-2)] flex-shrink-0 truncate">{cat.label}</div>
+                    <div className="w-20 text-xs capitalize text-right text-[var(--c-text-2)] flex-shrink-0 truncate">
+                      {cat.label}
+                    </div>
                     <div className="flex-1 h-5 rounded-full overflow-hidden bg-[var(--c-border)]">
                       <div
-                        style={{ width: `${(cat.value / maxCatVal) * 100}%`, backgroundColor: cat.color }}
+                        style={{
+                          width: `${(cat.value / maxCatVal) * 100}%`,
+                          backgroundColor: cat.color,
+                        }}
                         className="h-full rounded-full transition-all"
                       />
                     </div>
@@ -1000,25 +1408,40 @@ export default function Dashboard() {
       case 'budget-utilization':
         return (
           <div className={panelClass}>
-            <h3 className="font-semibold text-base mb-1 text-[var(--c-text)]">Budget utilisation</h3>
-            <div className="text-xs mb-5 text-[var(--c-text-2)]">{PERIOD_DISPLAY[viewPeriod]} budgets · {label}</div>
+            <h3 className="font-semibold text-base mb-1 text-[var(--c-text)]">
+              Budget utilisation
+            </h3>
+            <div className="text-xs mb-5 text-[var(--c-text-2)]">
+              {PERIOD_DISPLAY[viewPeriod]} budgets · {label}
+            </div>
             {budgetUtil.length === 0 ? (
               <div className="text-center py-6">
-                <p className="text-sm text-[var(--c-text-2)] mb-3">No {PERIOD_DISPLAY[viewPeriod].toLowerCase()} budgets set.</p>
-                <button onClick={() => navigate('/budgets')} className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--c-accent)] text-white hover:opacity-80 transition-opacity">
+                <p className="text-sm text-[var(--c-text-2)] mb-3">
+                  No {PERIOD_DISPLAY[viewPeriod].toLowerCase()} budgets set.
+                </p>
+                <button
+                  onClick={() => navigate('/budgets')}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--c-accent)] text-white hover:opacity-80 transition-opacity"
+                >
                   Create budget →
                 </button>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                {budgetUtil.map(b => {
+                {budgetUtil.map((b) => {
                   const over = b.pct > 100;
                   const barColor = over ? '#D85A30' : b.pct > 80 ? '#EF9F27' : '#1D9E75';
                   return (
                     <div key={b.category}>
                       <div className="flex justify-between text-xs mb-1.5">
-                        <span className="capitalize font-medium text-[var(--c-text)]">{b.category}</span>
-                        <span className={over ? 'text-[var(--c-negative)] font-medium' : 'text-[var(--c-text-2)]'}>
+                        <span className="capitalize font-medium text-[var(--c-text)]">
+                          {b.category}
+                        </span>
+                        <span
+                          className={
+                            over ? 'text-[var(--c-negative)] font-medium' : 'text-[var(--c-text-2)]'
+                          }
+                        >
                           {fmt(b.spent)} / {fmt(b.limit)}{' '}
                           <span className="font-semibold">({b.pct}%)</span>
                         </span>
@@ -1046,16 +1469,34 @@ export default function Dashboard() {
           <div className={panelClass}>
             <div className="flex justify-between items-start mb-3">
               <div>
-                <h3 className="font-semibold text-base mb-1 text-[var(--c-text)]">Transaction count</h3>
-                <div className="text-xs text-[var(--c-text-2)]">Per {viewPeriod === 'daily' ? 'hour' : viewPeriod === 'weekly' || viewPeriod === 'monthly' ? 'day' : 'month'} · {label}</div>
+                <h3 className="font-semibold text-base mb-1 text-[var(--c-text)]">
+                  Transaction count
+                </h3>
+                <div className="text-xs text-[var(--c-text-2)]">
+                  Per{' '}
+                  {viewPeriod === 'daily'
+                    ? 'hour'
+                    : viewPeriod === 'weekly' || viewPeriod === 'monthly'
+                      ? 'day'
+                      : 'month'}{' '}
+                  · {label}
+                </div>
               </div>
               <span className="text-sm font-semibold text-[var(--c-text)]">{totalTxns} total</span>
             </div>
             <div className="flex items-end gap-px" style={{ height: '96px' }}>
               {visibleCounts.map((val, i) => (
-                <div key={i} className="flex-1 h-full flex items-end" title={`${val} transaction${val !== 1 ? 's' : ''}`}>
+                <div
+                  key={i}
+                  className="flex-1 h-full flex items-end"
+                  title={`${val} transaction${val !== 1 ? 's' : ''}`}
+                >
                   <div
-                    style={{ height: val > 0 ? `${Math.max((val / maxSegCount) * 100, 4)}%` : '0%', backgroundColor: 'var(--c-accent)', opacity: 0.85 }}
+                    style={{
+                      height: val > 0 ? `${Math.max((val / maxSegCount) * 100, 4)}%` : '0%',
+                      backgroundColor: 'var(--c-accent)',
+                      opacity: 0.85,
+                    }}
                     className="w-full rounded-t transition-all"
                   />
                 </div>
@@ -1063,7 +1504,13 @@ export default function Dashboard() {
             </div>
             <div className="flex mt-1">
               {visibleLabels.map((lbl, i) => (
-                <div key={i} className="flex-1 text-center" style={{ fontSize: '9px', color: 'var(--c-text-2)', lineHeight: 1.4 }}>{lbl}</div>
+                <div
+                  key={i}
+                  className="flex-1 text-center"
+                  style={{ fontSize: '9px', color: 'var(--c-text-2)', lineHeight: 1.4 }}
+                >
+                  {lbl}
+                </div>
               ))}
             </div>
           </div>
@@ -1076,8 +1523,12 @@ export default function Dashboard() {
             {wrappedMonths.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center gap-2">
                 <div className="text-2xl">📦</div>
-                <div className="text-sm font-semibold text-[var(--c-text)]">No wrapped data yet</div>
-                <div className="text-xs text-[var(--c-text-2)]">Generated automatically at the end of each month</div>
+                <div className="text-sm font-semibold text-[var(--c-text)]">
+                  No wrapped data yet
+                </div>
+                <div className="text-xs text-[var(--c-text-2)]">
+                  Generated automatically at the end of each month
+                </div>
               </div>
             ) : (
               <MonthlyWrapped months={wrappedMonths} />
@@ -1090,43 +1541,64 @@ export default function Dashboard() {
   // ── JSX ───────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
-      <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name} />
+      <Navbar isDark={isDark} onThemeToggle={toggle} userName={profile?.name ?? undefined} />
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-3 sm:px-4 lg:px-6 py-6 sm:py-8">
-
         {/* Header */}
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-6 items-center mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-[var(--c-text)]" style={{ margin: 0 }}>
+            <h1
+              className="text-3xl sm:text-4xl font-bold text-[var(--c-text)]"
+              style={{ margin: 0 }}
+            >
               <Highlight className="px-3 py-1">Welcome</Highlight>
-              <span className="text-[var(--c-text)]">, {profile?.displayName || profile?.name || 'there'}</span>
+              <span className="text-[var(--c-text)]">
+                , {profile?.displayName || profile?.name || 'there'}
+              </span>
             </h1>
-            <p className="text-sm mt-2 text-[var(--c-text-2)]">Here's your spending overview for {label}.</p>
+            <p className="text-sm mt-2 text-[var(--c-text-2)]">
+              Here's your spending overview for {label}.
+            </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="flex flex-col gap-2 items-center bg-[#FDFBD4] border border-[rgba(109,109,109,0.8)] rounded-2xl px-3 py-3">
               <select
                 value={viewPeriod}
-                onChange={e => handlePeriodChange(e.target.value as DashPeriod)}
+                onChange={(e) => handlePeriodChange(e.target.value as DashPeriod)}
                 className="text-sm font-semibold bg-transparent text-[var(--c-tint-text)] focus:outline-none cursor-pointer"
               >
-                {(Object.keys(PERIOD_DISPLAY) as DashPeriod[]).map(p => (
-                  <option key={p} value={p}>{PERIOD_DISPLAY[p]}</option>
+                {(Object.keys(PERIOD_DISPLAY) as DashPeriod[]).map((p) => (
+                  <option key={p} value={p}>
+                    {PERIOD_DISPLAY[p]}
+                  </option>
                 ))}
               </select>
               <div className="flex items-center gap-1.5 max-w-full">
-                <button onClick={() => setPeriodAnchor(shiftAnchor(viewPeriod, periodAnchor, -1))}
-                  className="w-6 h-6 flex items-center justify-center rounded-full bg-white/40 text-[var(--c-tint-text)] hover:bg-white/70 text-base leading-none flex-shrink-0">‹</button>
-                <span className="text-sm font-medium text-[var(--c-tint-text)] min-w-0 sm:min-w-[140px] text-center truncate">{label}</span>
-                <button onClick={() => setPeriodAnchor(shiftAnchor(viewPeriod, periodAnchor, 1))} disabled={isCurrent}
-                  className="w-6 h-6 flex items-center justify-center rounded-full bg-white/40 text-[var(--c-tint-text)] hover:bg-white/70 disabled:opacity-25 disabled:cursor-not-allowed text-base leading-none flex-shrink-0">›</button>
+                <button
+                  onClick={() => setPeriodAnchor(shiftAnchor(viewPeriod, periodAnchor, -1))}
+                  className="w-6 h-6 flex items-center justify-center rounded-full bg-white/40 text-[var(--c-tint-text)] hover:bg-white/70 text-base leading-none flex-shrink-0"
+                >
+                  ‹
+                </button>
+                <span className="text-sm font-medium text-[var(--c-tint-text)] min-w-0 sm:min-w-[140px] text-center truncate">
+                  {label}
+                </span>
+                <button
+                  onClick={() => setPeriodAnchor(shiftAnchor(viewPeriod, periodAnchor, 1))}
+                  disabled={isCurrent}
+                  className="w-6 h-6 flex items-center justify-center rounded-full bg-white/40 text-[var(--c-tint-text)] hover:bg-white/70 disabled:opacity-25 disabled:cursor-not-allowed text-base leading-none flex-shrink-0"
+                >
+                  ›
+                </button>
               </div>
             </div>
             <button
               onClick={() => navigate('/transactions')}
               className="flex flex-col justify-center items-center gap-2 px-6 py-3 rounded-2xl border border-[rgba(109,109,109,0.8)] hover:opacity-90 transition-opacity bg-[var(--c-tint-green)]"
             >
-              <span className="text-sm font-semibold text-[var(--c-tint-text)]">Bought something recently?</span>
+              <span className="text-sm font-semibold text-[var(--c-tint-text)]">
+                Bought something recently?
+              </span>
               <span className="bg-[#1a1a1a] text-white text-sm font-bold px-8 py-1.5 rounded-[20px] w-full text-center">
                 Log it
               </span>
@@ -1135,36 +1607,46 @@ export default function Dashboard() {
         </div>
 
         {/* ── Shared budgets summary tile ── */}
-        {(sharedBudgets.length > 0 || sharedInvites.length > 0) && (() => {
-          const overCount = sharedBudgets.filter((b) => sharedBudgetPace(b) === 'exceeded').length;
-          const overPacingCount = sharedBudgets.filter((b) => sharedBudgetPace(b) === 'over-pacing').length;
-          const onTrackCount = sharedBudgets.length - overCount - overPacingCount;
-          return (
-            <button
-              type="button"
-              onClick={() => navigate('/budgets#shared')}
-              className="w-full mb-6 flex items-center justify-between gap-4 px-5 py-4 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-mood)] hover:opacity-90 transition-opacity text-left cursor-pointer"
-            >
-              <div className="flex items-center gap-4 min-w-0">
-                <div>
-                  <div className="text-sm font-semibold text-[var(--c-tint-mood-text)]">Shared with you</div>
-                  <div className="text-xs text-[var(--c-tint-mood-sub)]">
-                    {sharedBudgets.length} shared budget{sharedBudgets.length !== 1 ? 's' : ''}
-                    {sharedInvites.length > 0 && ` · ${sharedInvites.length} pending invite${sharedInvites.length !== 1 ? 's' : ''}`}
+        {(sharedBudgets.length > 0 || sharedInvites.length > 0) &&
+          (() => {
+            const overCount = sharedBudgets.filter(
+              (b) => sharedBudgetPace(b) === 'exceeded',
+            ).length;
+            const overPacingCount = sharedBudgets.filter(
+              (b) => sharedBudgetPace(b) === 'over-pacing',
+            ).length;
+            const onTrackCount = sharedBudgets.length - overCount - overPacingCount;
+            return (
+              <button
+                type="button"
+                onClick={() => navigate('/budgets#shared')}
+                className="w-full mb-6 flex items-center justify-between gap-4 px-5 py-4 rounded-3xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-tint-mood)] hover:opacity-90 transition-opacity text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <div>
+                    <div className="text-sm font-semibold text-[var(--c-tint-mood-text)]">
+                      Shared with you
+                    </div>
+                    <div className="text-xs text-[var(--c-tint-mood-sub)]">
+                      {sharedBudgets.length} shared budget{sharedBudgets.length !== 1 ? 's' : ''}
+                      {sharedInvites.length > 0 &&
+                        ` · ${sharedInvites.length} pending invite${sharedInvites.length !== 1 ? 's' : ''}`}
+                    </div>
                   </div>
+                  {sharedBudgets.length > 0 && (
+                    <div className="hidden sm:flex items-center gap-2 text-xs text-[var(--c-tint-mood-sub)]">
+                      {onTrackCount > 0 && <span>{onTrackCount} on track</span>}
+                      {overPacingCount > 0 && <span>· {overPacingCount} over-pacing</span>}
+                      {overCount > 0 && (
+                        <span className="text-[var(--c-negative)]">· {overCount} over</span>
+                      )}
+                    </div>
+                  )}
                 </div>
-                {sharedBudgets.length > 0 && (
-                  <div className="hidden sm:flex items-center gap-2 text-xs text-[var(--c-tint-mood-sub)]">
-                    {onTrackCount > 0 && <span>{onTrackCount} on track</span>}
-                    {overPacingCount > 0 && <span>· {overPacingCount} over-pacing</span>}
-                    {overCount > 0 && <span className="text-[var(--c-negative)]">· {overCount} over</span>}
-                  </div>
-                )}
-              </div>
-              <span className="text-sm font-semibold text-[var(--c-tint-mood-text)]">View →</span>
-            </button>
-          );
-        })()}
+                <span className="text-sm font-semibold text-[var(--c-tint-mood-text)]">View →</span>
+              </button>
+            );
+          })()}
 
         {/* ── Row 1: 2×2 stat cards + cumulative chart (always visible) ── */}
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-4 sm:gap-6 mb-6">
@@ -1184,63 +1666,107 @@ export default function Dashboard() {
             <div className={`${cardBase} bg-[var(--c-tint-green)]`}>
               {periodBudgets.length === 0 ? (
                 <>
-                  <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Remaining</div>
-                  <div className="text-xs mb-3 text-[var(--c-tint-text-2)]">Budget for {PERIOD_DISPLAY[viewPeriod].toLowerCase()}</div>
-                  <button onClick={() => navigate('/budgets')} className="text-sm font-semibold text-[var(--c-accent)] hover:opacity-70 transition-opacity text-left">
+                  <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">
+                    Remaining
+                  </div>
+                  <div className="text-xs mb-3 text-[var(--c-tint-text-2)]">
+                    Budget for {PERIOD_DISPLAY[viewPeriod].toLowerCase()}
+                  </div>
+                  <button
+                    onClick={() => navigate('/budgets')}
+                    className="text-sm font-semibold text-[var(--c-accent)] hover:opacity-70 transition-opacity text-left"
+                  >
                     Create {PERIOD_DISPLAY[viewPeriod].toLowerCase()} budget →
                   </button>
                 </>
-              ) : (() => {
-                const nonEmergSpentTotal = nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0);
-                const ranked = periodBudgets.map(b => {
-                  const spent = b.category === 'overall'
-                    ? nonEmergSpentTotal
-                    : nonEmergencyExpenses.filter(t => t.category === b.category).reduce((s, t) => s + Math.abs(t.amount), 0);
-                  const remaining = b.monthlyLimit - spent;
-                  const pct = b.monthlyLimit > 0 ? remaining / b.monthlyLimit : 0;
-                  return { b, spent, remaining, pct };
-                }).sort((a, b) => a.pct - b.pct);
-                const tightest = ranked[0];
-                const isOverall = tightest.b.category === 'overall';
-                return (
-                  <>
-                    <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Remaining</div>
-                    <div className="text-xs mb-3 text-[var(--c-tint-text-2)] capitalize">
-                      {isOverall ? `Overall · ${PERIOD_DISPLAY[viewPeriod].toLowerCase()}` : `Tightest · ${tightest.b.category}`}
-                    </div>
-                    <div className={`text-2xl font-bold ${tightest.remaining < 0 ? 'text-[var(--c-negative)]' : 'text-[var(--c-tint-text)]'}`}>
-                      {tightest.remaining < 0 ? '-' : ''}{fmt(Math.abs(tightest.remaining))}
-                    </div>
-                  </>
-                );
-              })()}
+              ) : (
+                (() => {
+                  const nonEmergSpentTotal = nonEmergencyExpenses.reduce(
+                    (s, t) => s + Math.abs(t.amount),
+                    0,
+                  );
+                  const ranked = periodBudgets
+                    .map((b) => {
+                      const spent =
+                        b.category === 'overall'
+                          ? nonEmergSpentTotal
+                          : nonEmergencyExpenses
+                              .filter((t) => t.category === b.category)
+                              .reduce((s, t) => s + Math.abs(t.amount), 0);
+                      const remaining = b.monthlyLimit - spent;
+                      const pct = b.monthlyLimit > 0 ? remaining / b.monthlyLimit : 0;
+                      return { b, spent, remaining, pct };
+                    })
+                    .sort((a, b) => a.pct - b.pct);
+                  const tightest = ranked[0];
+                  const isOverall = tightest.b.category === 'overall';
+                  return (
+                    <>
+                      <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">
+                        Remaining
+                      </div>
+                      <div className="text-xs mb-3 text-[var(--c-tint-text-2)] capitalize">
+                        {isOverall
+                          ? `Overall · ${PERIOD_DISPLAY[viewPeriod].toLowerCase()}`
+                          : `Tightest · ${tightest.b.category}`}
+                      </div>
+                      <div
+                        className={`text-2xl font-bold ${tightest.remaining < 0 ? 'text-[var(--c-negative)]' : 'text-[var(--c-tint-text)]'}`}
+                      >
+                        {tightest.remaining < 0 ? '-' : ''}
+                        {fmt(Math.abs(tightest.remaining))}
+                      </div>
+                    </>
+                  );
+                })()
+              )}
             </div>
             <div className={`${cardBase} bg-[var(--c-tint-yellow)]`}>
               <div className="text-sm font-semibold mb-1 text-[var(--c-tint-text)]">Income</div>
-              <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">{PERIOD_DISPLAY[viewPeriod]}</div>
+              <div className="text-xs mb-4 text-[var(--c-tint-text-2)]">
+                {PERIOD_DISPLAY[viewPeriod]}
+              </div>
               <div className="text-2xl font-bold text-[var(--c-tint-text)]">{fmt(totalIncome)}</div>
             </div>
             <div className={`${cardBase} bg-[var(--c-tint-mood)]`}>
-              <div className="text-sm font-semibold mb-1 text-[var(--c-tint-mood-text)]">Mood avg</div>
-              <div className="text-xs mb-4 text-[var(--c-tint-mood-sub)]">{PERIOD_DISPLAY[viewPeriod]}</div>
-              <div className="text-2xl font-bold text-[var(--c-tint-mood-text)]">{moodAvg.toFixed(1)}/5 {moodEmoji}</div>
+              <div className="text-sm font-semibold mb-1 text-[var(--c-tint-mood-text)]">
+                Mood avg
+              </div>
+              <div className="text-xs mb-4 text-[var(--c-tint-mood-sub)]">
+                {PERIOD_DISPLAY[viewPeriod]}
+              </div>
+              <div className="text-2xl font-bold text-[var(--c-tint-mood-text)]">
+                {moodAvg.toFixed(1)}/5 {moodEmoji}
+              </div>
             </div>
           </div>
 
           <div className={panelClass}>
             <div className="flex justify-between items-start mb-3">
               <div>
-                <h3 className="font-semibold text-base mb-1 text-[var(--c-text)]">Cumulative spending</h3>
+                <h3 className="font-semibold text-base mb-1 text-[var(--c-text)]">
+                  Cumulative spending
+                </h3>
                 <div className="text-xs mb-1.5 text-[var(--c-text-2)]">
-                  {label} · {fmt(nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0))} spent
-                  {hasEmergency && ` · ${fmt(totalSpent - nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0))} emergency`}
+                  {label} · {fmt(nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0))}{' '}
+                  spent
+                  {hasEmergency &&
+                    ` · ${fmt(totalSpent - nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0))} emergency`}
                   {overallBudget && ` · ${fmt(overallBudget.monthlyLimit)} overall budget`}
                 </div>
                 <div className="flex items-center gap-x-4 gap-y-1 flex-wrap">
                   {overallBudget && (
                     <span className="flex items-center gap-1.5">
                       <svg width="18" height="8" style={{ display: 'block' }}>
-                        <line x1="0" y1="4" x2="18" y2="4" stroke="var(--c-text-2)" strokeDasharray="4 3" strokeWidth="1.5" />
+                        <line
+                          x1="0"
+                          y1="4"
+                          x2="18"
+                          y2="4"
+                          stroke="var(--c-text-2)"
+                          strokeDasharray="4 3"
+                          strokeWidth="1.5"
+                        />
                       </svg>
                       <span className="text-xs text-[var(--c-text-2)]">Overall budget</span>
                     </span>
@@ -1256,29 +1782,67 @@ export default function Dashboard() {
                       <svg width="18" height="8" style={{ display: 'block' }}>
                         <line x1="0" y1="4" x2="18" y2="4" stroke="#FDFBD4" strokeWidth="2" />
                       </svg>
-                      <span className="text-xs text-[var(--c-text-2)]">Spent (incl. emergency)</span>
+                      <span className="text-xs text-[var(--c-text-2)]">
+                        Spent (incl. emergency)
+                      </span>
                     </span>
                   )}
                 </div>
               </div>
-              <button onClick={() => navigate('/transactions')} className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-text)] hover:opacity-90 transition-opacity">
+              <button
+                onClick={() => navigate('/transactions')}
+                className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--c-accent)] text-[var(--c-text)] hover:opacity-90 transition-opacity"
+              >
                 View more
               </button>
             </div>
-            <svg width="100%" viewBox={`0 0 ${SVG_W} ${SVG_H}`} style={{ display: 'block', overflow: 'visible' }}>
-              {yTicks.map(tick => {
+            <svg
+              width="100%"
+              viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+              style={{ display: 'block', overflow: 'visible' }}
+            >
+              {yTicks.map((tick) => {
                 const y = cyFn(tick);
                 return (
                   <g key={tick}>
-                    <line x1={PAD_L} y1={y} x2={PAD_L + PLOT_W} y2={y} stroke="var(--c-grid)" strokeWidth="1" />
-                    <text x={PAD_L - 4} y={y + 3} textAnchor="end" fontSize="9" fill="var(--c-text-2)">{fmtY(tick)}</text>
+                    <line
+                      x1={PAD_L}
+                      y1={y}
+                      x2={PAD_L + PLOT_W}
+                      y2={y}
+                      stroke="var(--c-grid)"
+                      strokeWidth="1"
+                    />
+                    <text
+                      x={PAD_L - 4}
+                      y={y + 3}
+                      textAnchor="end"
+                      fontSize="9"
+                      fill="var(--c-text-2)"
+                    >
+                      {fmtY(tick)}
+                    </text>
                   </g>
                 );
               })}
               {budgetLineY !== null && overallBudget && (
                 <>
-                  <line x1={PAD_L} y1={budgetLineY} x2={PAD_L + PLOT_W} y2={budgetLineY} stroke="var(--c-text-2)" strokeWidth="1.5" strokeDasharray="5 4" />
-                  <text x={PAD_L + PLOT_W - 3} y={budgetLineY - 3} textAnchor="end" fontSize="9" fill="var(--c-text-2)">
+                  <line
+                    x1={PAD_L}
+                    y1={budgetLineY}
+                    x2={PAD_L + PLOT_W}
+                    y2={budgetLineY}
+                    stroke="var(--c-text-2)"
+                    strokeWidth="1.5"
+                    strokeDasharray="5 4"
+                  />
+                  <text
+                    x={PAD_L + PLOT_W - 3}
+                    y={budgetLineY - 3}
+                    textAnchor="end"
+                    fontSize="9"
+                    fill="var(--c-text-2)"
+                  >
                     Overall: {fmt(overallBudget.monthlyLimit)}
                   </text>
                 </>
@@ -1286,25 +1850,67 @@ export default function Dashboard() {
               {hasEmergency && areaInclD && <path d={areaInclD} fill="#FDFBD4" opacity="0.2" />}
               {areaExclD && <path d={areaExclD} fill="#C68BE1" opacity="0.3" />}
               {hasEmergency && spendPts.length > 1 && (
-                <polyline points={spendPts.join(' ')} fill="none" stroke="#FDFBD4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline
+                  points={spendPts.join(' ')}
+                  fill="none"
+                  stroke="#FDFBD4"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               )}
               {spendPtsNonEmerg.length > 1 && (
-                <polyline points={spendPtsNonEmerg.join(' ')} fill="none" stroke="#C68BE1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline
+                  points={spendPtsNonEmerg.join(' ')}
+                  fill="none"
+                  stroke="#C68BE1"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               )}
-              {spendPtsNonEmerg.length > 0 && (() => {
-                const [lx, ly] = spendPtsNonEmerg[spendPtsNonEmerg.length - 1].split(',').map(Number);
-                const lbl = fmt(nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0));
-                const bw = lbl.length * 7 + 12;
-                return (
-                  <>
-                    <rect x={lx - bw / 2} y={ly - 18} width={bw} height={13} rx="3" fill="var(--c-accent)" />
-                    <text x={lx} y={ly - 8} textAnchor="middle" fontSize="9" fill="white" fontWeight="600">{lbl}</text>
-                    <circle cx={lx} cy={ly} r="3" fill="var(--c-accent)" />
-                  </>
-                );
-              })()}
+              {spendPtsNonEmerg.length > 0 &&
+                (() => {
+                  const [lx, ly] = spendPtsNonEmerg[spendPtsNonEmerg.length - 1]
+                    .split(',')
+                    .map(Number);
+                  const lbl = fmt(nonEmergencyExpenses.reduce((s, t) => s + Math.abs(t.amount), 0));
+                  const bw = lbl.length * 7 + 12;
+                  return (
+                    <>
+                      <rect
+                        x={lx - bw / 2}
+                        y={ly - 18}
+                        width={bw}
+                        height={13}
+                        rx="3"
+                        fill="var(--c-accent)"
+                      />
+                      <text
+                        x={lx}
+                        y={ly - 8}
+                        textAnchor="middle"
+                        fontSize="9"
+                        fill="white"
+                        fontWeight="600"
+                      >
+                        {lbl}
+                      </text>
+                      <circle cx={lx} cy={ly} r="3" fill="var(--c-accent)" />
+                    </>
+                  );
+                })()}
               {xTicks.map(({ idx, label: xl }) => (
-                <text key={idx} x={cxFn(idx)} y={SVG_H - 3} textAnchor="middle" fontSize="9" fill="var(--c-text-2)">{xl}</text>
+                <text
+                  key={idx}
+                  x={cxFn(idx)}
+                  y={SVG_H - 3}
+                  textAnchor="middle"
+                  fontSize="9"
+                  fill="var(--c-text-2)"
+                >
+                  {xl}
+                </text>
               ))}
             </svg>
           </div>
@@ -1312,30 +1918,37 @@ export default function Dashboard() {
 
         {/* ── Customisable panels ── */}
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 sm:gap-6 lg:[grid-auto-rows:60px]">
-          {panelConfig.filter(p => p.visible).map(p => {
-            const def = PANEL_DEFS.find(d => d.id === p.id)!;
-            const h = p.height ?? def.height;
-            const w = p.width ?? def.width;
-            return (
-              <div
-                key={p.id}
-                className="min-h-0 h-[calc(var(--dash-h)*60px+(var(--dash-h)-1)*24px)] lg:h-auto lg:[grid-row:var(--dash-row)] lg:[grid-column:var(--dash-col)]"
-                style={{
-                  '--dash-row': `span ${h}`,
-                  '--dash-col': `span ${w}`,
-                  '--dash-h': String(h),
-                } as React.CSSProperties}
-              >
-                {renderPanel(p.id)}
-              </div>
-            );
-          })}
+          {panelConfig
+            .filter((p) => p.visible)
+            .map((p) => {
+              const def = PANEL_DEFS.find((d) => d.id === p.id)!;
+              const h = p.height ?? def.height;
+              const w = p.width ?? def.width;
+              return (
+                <div
+                  key={p.id}
+                  className="min-h-0 h-[calc(var(--dash-h)*60px+(var(--dash-h)-1)*24px)] lg:h-auto lg:[grid-row:var(--dash-row)] lg:[grid-column:var(--dash-col)]"
+                  style={
+                    {
+                      '--dash-row': `span ${h}`,
+                      '--dash-col': `span ${w}`,
+                      '--dash-h': String(h),
+                    } as React.CSSProperties
+                  }
+                >
+                  {renderPanel(p.id)}
+                </div>
+              );
+            })}
         </div>
 
-        {panelConfig.every(p => !p.visible) && (
+        {panelConfig.every((p) => !p.visible) && (
           <div className="border border-dashed border-[var(--c-border)] rounded-3xl p-12 text-center">
             <p className="text-[var(--c-text-2)] mb-4">All panels are hidden.</p>
-            <button onClick={() => setShowCustomise(true)} className="px-5 py-2 rounded-xl text-sm font-medium bg-[var(--c-accent)] text-white hover:opacity-80 transition-opacity">
+            <button
+              onClick={() => setShowCustomise(true)}
+              className="px-5 py-2 rounded-xl text-sm font-medium bg-[var(--c-accent)] text-white hover:opacity-80 transition-opacity"
+            >
               Customise dashboard
             </button>
           </div>
@@ -1350,7 +1963,6 @@ export default function Dashboard() {
             Customise dashboard
           </button>
         </div>
-
       </main>
 
       <Footer />
@@ -1360,29 +1972,54 @@ export default function Dashboard() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
           style={{ background: 'rgba(0,0,0,0.45)' }}
-          onClick={e => { if (e.target === e.currentTarget) setShowCustomise(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowCustomise(false);
+          }}
         >
-          <div className="w-full max-w-md rounded-3xl shadow-2xl border border-[var(--c-border)] bg-[var(--c-card)] flex flex-col" style={{ maxHeight: '85vh' }}>
+          <div
+            className="w-full max-w-md rounded-3xl shadow-2xl border border-[var(--c-border)] bg-[var(--c-card)] flex flex-col"
+            style={{ maxHeight: '85vh' }}
+          >
             <div className="flex justify-between items-center px-6 pt-6 pb-4 flex-shrink-0">
               <div>
                 <h2 className="text-lg font-bold text-[var(--c-text)]">Customise dashboard</h2>
-                <p className="text-xs text-[var(--c-text-2)] mt-0.5">Toggle panels on or off, and drag to reorder.</p>
+                <p className="text-xs text-[var(--c-text-2)] mt-0.5">
+                  Toggle panels on or off, and drag to reorder.
+                </p>
               </div>
-              <button onClick={() => setShowCustomise(false)} className="text-[var(--c-text-2)] hover:opacity-60 text-xl leading-none">✕</button>
+              <button
+                onClick={() => setShowCustomise(false)}
+                className="text-[var(--c-text-2)] hover:opacity-60 text-xl leading-none"
+              >
+                ✕
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 pb-2">
               <div className="flex flex-col gap-2">
                 {panelConfig.map((p, idx) => {
-                  const def = PANEL_DEFS.find(d => d.id === p.id)!;
+                  const def = PANEL_DEFS.find((d) => d.id === p.id)!;
                   return (
-                    <div key={p.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${p.visible ? 'border-[var(--c-border)] bg-[var(--c-surface)]' : 'border-[var(--c-border)] opacity-60'}`}>
+                    <div
+                      key={p.id}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${p.visible ? 'border-[var(--c-border)] bg-[var(--c-surface)]' : 'border-[var(--c-border)] opacity-60'}`}
+                    >
                       {/* reorder arrows */}
                       <div className="flex flex-col gap-0.5 flex-shrink-0">
-                        <button onClick={() => movePanel(p.id, -1)} disabled={idx === 0}
-                          className="text-[var(--c-text-2)] hover:opacity-70 disabled:opacity-20 leading-none text-xs">▲</button>
-                        <button onClick={() => movePanel(p.id, 1)} disabled={idx === panelConfig.length - 1}
-                          className="text-[var(--c-text-2)] hover:opacity-70 disabled:opacity-20 leading-none text-xs">▼</button>
+                        <button
+                          onClick={() => movePanel(p.id, -1)}
+                          disabled={idx === 0}
+                          className="text-[var(--c-text-2)] hover:opacity-70 disabled:opacity-20 leading-none text-xs"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          onClick={() => movePanel(p.id, 1)}
+                          disabled={idx === panelConfig.length - 1}
+                          className="text-[var(--c-text-2)] hover:opacity-70 disabled:opacity-20 leading-none text-xs"
+                        >
+                          ▼
+                        </button>
                       </div>
 
                       {/* label */}
@@ -1397,32 +2034,52 @@ export default function Dashboard() {
                           <span className="text-[10px] leading-none text-[var(--c-text-2)]">W</span>
                           <div className="flex items-center gap-0.5">
                             <button
-                              onClick={() => setWidth(p.id, Math.max(1, (p.width ?? def.width) - 1))}
+                              onClick={() =>
+                                setWidth(p.id, Math.max(1, (p.width ?? def.width) - 1))
+                              }
                               disabled={(p.width ?? def.width) <= 1}
                               className="w-5 h-5 rounded border border-[var(--c-border)] text-xs leading-none flex items-center justify-center text-[var(--c-text-2)] hover:opacity-70 disabled:opacity-20"
-                            >−</button>
-                            <span className="text-xs text-[var(--c-text)] w-4 text-center">{p.width ?? def.width}</span>
+                            >
+                              −
+                            </button>
+                            <span className="text-xs text-[var(--c-text)] w-4 text-center">
+                              {p.width ?? def.width}
+                            </span>
                             <button
-                              onClick={() => setWidth(p.id, Math.min(10, (p.width ?? def.width) + 1))}
+                              onClick={() =>
+                                setWidth(p.id, Math.min(10, (p.width ?? def.width) + 1))
+                              }
                               disabled={(p.width ?? def.width) >= 10}
                               className="w-5 h-5 rounded border border-[var(--c-border)] text-xs leading-none flex items-center justify-center text-[var(--c-text-2)] hover:opacity-70 disabled:opacity-20"
-                            >+</button>
+                            >
+                              +
+                            </button>
                           </div>
                         </div>
                         <div className="flex flex-col items-center gap-0.5">
                           <span className="text-[10px] leading-none text-[var(--c-text-2)]">H</span>
                           <div className="flex items-center gap-0.5">
                             <button
-                              onClick={() => setHeight(p.id, Math.max(1, (p.height ?? def.height) - 1))}
+                              onClick={() =>
+                                setHeight(p.id, Math.max(1, (p.height ?? def.height) - 1))
+                              }
                               disabled={(p.height ?? def.height) <= 1}
                               className="w-5 h-5 rounded border border-[var(--c-border)] text-xs leading-none flex items-center justify-center text-[var(--c-text-2)] hover:opacity-70 disabled:opacity-20"
-                            >−</button>
-                            <span className="text-xs text-[var(--c-text)] w-5 text-center">{p.height ?? def.height}</span>
+                            >
+                              −
+                            </button>
+                            <span className="text-xs text-[var(--c-text)] w-5 text-center">
+                              {p.height ?? def.height}
+                            </span>
                             <button
-                              onClick={() => setHeight(p.id, Math.min(12, (p.height ?? def.height) + 1))}
+                              onClick={() =>
+                                setHeight(p.id, Math.min(12, (p.height ?? def.height) + 1))
+                              }
                               disabled={(p.height ?? def.height) >= 12}
                               className="w-5 h-5 rounded border border-[var(--c-border)] text-xs leading-none flex items-center justify-center text-[var(--c-text-2)] hover:opacity-70 disabled:opacity-20"
-                            >+</button>
+                            >
+                              +
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1432,7 +2089,9 @@ export default function Dashboard() {
                         onClick={() => togglePanel(p.id)}
                         className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${p.visible ? 'bg-[var(--c-accent)]' : 'bg-[var(--c-border)]'}`}
                       >
-                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${p.visible ? 'translate-x-6' : 'translate-x-1'}`} />
+                        <div
+                          className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${p.visible ? 'translate-x-6' : 'translate-x-1'}`}
+                        />
                       </button>
                     </div>
                   );
@@ -1441,11 +2100,16 @@ export default function Dashboard() {
             </div>
 
             <div className="flex justify-between items-center px-6 py-4 border-t border-[var(--c-border)] flex-shrink-0">
-              <button onClick={resetPanels} className="text-sm text-[var(--c-text-2)] hover:opacity-70 transition-opacity">
+              <button
+                onClick={resetPanels}
+                className="text-sm text-[var(--c-text-2)] hover:opacity-70 transition-opacity"
+              >
                 Reset to default
               </button>
-              <button onClick={() => setShowCustomise(false)}
-                className="px-6 py-2 rounded-xl text-sm font-medium bg-[var(--c-accent)] text-white hover:opacity-80 transition-opacity">
+              <button
+                onClick={() => setShowCustomise(false)}
+                className="px-6 py-2 rounded-xl text-sm font-medium bg-[var(--c-accent)] text-white hover:opacity-80 transition-opacity"
+              >
                 Done
               </button>
             </div>

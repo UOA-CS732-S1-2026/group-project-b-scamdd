@@ -14,7 +14,9 @@ const usernameSchema = z
 const displayNameSchema = z
   .string()
   .transform((s) => s.trim())
-  .pipe(z.string().min(1, 'Display name must be 1-50 chars').max(50, 'Display name must be 1-50 chars'));
+  .pipe(
+    z.string().min(1, 'Display name must be 1-50 chars').max(50, 'Display name must be 1-50 chars'),
+  );
 
 const bioSchema = z
   .string()

@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -19,32 +19,32 @@
   --mono: ui-monospace, Consolas, monospace;
 
   /* ── App design tokens — light mode ── */
-  --c-bg: #FFF7ED;
+  --c-bg: #fff7ed;
   --c-card: #ffffff;
   --c-surface: #f4f3ec;
-  --c-accent: #C68BE1;
-  --c-tint-pink: #FFBDC2;
-  --c-tint-green: #C5FFD8;
-  --c-tint-yellow: #FDFBD4;
-  --c-tint-mood: #C68BE1;
+  --c-accent: #c68be1;
+  --c-tint-pink: #ffbdc2;
+  --c-tint-green: #c5ffd8;
+  --c-tint-yellow: #fdfbd4;
+  --c-tint-mood: #c68be1;
   --c-tint-mood-text: #1a1a1a;
-  --c-tint-mood-sub: rgba(0,0,0,0.55);
+  --c-tint-mood-sub: rgba(0, 0, 0, 0.55);
   --c-tint-text: #1a1a1a;
-  --c-tint-text-2: rgba(0,0,0,0.55);
+  --c-tint-text-2: rgba(0, 0, 0, 0.55);
   --c-text: #1a1a1a;
   --c-text-2: #6b6b6b;
-  --c-border: rgba(0,0,0,0.08);
-  --c-nav-active: rgba(0,0,0,0.06);
-  --c-avatar: #FFBDC2;
-  --c-grid: rgba(0,0,0,0.06);
+  --c-border: rgba(0, 0, 0, 0.08);
+  --c-nav-active: rgba(0, 0, 0, 0.06);
+  --c-avatar: #ffbdc2;
+  --c-grid: rgba(0, 0, 0, 0.06);
   /* semantic — same in both modes */
-  --c-income: #1D9E75;
-  --c-income-light: #E1F5EE;
+  --c-income: #1d9e75;
+  --c-income-light: #e1f5ee;
   --c-income-dark: #085041;
-  --c-expense: #D85A30;
-  --c-expense-light: #FAECE7;
-  --c-expense-dark: #712B13;
-  --c-negative: #C0392B;
+  --c-expense: #d85a30;
+  --c-expense-light: #faece7;
+  --c-expense-dark: #712b13;
+  --c-negative: #c0392b;
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
@@ -79,30 +79,30 @@
 /* ── App design tokens — dark mode ── */
 .dark {
   color-scheme: dark;
-  --c-bg: #000C1C;
+  --c-bg: #000c1c;
   --c-card: #000000;
   --c-surface: #000000;
-  --c-tint-pink: #FFBDC2;
-  --c-tint-green: #C5FFD8;
-  --c-tint-yellow: #FDFBD4;
-  --c-tint-mood: #C68BE1;
+  --c-tint-pink: #ffbdc2;
+  --c-tint-green: #c5ffd8;
+  --c-tint-yellow: #fdfbd4;
+  --c-tint-mood: #c68be1;
   --c-tint-mood-text: #1a1a1a;
-  --c-tint-mood-sub: rgba(0,0,0,0.6);
+  --c-tint-mood-sub: rgba(0, 0, 0, 0.6);
   --c-tint-text: #1a1a1a;
-  --c-tint-text-2: rgba(0,0,0,0.55);
-  --c-text: #FFFFFF;
-  --c-text-2: #B0B8C5;
-  --c-border: rgba(255,255,255,0.15);
-  --c-nav-active: rgba(255,255,255,0.08);
-  --c-avatar: #FFBDC2;
-  --c-grid: rgba(255,255,255,0.1);
+  --c-tint-text-2: rgba(0, 0, 0, 0.55);
+  --c-text: #ffffff;
+  --c-text-2: #b0b8c5;
+  --c-border: rgba(255, 255, 255, 0.15);
+  --c-nav-active: rgba(255, 255, 255, 0.08);
+  --c-avatar: #ffbdc2;
+  --c-grid: rgba(255, 255, 255, 0.1);
 }
 
 #root {
   min-height: 100svh;
 }
 
-input[type="date"]::-webkit-calendar-picker-indicator {
+input[type='date']::-webkit-calendar-picker-indicator {
   cursor: pointer;
   opacity: 0.75;
 }

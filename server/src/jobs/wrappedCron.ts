@@ -6,7 +6,7 @@ import { computeWrappedStats } from '../lib/computeWrapped.js';
 
 async function generatePreviousMonthWrapped() {
   const now = new Date();
-  const year  = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+  const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
   const month = now.getMonth() === 0 ? 12 : now.getMonth(); // 1-indexed previous month
 
   console.log(`[wrapped-cron] Generating wrapped for ${year}-${month}`);
@@ -24,7 +24,7 @@ async function generatePreviousMonthWrapped() {
       userId,
       date: {
         $gte: new Date(year, month - 1, 1),
-        $lt:  new Date(year, month, 1),
+        $lt: new Date(year, month, 1),
       },
     });
 
