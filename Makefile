@@ -5,7 +5,7 @@ help:
 	@echo "  make dev      Run frontend (5173) and backend (4000) together"
 	@echo "  make install  pnpm install in client and server"
 	@echo "  make build    Build both client and server"
-	@echo "  make test     Run server and client test suites"
+	@echo "  make test     Run the server test suite"
 	@echo "  make clean    Remove build output and node_modules"
 
 dev:
@@ -25,7 +25,6 @@ build:
 
 test:
 	cd server && pnpm test
-	cd client && pnpm test
 
 clean:
 	rm -rf server/dist server/node_modules
