@@ -1,41 +1,21 @@
 import type { Transaction, TransactionInput } from '../types/transaction';
+import { apiFetch } from './_fetch';
 
-const API = (import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:4000'));
-const BASE = `${API}/api/transactions`;
-const opts: RequestInit = { credentials: 'include' };
-
-export async function getTransactions(): Promise<Transaction[]> {
-  const res = await fetch(BASE, opts);
-  if (!res.ok) throw new Error('Failed to fetch transactions');
-  return res.json();
+export function getTransactions(): Promise<Transaction[]> {
+  return apiFetch<Transaction[]>('/transactions');
 }
 
-export async function createTransaction(data: TransactionInput): Promise<Transaction> {
-  const res = await fetch(BASE, {
-    ...opts,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error('Failed to create transaction');
-  return res.json();
+export function createTransaction(data: TransactionInput): Promise<Transaction> {
+  return apiFetch<Transaction>('/transactions', { method: 'POST', body: data });
 }
 
-export async function updateTransaction(
+export function updateTransaction(
   id: string,
   data: Partial<TransactionInput>,
 ): Promise<Transaction> {
-  const res = await fetch(`${BASE}/${id}`, {
-    ...opts,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error('Failed to update transaction');
-  return res.json();
+  return apiFetch<Transaction>(`/transactions/${id}`, { method: 'PATCH', body: data });
 }
 
-export async function deleteTransaction(id: string): Promise<void> {
-  const res = await fetch(`${BASE}/${id}`, { ...opts, method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to delete transaction');
+export function deleteTransaction(id: string): Promise<void> {
+  return apiFetch<void>(`/transactions/${id}`, { method: 'DELETE' });
 }

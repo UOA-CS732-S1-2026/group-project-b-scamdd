@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { useSession } from './lib/auth-client';
 import Auth from './pages/Auth';
 import ResetPassword from './pages/ResetPassword';
@@ -33,6 +34,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <Toaster richColors position="top-right" closeButton />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/auth" element={<Auth />} />
