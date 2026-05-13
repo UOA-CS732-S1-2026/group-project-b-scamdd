@@ -4,7 +4,10 @@ import { useSession } from '../lib/auth-client';
 import { getMyProfile, updateMyProfile } from '../api/profile';
 import { getTransactions } from '../api/transactions';
 import { getBudgets } from '../api/budgets';
-import { getRequests, respondToRequest, getFriends } from '../api/friends';
+import { getRequests, respondToRequest, getFriends, getAcceptances, markAcceptancesSeen } from '../api/friends';
+import { getReceivedCheers, markCheersSeen, type ReceivedCheer } from '../api/cheers';
+import { getSharedBudgetInvites, acceptSharedBudgetInvite, declineSharedBudgetInvite } from '../api/sharedBudgets';
+import { achievementMessage } from '../lib/achievementMeta';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import HeroTitle from '../components/HeroTitle';
@@ -14,7 +17,8 @@ import { useProfileAvatar } from '../context/ProfileContext';
 import type { Profile as ProfileType, ProfileUpdate } from '../types/profile';
 import type { Transaction } from '../types/transaction';
 import type { Budget } from '../types/budget';
-import type { Friend, Requests } from '../types/friend';
+import type { Friend, Requests, FriendAcceptance } from '../types/friend';
+import type { SharedBudget } from '../types/sharedBudget';
 
 // ── Chart constants ───────────────────────────────────────────────────────────
 const CAT_COLORS: Record<string, string> = {
@@ -81,6 +85,9 @@ export default function Profile() {
   const [rawBudgets, setRawBudgets] = useState<Budget[]>([]);
   const [requests, setRequests] = useState<Requests>({ incoming: [], outgoing: [] });
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [cheers, setCheers] = useState<ReceivedCheer[]>([]);
+  const [acceptances, setAcceptances] = useState<FriendAcceptance[]>([]);
+  const [sharedInvites, setSharedInvites] = useState<SharedBudget[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Account form state
@@ -101,24 +108,33 @@ export default function Profile() {
 
   const loadData = useCallback(async () => {
     try {
-      const [prof, transactions, budgets, reqs, friendList] = await Promise.all([
+      const [prof, transactions, budgets, reqs, friendList, receivedCheers, receivedAcceptances, invites] = await Promise.all([
         getMyProfile(),
         getTransactions(),
         getBudgets(),
         getRequests().catch(() => ({ incoming: [], outgoing: [] })),
         getFriends().catch(() => [] as Friend[]),
+        getReceivedCheers().catch(() => [] as ReceivedCheer[]),
+        getAcceptances().catch(() => [] as FriendAcceptance[]),
+        getSharedBudgetInvites().catch(() => [] as SharedBudget[]),
       ]);
       setProfile(prof);
       setAllTransactions(transactions);
       setRawBudgets(budgets);
       setRequests(reqs);
       setFriends(friendList);
+      setCheers(receivedCheers);
+      setAcceptances(receivedAcceptances);
+      setSharedInvites(invites);
       setUsername(prof.username ?? '');
       setDisplayName(prof.displayName ?? prof.name ?? '');
       setPhone(prof.phone ?? '');
       setCurrency(prof.currency ?? 'NZD');
       setAvatarColor(prof.avatarColor ?? '#C68BE1');
       setImageUrl(prof.avatarImage ?? null);
+      // Mark seen after loading so items display before being cleared
+      markCheersSeen().catch(() => {});
+      markAcceptancesSeen().catch(() => {});
     } finally {
       setLoading(false);
     }
@@ -327,6 +343,20 @@ export default function Profile() {
   const inputClass = 'w-full px-4 py-2.5 border border-[var(--c-border)] rounded-xl text-sm focus:outline-none focus:border-[var(--c-accent)] bg-[var(--c-bg)] text-[var(--c-text)]';
 
   // ── Tab renderers ─────────────────────────────────────────────────────────────
+  const handleAcceptSharedInvite = async (id: string) => {
+    try {
+      await acceptSharedBudgetInvite(id);
+      setSharedInvites((prev) => prev.filter((sb) => sb._id !== id));
+    } catch { alert('Failed to accept invite'); }
+  };
+
+  const handleDeclineSharedInvite = async (id: string) => {
+    try {
+      await declineSharedBudgetInvite(id);
+      setSharedInvites((prev) => prev.filter((sb) => sb._id !== id));
+    } catch { alert('Failed to decline invite'); }
+  };
+
   const renderHome = () => (
     <div className="border border-[var(--c-border)] rounded-2xl p-4 sm:p-6 bg-[var(--c-card)]">
       <h2 className="text-base font-bold text-[var(--c-text)] mb-4">Recent notifications</h2>
@@ -358,28 +388,80 @@ export default function Profile() {
           );
         })}
 
-        {/* Accepted friends */}
-        {friends.slice(0, 3).map((f) => {
-          const name = f.displayName || f.username || 'Friend';
-          const ini = initials(name);
-          const fColor = f.avatarColor ?? '#C68BE1';
-          const fImage = f.avatarImage ?? null;
+        {/* Shared budget invites */}
+        {sharedInvites.map(sb => {
+          const inviter = sb.members.find((m) => m.userId === sb.ownerId)
+            ?? sb.members.find((m) => m.status === 'accepted');
+          const name = inviter?.displayName ?? inviter?.username ?? 'Someone';
+          const label = sb.name?.trim() || sb.category;
+          const inviterFriend = friends.find((fr) => fr.id === inviter?.userId);
+          const sbColor = inviterFriend?.avatarColor ?? '#C5FFD8';
+          const sbImage = inviterFriend?.avatarImage ?? null;
           return (
-            <div key={f.id} className="flex items-center gap-3 py-3">
+            <div key={sb._id} className="flex items-center gap-3 py-3 flex-wrap">
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] flex-shrink-0 overflow-hidden"
-                style={{ backgroundColor: fImage ? 'transparent' : fColor }}
+                style={{ backgroundColor: sbImage ? 'transparent' : sbColor }}
               >
-                {fImage ? <img src={fImage} alt={name} className="w-full h-full object-cover" /> : ini}
+                {sbImage ? <img src={sbImage} alt={name} className="w-full h-full object-cover" /> : initials(name)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-semibold text-[var(--c-text)]">{name}</span>
+                <span className="text-sm text-[var(--c-text-2)]"> • Invited you to share a <span className="capitalize">{label}</span> budget</span>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button onClick={() => handleAcceptSharedInvite(sb._id)} className="px-3 py-1 rounded-lg text-xs font-semibold bg-[var(--c-text)] text-[var(--c-bg)] hover:opacity-80 transition-opacity">Accept</button>
+                <button onClick={() => handleDeclineSharedInvite(sb._id)} className="px-3 py-1 rounded-lg text-xs font-semibold border border-[var(--c-border)] text-[var(--c-text)] hover:opacity-70 transition-opacity">Decline</button>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Friend acceptances */}
+        {acceptances.map(a => {
+          const name = a.displayName ?? a.username ?? 'Someone';
+          const aColor = a.avatarColor ?? '#C68BE1';
+          const aImage = a.avatarImage ?? null;
+          return (
+            <div key={a.id} className="flex items-center gap-3 py-3">
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] flex-shrink-0 overflow-hidden"
+                style={{ backgroundColor: aImage ? 'transparent' : aColor }}
+              >
+                {aImage ? <img src={aImage} alt={name} className="w-full h-full object-cover" /> : initials(name)}
               </div>
               <div className="flex-1 min-w-0 text-sm">
                 <span className="font-semibold text-[var(--c-text)]">{name}</span>
                 <span className="text-[var(--c-text-2)]"> • Accepted your friend request!</span>
               </div>
-              <svg className="text-[var(--c-text-2)] flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
-              </svg>
+            </div>
+          );
+        })}
+
+        {/* Cheers */}
+        {cheers.map(c => {
+          const name = c.fromDisplayName ?? c.fromUsername ?? 'Friend';
+          const cheerFriend = friends.find((fr) => fr.id === c.fromId);
+          const cColor = cheerFriend?.avatarColor ?? '#C68BE1';
+          const cImage = cheerFriend?.avatarImage ?? null;
+          const achMsg = achievementMessage(c.achievementKey, true).toLowerCase();
+          return (
+            <div key={c.id} className="flex items-center gap-3 py-3">
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-[var(--c-tint-text)] flex-shrink-0 overflow-hidden"
+                style={{ backgroundColor: cImage ? 'transparent' : cColor }}
+              >
+                {cImage ? <img src={cImage} alt={name} className="w-full h-full object-cover" /> : initials(name)}
+              </div>
+              <div className="flex-1 min-w-0 text-sm">
+                <span className="font-semibold text-[var(--c-text)]">{name}</span>
+                <span className="text-[var(--c-text-2)]"> • liked: {achMsg}</span>
+              </div>
+              <span className="text-[#E11D48] flex-shrink-0">
+                <svg width="16" height="16" viewBox="0 0 15 15" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M7.5 13s-5-3.1-5-6.6A2.7 2.7 0 0 1 7.5 4.6a2.7 2.7 0 0 1 5 1.8C12.5 9.9 7.5 13 7.5 13z" />
+                </svg>
+              </span>
             </div>
           );
         })}
@@ -396,7 +478,7 @@ export default function Profile() {
           </div>
         ))}
 
-        {requests.incoming.length === 0 && friends.length === 0 && milestones.length === 0 && (
+        {requests.incoming.length === 0 && sharedInvites.length === 0 && acceptances.length === 0 && cheers.length === 0 && milestones.length === 0 && (
           <div className="py-8 text-center text-sm text-[var(--c-text-2)]">No notifications yet</div>
         )}
       </div>

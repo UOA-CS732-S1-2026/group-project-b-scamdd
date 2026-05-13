@@ -121,6 +121,10 @@ function IconLogOut() {
   );
 }
 
+// Module-level — survive Navbar remounts when navigating between pages
+let _dismissed = new Set<string>();
+let _clearedBadge = new Set<string>();
+
 export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -132,6 +136,8 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
   const [acceptances, setAcceptances] = useState<FriendAcceptance[]>([]);
   const [bellOpen, setBellOpen] = useState(false);
   const [newAtOpen, setNewAtOpen] = useState<Set<string>>(new Set());
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(_dismissed);
+  const [clearedBadgeIds, setClearedBadgeIds] = useState<Set<string>>(_clearedBadge);
   const bellWrapRef = useRef<HTMLDivElement>(null);
 
   const refreshNotifications = () => {
@@ -209,7 +215,7 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
     ...acceptances.map((a) => ({ id: `accept-${a.id}`, kind: 'friend-accepted' as const, isNew: true, data: a })),
     ...cheers.map((c) => ({ id: `cheer-${c.id}`, kind: 'like' as const, isNew: !c.seen, data: c })),
   ];
-  const unseenCount = notifications.filter((n) => n.isNew).length;
+  const unseenCount = notifications.filter((n) => n.isNew && !clearedBadgeIds.has(n.id)).length;
 
   const openBell = () => {
     setBellOpen((wasOpen) => {
@@ -217,12 +223,8 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
       if (willOpen) {
         const newOnes = new Set(notifications.filter((n) => n.isNew).map((n) => n.id));
         setNewAtOpen(newOnes);
-        markCheersSeen().then(() => {
-          setCheers((prev) => prev.map((c) => ({ ...c, seen: true })));
-        }).catch(() => {});
-        markAcceptancesSeen().then(() => {
-          setAcceptances([]);
-        }).catch(() => {});
+        _clearedBadge = new Set([..._clearedBadge, ...newOnes]);
+        setClearedBadgeIds(_clearedBadge);
       } else {
         setNewAtOpen(new Set());
       }
@@ -230,14 +232,22 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
     });
   };
 
-  const goToNotification = () => {
+  const handleNotificationClick = (id: string, kind: 'request' | 'like' | 'shared-invite' | 'friend-accepted', destination: string) => {
+    _dismissed = new Set([..._dismissed, id]);
+    setDismissedIds(_dismissed);
+    if (kind === 'like') markCheersSeen().catch(() => {});
+    if (kind === 'friend-accepted') markAcceptancesSeen().catch(() => {});
     setBellOpen(false);
-    navigate('/friends');
+    navigate(destination);
   };
 
-  const goToSharedBudgets = () => {
+  const handleSeeAll = () => {
+    _dismissed = new Set([..._dismissed, ...notifications.map((n) => n.id)]);
+    setDismissedIds(_dismissed);
+    markCheersSeen().catch(() => {});
+    markAcceptancesSeen().catch(() => {});
     setBellOpen(false);
-    navigate('/budgets#shared');
+    navigate('/profile');
   };
 
   const navLinks = [
@@ -327,11 +337,11 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
                   <p className="text-sm font-semibold text-[var(--c-text)]">Notifications</p>
                 </div>
                 <div className="max-h-80 overflow-y-auto">
-                  {notifications.length === 0 ? (
+                  {notifications.filter((n) => !dismissedIds.has(n.id)).length === 0 ? (
                     <p className="text-sm text-[var(--c-text-2)] text-center py-6">No notifications yet.</p>
                   ) : (
                     <ul className="flex flex-col">
-                      {notifications.slice(0, 3).map((n) => {
+                      {notifications.filter((n) => !dismissedIds.has(n.id)).slice(0, 3).map((n) => {
                         const wasNew = newAtOpen.has(n.id);
                         if (n.kind === 'request') {
                           const r = n.data;
@@ -339,7 +349,7 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
                             <li
                               key={n.id}
                               className={`px-4 py-3 border-b border-[var(--c-border)] last:border-b-0 flex items-center gap-3 cursor-pointer hover:bg-[var(--c-nav-active)] ${wasNew ? 'bg-[var(--c-tint-yellow)]' : ''}`}
-                              onClick={goToNotification}
+                              onClick={() => handleNotificationClick(n.id, n.kind, '/friends')}
                             >
                               <div
                                 className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
@@ -383,7 +393,7 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
                             <li
                               key={n.id}
                               className={`px-4 py-3 border-b border-[var(--c-border)] last:border-b-0 flex items-center gap-3 cursor-pointer hover:bg-[var(--c-nav-active)] ${wasNew ? 'bg-[var(--c-tint-yellow)]' : ''}`}
-                              onClick={goToSharedBudgets}
+                              onClick={() => handleNotificationClick(n.id, n.kind, '/budgets#shared')}
                             >
                               <div
                                 className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
@@ -426,7 +436,7 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
                             <li
                               key={n.id}
                               className={`px-4 py-3 border-b border-[var(--c-border)] last:border-b-0 flex items-center gap-3 cursor-pointer hover:bg-[var(--c-nav-active)] ${wasNew ? 'bg-[var(--c-tint-yellow)]' : ''}`}
-                              onClick={() => { setBellOpen(false); navigate('/friends'); }}
+                              onClick={() => handleNotificationClick(n.id, n.kind, '/friends')}
                             >
                               <div
                                 className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
@@ -453,7 +463,7 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
                           <li
                             key={n.id}
                             className={`px-4 py-3 border-b border-[var(--c-border)] last:border-b-0 flex items-center gap-3 cursor-pointer hover:bg-[var(--c-nav-active)] ${wasNew ? 'bg-[var(--c-tint-yellow)]' : ''}`}
-                            onClick={goToNotification}
+                            onClick={() => handleNotificationClick(n.id, n.kind, '/friends')}
                           >
                             <div
                               className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-[2px] border-white text-[var(--c-text)] flex-shrink-0 overflow-hidden"
@@ -480,7 +490,7 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
                 </div>
                 <button
                   type="button"
-                  onClick={() => { setBellOpen(false); navigate('/profile'); }}
+                  onClick={handleSeeAll}
                   className="w-full px-4 py-2.5 text-xs font-semibold text-[var(--c-text-2)] hover:text-[var(--c-text)] hover:bg-[var(--c-nav-active)] border-t border-[var(--c-border)] transition-colors cursor-pointer"
                 >
                   See all notifications →
