@@ -1,6 +1,4 @@
-const API = (import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:4000'));
-const BASE = `${API}/api/games`;
-const opts: RequestInit = { credentials: 'include' };
+import { apiFetch, ApiError } from './_fetch';
 
 export interface LeaderboardEntry {
   userId: string;
@@ -13,16 +11,17 @@ export interface LeaderboardEntry {
 }
 
 export async function submitScore(game: 'price' | 'budget', score: number): Promise<void> {
-  await fetch(`${BASE}/score`, {
-    ...opts,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ game, score }),
-  });
+  try {
+    await apiFetch<void>('/games/score', {
+      method: 'POST',
+      body: { game, score },
+    });
+  } catch (err) {
+    // Original implementation swallowed errors silently.
+    if (!(err instanceof ApiError)) throw err;
+  }
 }
 
-export async function getLeaderboard(game: 'price' | 'budget'): Promise<LeaderboardEntry[]> {
-  const res = await fetch(`${BASE}/leaderboard/${game}`, opts);
-  if (!res.ok) throw new Error('Failed to fetch leaderboard');
-  return res.json();
+export function getLeaderboard(game: 'price' | 'budget'): Promise<LeaderboardEntry[]> {
+  return apiFetch<LeaderboardEntry[]>(`/games/leaderboard/${game}`);
 }

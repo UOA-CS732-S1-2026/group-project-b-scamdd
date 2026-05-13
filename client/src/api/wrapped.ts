@@ -1,7 +1,6 @@
 import type { WrappedMonth } from '../types/wrapped';
+import { apiFetch } from './_fetch';
 
-export async function getWrapped(): Promise<WrappedMonth[]> {
-  const res = await fetch('/api/wrapped', { credentials: 'include' });
-  if (!res.ok) throw new Error('Failed to fetch wrapped data');
-  return res.json();
+export function getWrapped(): Promise<WrappedMonth[]> {
+  return apiFetch<WrappedMonth[]>('/wrapped');
 }

@@ -153,3 +153,46 @@ export async function listAchievements(userId: string): Promise<Array<{ key: str
   const rows = await Achievement.find({ userId }).select({ key: 1, earnedAt: 1 }).lean();
   return rows.map(r => ({ key: r.key, earnedAt: new Date(r.earnedAt).toISOString() }));
 }
+
+/**
+ * Revoke any earned achievement that is no longer truthful after a data
+ * mutation (typically a transaction delete). Counts the underlying metric
+ * and unsets the badge if the threshold is no longer met. Idempotent.
+ *
+ * Currently covers the achievement keys that depend on transaction counts
+ * or transaction content — the streak-based and budget-based badges are
+ * left alone for the simpler "Phase 7" rewrite, which will fold this into
+ * a single denormalised UserStats refresh.
+ */
+export async function revokeAchievementsIfUnearned(userId: string): Promise<AchievementKey[]> {
+  const revoked: AchievementKey[] = [];
+
+  const [txnCount, hasEmergency] = await Promise.all([
+    Transaction.countDocuments({ userId }),
+    Transaction.exists({ userId, category: 'emergency' }).then(Boolean),
+  ]);
+
+  const removeIf = async (key: AchievementKey, isStillEarned: boolean) => {
+    if (isStillEarned) return;
+    const result = await Achievement.deleteOne({ userId, key });
+    if (result.deletedCount) revoked.push(key);
+  };
+
+  await removeIf('first_transaction', txnCount >= 1);
+  await removeIf('txn_100', txnCount >= 100);
+  await removeIf('txn_500', txnCount >= 500);
+  await removeIf('safety_net', hasEmergency);
+
+  // no_regret_14 was earned if no regret-mood txn existed in the prior 14
+  // days; if a regret-mood txn now exists in that window, revoke.
+  const since = new Date();
+  since.setDate(since.getDate() - 14);
+  const hasRegret = await Transaction.exists({
+    userId,
+    mood: 'regret',
+    date: { $gte: since },
+  });
+  await removeIf('no_regret_14', !hasRegret && txnCount > 0);
+
+  return revoked;
+}

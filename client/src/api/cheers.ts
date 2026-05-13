@@ -1,6 +1,4 @@
-const API = (import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:4000'));
-const BASE = `${API}/api/cheers`;
-const opts: RequestInit = { credentials: 'include' };
+import { apiFetch } from './_fetch';
 
 export interface SentCheer {
   toUserId: string;
@@ -23,51 +21,34 @@ export interface CheerUser {
   displayName: string | null;
 }
 
-export async function cheer(toUserId: string, achievementKey: string): Promise<void> {
-  const res = await fetch(BASE, {
-    ...opts,
+export function cheer(toUserId: string, achievementKey: string): Promise<void> {
+  return apiFetch<void>('/cheers', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ toUserId, achievementKey }),
+    body: { toUserId, achievementKey },
   });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? 'Failed to cheer');
-  }
 }
 
-export async function uncheer(toUserId: string, achievementKey: string): Promise<void> {
-  const res = await fetch(BASE, {
-    ...opts,
+export function uncheer(toUserId: string, achievementKey: string): Promise<void> {
+  return apiFetch<void>('/cheers', {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ toUserId, achievementKey }),
+    body: { toUserId, achievementKey },
   });
-  if (!res.ok) throw new Error('Failed to uncheer');
 }
 
-export async function getSentCheers(): Promise<SentCheer[]> {
-  const res = await fetch(`${BASE}/sent`, opts);
-  if (!res.ok) throw new Error('Failed to load cheers');
-  return res.json();
+export function getSentCheers(): Promise<SentCheer[]> {
+  return apiFetch<SentCheer[]>('/cheers/sent');
 }
 
-export async function getReceivedCheers(): Promise<ReceivedCheer[]> {
-  const res = await fetch(`${BASE}/received`, opts);
-  if (!res.ok) throw new Error('Failed to load cheers');
-  return res.json();
+export function getReceivedCheers(): Promise<ReceivedCheer[]> {
+  return apiFetch<ReceivedCheer[]>('/cheers/received');
 }
 
-export async function markCheersSeen(): Promise<void> {
-  const res = await fetch(`${BASE}/mark-seen`, {
-    ...opts,
-    method: 'POST',
-  });
-  if (!res.ok) throw new Error('Failed to mark cheers seen');
+export function markCheersSeen(): Promise<void> {
+  return apiFetch<void>('/cheers/mark-seen', { method: 'POST' });
 }
 
-export async function getCheersFor(userId: string, achievementKey: string): Promise<CheerUser[]> {
-  const res = await fetch(`${BASE}/for/${encodeURIComponent(userId)}/${encodeURIComponent(achievementKey)}`, opts);
-  if (!res.ok) throw new Error('Failed to load cheer list');
-  return res.json();
+export function getCheersFor(userId: string, achievementKey: string): Promise<CheerUser[]> {
+  return apiFetch<CheerUser[]>(
+    `/cheers/for/${encodeURIComponent(userId)}/${encodeURIComponent(achievementKey)}`,
+  );
 }

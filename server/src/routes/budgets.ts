@@ -1,11 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { Budget, type BudgetPeriod } from '../models/Budget.js';
-import { Transaction } from '../models/Transaction.js';
 import { requireAuth } from '../middleware/auth.js';
 import { checkAndAwardAchievements } from '../lib/achievements.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
 import { logger } from '../lib/logger.js';
+import { spendByCategoryForUser } from '../lib/spend.js';
+import { validate } from '../middleware/validate.js';
+import { createBudgetSchema, updateBudgetSchema } from '../schemas/budgets.js';
+import { idParam } from '../schemas/common.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -16,54 +19,15 @@ function fireAchievements(userId: string) {
   });
 }
 
-function periodRange(period: BudgetPeriod): { start: Date; end: Date } {
-  const now = new Date();
-  switch (period) {
-    case 'daily': {
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      return { start, end };
-    }
-    case 'weekly': {
-      const day = now.getDay() === 0 ? 7 : now.getDay(); // Mon=1 … Sun=7
-      const monday = new Date(now);
-      monday.setDate(now.getDate() - (day - 1));
-      monday.setHours(0, 0, 0, 0);
-      const nextMonday = new Date(monday);
-      nextMonday.setDate(monday.getDate() + 7);
-      return { start: monday, end: nextMonday };
-    }
-    case 'monthly':
-      return {
-        start: new Date(now.getFullYear(), now.getMonth(), 1),
-        end: new Date(now.getFullYear(), now.getMonth() + 1, 1),
-      };
-    case 'yearly':
-      return {
-        start: new Date(now.getFullYear(), 0, 1),
-        end: new Date(now.getFullYear() + 1, 0, 1),
-      };
-  }
-}
-
 async function spentForPeriod(userId: string, period: BudgetPeriod): Promise<Record<string, number>> {
-  const { start, end } = periodRange(period);
-  const rows = await Transaction.aggregate<{ _id: string; total: number }>([
-    {
-      $match: {
-        userId,
-        type: 'expense',
-        category: { $ne: 'emergency' },
-        date: { $gte: start, $lt: end },
-      },
-    },
-    { $group: { _id: '$category', total: { $sum: '$amount' } } },
-  ]);
-  const map: Record<string, number> = {};
+  const map = await spendByCategoryForUser(userId, period, {
+    excludeCategories: ['emergency'],
+  });
+  // Existing API exposes an "overall" pseudo-category — preserve it.
   let overall = 0;
-  for (const r of rows) {
-    map[r._id] = r.total;
-    overall += r.total;
+  for (const [k, v] of Object.entries(map)) {
+    if (k === 'overall') continue;
+    overall += v;
   }
   map['overall'] = overall;
   return map;
@@ -95,26 +59,21 @@ router.get(
 
 router.post(
   '/',
+  validate({ body: createBudgetSchema }),
   asyncHandler(async (req: Request, res: Response) => {
-    const { category, monthlyLimit, period, isPublic } = req.body ?? {};
-    if (!category) {
-      throw HttpError.badRequest('category is required');
-    }
-    if (category === 'emergency') {
-      throw HttpError.badRequest('Emergency cannot have a budget');
-    }
-    if (typeof monthlyLimit !== 'number' || monthlyLimit <= 0) {
-      throw HttpError.badRequest('limit must be a positive number');
-    }
-    const validPeriods = ['daily', 'weekly', 'monthly', 'yearly'];
-    const resolvedPeriod = validPeriods.includes(period) ? period : 'monthly';
+    const { category, monthlyLimit, period, isPublic } = req.body as {
+      category: string;
+      monthlyLimit: number;
+      period?: BudgetPeriod;
+      isPublic?: boolean;
+    };
 
     try {
       const budget = await Budget.create({
         userId: req.user!._id,
         category,
         monthlyLimit,
-        period: resolvedPeriod,
+        period: period ?? 'monthly',
         isPublic: Boolean(isPublic),
       });
       res.status(201).json(budget);
@@ -130,19 +89,19 @@ router.post(
 
 router.patch(
   '/:id',
+  validate({ params: idParam, body: updateBudgetSchema }),
   asyncHandler(async (req: Request, res: Response) => {
-    const { category, monthlyLimit, period, isPublic } = req.body ?? {};
+    const { category, monthlyLimit, period, isPublic } = req.body as {
+      category?: string;
+      monthlyLimit?: number;
+      period?: BudgetPeriod;
+      isPublic?: boolean;
+    };
     const updates: Record<string, unknown> = {};
 
     if (category !== undefined) updates.category = category;
-    if (monthlyLimit !== undefined) {
-      if (typeof monthlyLimit !== 'number' || monthlyLimit <= 0) {
-        throw HttpError.badRequest('limit must be a positive number');
-      }
-      updates.monthlyLimit = monthlyLimit;
-    }
-    const validPeriods = ['daily', 'weekly', 'monthly', 'yearly'];
-    if (period !== undefined && validPeriods.includes(period)) updates.period = period;
+    if (monthlyLimit !== undefined) updates.monthlyLimit = monthlyLimit;
+    if (period !== undefined) updates.period = period;
     if (isPublic !== undefined) updates.isPublic = Boolean(isPublic);
 
     try {
@@ -166,6 +125,7 @@ router.patch(
 
 router.delete(
   '/:id',
+  validate({ params: idParam }),
   asyncHandler(async (req: Request, res: Response) => {
     const budget = await Budget.findOneAndDelete({ _id: req.params.id, userId: req.user!._id });
     if (!budget) {
