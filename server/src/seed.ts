@@ -13,7 +13,11 @@ if (!EMAIL) {
   process.exit(1);
 }
 
-function d(day: number, month = 4 /* 0-indexed, 4 = May */, year = 2026) {
+// Date helper: by default produces a date in the CURRENT month/year so the
+// seeded data always looks recent (audit M3 — was hard-coded to May 2026).
+// Pass month/year overrides for the historical demo months below.
+const NOW = new Date();
+function d(day: number, month: number = NOW.getMonth(), year: number = NOW.getFullYear()) {
   return new Date(year, month, day);
 }
 
