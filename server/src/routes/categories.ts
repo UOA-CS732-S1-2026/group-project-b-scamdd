@@ -3,6 +3,9 @@ import { UserCategory } from '../models/UserCategory.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
+import { validate } from '../middleware/validate.js';
+import { createCategorySchema, updateCategorySchema } from '../schemas/categories.js';
+import { idParam } from '../schemas/common.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -17,15 +20,13 @@ router.get(
 
 router.post(
   '/',
+  validate({ body: createCategorySchema }),
   asyncHandler(async (req: Request, res: Response) => {
-    const { name, color } = req.body ?? {};
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      throw HttpError.badRequest('name is required');
-    }
+    const { name, color } = req.body as { name: string; color?: string };
     try {
       const cat = await UserCategory.create({
         userId: req.user!._id,
-        name: name.trim().toLowerCase(),
+        name: name.toLowerCase(),
         color: color ?? '#CBCBCB',
       });
       res.status(201).json(cat);
@@ -40,15 +41,11 @@ router.post(
 
 router.patch(
   '/:id',
+  validate({ params: idParam, body: updateCategorySchema }),
   asyncHandler(async (req: Request, res: Response) => {
-    const { name, color } = req.body ?? {};
+    const { name, color } = req.body as { name?: string; color?: string };
     const updates: Record<string, unknown> = {};
-    if (name !== undefined) {
-      if (typeof name !== 'string' || !name.trim()) {
-        throw HttpError.badRequest('name must be a non-empty string');
-      }
-      updates.name = name.trim().toLowerCase();
-    }
+    if (name !== undefined) updates.name = name.toLowerCase();
     if (color !== undefined) updates.color = color;
 
     try {
@@ -72,6 +69,7 @@ router.patch(
 
 router.delete(
   '/:id',
+  validate({ params: idParam }),
   asyncHandler(async (req: Request, res: Response) => {
     const cat = await UserCategory.findOneAndDelete({ _id: req.params.id, userId: req.user!._id });
     if (!cat) {

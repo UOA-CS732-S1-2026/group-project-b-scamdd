@@ -7,23 +7,16 @@ import { User } from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
-import { logger } from '../lib/logger.js';
+import { validate } from '../middleware/validate.js';
+import {
+  createSharedBudgetSchema,
+  inviteSchema,
+  updateSharedBudgetSchema,
+} from '../schemas/sharedBudgets.js';
+import { idParam } from '../schemas/common.js';
 
 const router = Router();
 router.use(requireAuth);
-
-const VALID_PERIODS: BudgetPeriod[] = ['daily', 'weekly', 'monthly', 'yearly'];
-const FORBIDDEN_CATEGORIES = new Set(['emergency', 'overall']);
-const ALLOWED_CATEGORIES = new Set([
-  'food',
-  'rent',
-  'transport',
-  'entertainment',
-  'utilities',
-  'shopping',
-  'health',
-  'other',
-]);
 
 function periodRange(period: BudgetPeriod): { start: Date; end: Date } {
   const now = new Date();
@@ -185,39 +178,38 @@ router.get(
 
 router.post(
   '/',
+  validate({ body: createSharedBudgetSchema }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const { name, category, monthlyLimit, period, inviteUserIds } = req.body ?? {};
+    const {
+      name,
+      category,
+      monthlyLimit,
+      period,
+      inviteUserIds,
+    } = req.body as {
+      name?: string;
+      category: string;
+      monthlyLimit: number;
+      period?: BudgetPeriod;
+      inviteUserIds: string[];
+    };
 
-    if (!category || typeof category !== 'string') {
-      throw HttpError.badRequest('category is required');
-    }
-    if (FORBIDDEN_CATEGORIES.has(category) || !ALLOWED_CATEGORIES.has(category)) {
-      throw HttpError.badRequest('That category cannot be shared');
-    }
-    if (typeof monthlyLimit !== 'number' || monthlyLimit <= 0) {
-      throw HttpError.badRequest('limit must be a positive number');
-    }
-    const resolvedPeriod: BudgetPeriod = VALID_PERIODS.includes(period) ? period : 'monthly';
-
-    const invitees: string[] = Array.isArray(inviteUserIds)
-      ? Array.from(new Set(inviteUserIds.filter((x) => typeof x === 'string' && x && x !== meId)))
-      : [];
+    const invitees = Array.from(new Set(inviteUserIds.filter((id) => id !== meId)));
     if (invitees.length === 0) {
       throw HttpError.badRequest('Invite at least one friend');
     }
-    const allFriends = await areAllFriends(meId, invitees);
-    if (!allFriends) {
+    if (!(await areAllFriends(meId, invitees))) {
       throw HttpError.badRequest('You can only invite accepted friends');
     }
 
     const now = new Date();
     const doc = await SharedBudget.create({
       ownerId: meId,
-      name: typeof name === 'string' && name.trim() ? name.trim().slice(0, 60) : undefined,
+      name: name?.trim() ? name.trim().slice(0, 60) : undefined,
       category,
       monthlyLimit,
-      period: resolvedPeriod,
+      period: period ?? 'monthly',
       members: [
         { userId: meId, status: 'accepted', invitedBy: meId, joinedAt: now },
         ...invitees.map((id) => ({ userId: id, status: 'pending' as const, invitedBy: meId })),
@@ -230,150 +222,164 @@ router.post(
 
 router.patch(
   '/:id',
+  validate({ params: idParam, body: updateSharedBudgetSchema }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const doc = await SharedBudget.findById(req.params.id);
-    if (!doc) {
-      throw HttpError.notFound('Shared budget not found');
-    }
-    const me = doc.members.find((m) => m.userId === meId && m.status === 'accepted');
-    if (!me) {
-      throw HttpError.forbidden('Only members can edit this budget');
-    }
-    const { name, monthlyLimit, period } = req.body ?? {};
-    if (monthlyLimit !== undefined) {
-      if (typeof monthlyLimit !== 'number' || monthlyLimit <= 0) {
-        throw HttpError.badRequest('limit must be a positive number');
-      }
-      doc.monthlyLimit = monthlyLimit;
-    }
-    if (period !== undefined && VALID_PERIODS.includes(period)) {
-      doc.period = period;
-    }
+    const { name, monthlyLimit, period } = req.body as {
+      name?: string;
+      monthlyLimit?: number;
+      period?: BudgetPeriod;
+    };
+    const set: Record<string, unknown> = {};
+    if (monthlyLimit !== undefined) set.monthlyLimit = monthlyLimit;
+    if (period !== undefined) set.period = period;
     if (name !== undefined) {
-      doc.name = typeof name === 'string' && name.trim() ? name.trim().slice(0, 60) : undefined;
+      set.name = name.trim() ? name.trim().slice(0, 60) : undefined;
     }
-    await doc.save();
-    const out = await enrich(doc.toObject());
+
+    const doc = await SharedBudget.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        members: { $elemMatch: { userId: meId, status: 'accepted' } },
+      },
+      { $set: set },
+      { new: true },
+    ).lean();
+    if (!doc) {
+      // Either not found, or the caller is not an accepted member.
+      const exists = await SharedBudget.exists({ _id: req.params.id });
+      throw exists
+        ? HttpError.forbidden('Only members can edit this budget')
+        : HttpError.notFound('Shared budget not found');
+    }
+    const out = await enrich(doc);
     res.json(out);
   }),
 );
 
 router.delete(
   '/:id',
+  validate({ params: idParam }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const doc = await SharedBudget.findById(req.params.id);
-    if (!doc) {
-      throw HttpError.notFound('Shared budget not found');
+    const result = await SharedBudget.findOneAndDelete({
+      _id: req.params.id,
+      members: { $elemMatch: { userId: meId, status: 'accepted' } },
+    }).lean();
+    if (!result) {
+      const exists = await SharedBudget.exists({ _id: req.params.id });
+      throw exists
+        ? HttpError.forbidden('Only members can delete this budget')
+        : HttpError.notFound('Shared budget not found');
     }
-    const me = doc.members.find((m) => m.userId === meId && m.status === 'accepted');
-    if (!me) {
-      throw HttpError.forbidden('Only members can delete this budget');
-    }
-    await doc.deleteOne();
     res.status(204).send();
   }),
 );
 
 router.post(
   '/:id/invite',
+  validate({ params: idParam, body: inviteSchema }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const { userIds } = req.body ?? {};
-    if (!Array.isArray(userIds) || userIds.length === 0) {
-      throw HttpError.badRequest('userIds is required');
+    const { userIds } = req.body as { userIds: string[] };
+
+    // Authorization read: must be an accepted member.
+    const callerOk = await SharedBudget.exists({
+      _id: req.params.id,
+      members: { $elemMatch: { userId: meId, status: 'accepted' } },
+    });
+    if (!callerOk) {
+      const exists = await SharedBudget.exists({ _id: req.params.id });
+      throw exists
+        ? HttpError.forbidden('Only members can invite')
+        : HttpError.notFound('Shared budget not found');
     }
-    const doc = await SharedBudget.findById(req.params.id);
-    if (!doc) {
-      throw HttpError.notFound('Shared budget not found');
-    }
-    const me = doc.members.find((m) => m.userId === meId && m.status === 'accepted');
-    if (!me) {
-      throw HttpError.forbidden('Only members can invite');
-    }
-    const existingIds = new Set(doc.members.map((m) => m.userId));
-    const newInvites: string[] = Array.from(
-      new Set(
-        userIds.filter(
-          (x: unknown) => typeof x === 'string' && x && x !== meId && !existingIds.has(x as string),
-        ),
-      ),
-    ) as string[];
-    if (newInvites.length === 0) {
+
+    const targets = Array.from(new Set(userIds.filter((id) => id !== meId)));
+    if (targets.length === 0) {
       throw HttpError.badRequest('No new users to invite');
     }
-    const allFriends = await areAllFriends(meId, newInvites);
-    if (!allFriends) {
+    if (!(await areAllFriends(meId, targets))) {
       throw HttpError.badRequest('You can only invite accepted friends');
     }
-    for (const id of newInvites) {
-      doc.members.push({ userId: id, status: 'pending', invitedBy: meId });
+
+    // Atomic per-invitee push: precondition rejects already-present userIds,
+    // so concurrent /invite calls can't create duplicate member entries.
+    for (const id of targets) {
+      await SharedBudget.updateOne(
+        { _id: req.params.id, 'members.userId': { $ne: id } },
+        { $push: { members: { userId: id, status: 'pending', invitedBy: meId } } },
+      );
     }
-    await doc.save();
-    const out = await enrich(doc.toObject());
+
+    const doc = await SharedBudget.findById(req.params.id).lean();
+    if (!doc) throw HttpError.notFound('Shared budget not found');
+    const out = await enrich(doc);
     res.json(out);
   }),
 );
 
 router.post(
   '/:id/accept',
+  validate({ params: idParam }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const doc = await SharedBudget.findById(req.params.id);
-    if (!doc) {
-      throw HttpError.notFound('Shared budget not found');
-    }
-    const me = doc.members.find((m) => m.userId === meId);
-    if (!me || me.status !== 'pending') {
-      throw HttpError.notFound('No pending invite for you');
-    }
-    me.status = 'accepted';
-    me.joinedAt = new Date();
-    await doc.save();
-    const out = await enrich(doc.toObject());
+    const result = await SharedBudget.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        members: { $elemMatch: { userId: meId, status: 'pending' } },
+      },
+      {
+        $set: {
+          'members.$.status': 'accepted',
+          'members.$.joinedAt': new Date(),
+        },
+      },
+      { new: true },
+    ).lean();
+    if (!result) throw HttpError.notFound('No pending invite for you');
+    const out = await enrich(result);
     res.json(out);
   }),
 );
 
 router.post(
   '/:id/decline',
+  validate({ params: idParam }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const doc = await SharedBudget.findById(req.params.id);
-    if (!doc) {
-      throw HttpError.notFound('Shared budget not found');
-    }
-    const idx = doc.members.findIndex((m) => m.userId === meId && m.status === 'pending');
-    if (idx < 0) {
+    const result = await SharedBudget.updateOne(
+      {
+        _id: req.params.id,
+        members: { $elemMatch: { userId: meId, status: 'pending' } },
+      },
+      { $pull: { members: { userId: meId, status: 'pending' } } },
+    );
+    if (result.matchedCount === 0) {
       throw HttpError.notFound('No pending invite for you');
     }
-    doc.members.splice(idx, 1);
-    await doc.save();
     res.status(204).send();
   }),
 );
 
 router.post(
   '/:id/leave',
+  validate({ params: idParam }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const doc = await SharedBudget.findById(req.params.id);
-    if (!doc) {
-      throw HttpError.notFound('Shared budget not found');
-    }
-    const idx = doc.members.findIndex((m) => m.userId === meId && m.status === 'accepted');
-    if (idx < 0) {
-      throw HttpError.forbidden('You are not a member');
-    }
-    doc.members.splice(idx, 1);
-    const acceptedRemaining = doc.members.filter((m) => m.status === 'accepted').length;
+    const updated = await SharedBudget.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        members: { $elemMatch: { userId: meId, status: 'accepted' } },
+      },
+      { $pull: { members: { userId: meId, status: 'accepted' } } },
+      { new: true },
+    );
+    if (!updated) throw HttpError.forbidden('You are not a member');
+    const acceptedRemaining = updated.members.filter((m) => m.status === 'accepted').length;
     if (acceptedRemaining === 0) {
-      await doc.deleteOne();
-      res.status(204).send();
-      return;
+      await updated.deleteOne();
     }
-    await doc.save();
     res.status(204).send();
   }),
 );

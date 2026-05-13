@@ -6,6 +6,12 @@ import { User } from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
+import { validate } from '../middleware/validate.js';
+import {
+  cheersForParams,
+  createCheerSchema,
+  deleteCheerSchema,
+} from '../schemas/cheers.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -24,12 +30,10 @@ async function areFriends(meId: string, otherId: string): Promise<boolean> {
 
 router.post(
   '/',
+  validate({ body: createCheerSchema }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const { toUserId, achievementKey } = req.body ?? {};
-    if (!toUserId || !achievementKey || typeof toUserId !== 'string' || typeof achievementKey !== 'string') {
-      throw HttpError.badRequest('toUserId and achievementKey are required');
-    }
+    const { toUserId, achievementKey } = req.body as { toUserId: string; achievementKey: string };
     if (toUserId === meId) {
       throw HttpError.badRequest('Cannot cheer yourself');
     }
@@ -51,12 +55,10 @@ router.post(
 
 router.delete(
   '/',
+  validate({ body: deleteCheerSchema }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const { toUserId, achievementKey } = req.body ?? {};
-    if (!toUserId || !achievementKey) {
-      throw HttpError.badRequest('toUserId and achievementKey are required');
-    }
+    const { toUserId, achievementKey } = req.body as { toUserId: string; achievementKey: string };
     await Cheer.deleteOne({ toUserId, fromUserId: meId, achievementKey });
     res.status(204).send();
   }),
@@ -111,6 +113,7 @@ router.post(
 
 router.get(
   '/for/:userId/:key',
+  validate({ params: cheersForParams }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const userId = String(req.params.userId);
