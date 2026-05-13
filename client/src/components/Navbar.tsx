@@ -321,8 +321,8 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
               )}
             </button>
             {bellOpen && (
-              <div className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] max-w-sm sm:w-80 rounded-2xl border border-[rgba(109,109,109,0.8)] bg-[var(--c-card)] shadow-xl z-50 overflow-hidden">
-                <div className="absolute -top-1.5 right-3 w-3 h-3 rotate-45 bg-[var(--c-card)] border-l border-t border-[rgba(109,109,109,0.8)]" aria-hidden />
+              <div className="fixed top-[60px] right-3 w-[min(calc(100vw-1.5rem),320px)] sm:absolute sm:top-auto sm:right-0 sm:mt-2 sm:w-80 rounded-2xl border border-[rgba(109,109,109,0.8)] bg-white dark:bg-black shadow-xl z-50 overflow-hidden">
+                <div className="absolute -top-1.5 right-3 w-3 h-3 rotate-45 bg-white dark:bg-black border-l border-t border-[rgba(109,109,109,0.8)]" aria-hidden />
                 <div className="px-4 py-3 border-b border-[var(--c-border)]">
                   <p className="text-sm font-semibold text-[var(--c-text)]">Notifications</p>
                 </div>
