@@ -48,5 +48,7 @@ export function fmtAmount(nzdAmount: number, currency: string): string {
 export function fmtYAxis(nzdValue: number, currency: string): string {
   const sym = SYMBOLS[currency] ?? '$';
   const v = convertFromNZD(nzdValue, currency);
-  return v >= 1000 ? `${sym}${(v / 1000).toFixed(1)}k` : `${sym}${v.toFixed(0)}`;
+  const sign = v < 0 ? '-' : '';
+  const abs = Math.abs(v);
+  return abs >= 1000 ? `${sign}${sym}${(abs / 1000).toFixed(1)}k` : `${sign}${sym}${abs.toFixed(0)}`;
 }
