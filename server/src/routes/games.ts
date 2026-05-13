@@ -7,17 +7,28 @@ import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
 import { logger } from '../lib/logger.js';
+import { validate } from '../middleware/validate.js';
+import {
+  MAX_SCORE_BY_GAME,
+  gameParam,
+  submitScoreSchema,
+  type GameName,
+} from '../schemas/games.js';
 
 const router = Router();
 router.use(requireAuth);
 
 router.post(
   '/score',
+  validate({ body: submitScoreSchema }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const { game, score } = req.body;
-    if (!['price', 'budget'].includes(game) || typeof score !== 'number' || score < 0) {
-      throw HttpError.badRequest('Invalid payload');
+    const { game, score } = req.body as { game: GameName; score: number };
+    if (score > MAX_SCORE_BY_GAME[game]) {
+      logger.warn({ userId: meId, game, score }, 'rejected impossible game score');
+      throw HttpError.badRequest(
+        `score must be <= ${MAX_SCORE_BY_GAME[game]} for game "${game}"`,
+      );
     }
     await GameScore.create({ userId: meId, game, score });
     res.json({ ok: true });
@@ -26,12 +37,10 @@ router.post(
 
 router.get(
   '/leaderboard/:game',
+  validate({ params: gameParam }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const game = String(req.params.game);
-    if (!['price', 'budget'].includes(game)) {
-      throw HttpError.badRequest('Unknown game');
-    }
+    const game = req.params.game as GameName;
 
     const friendships = await Friendship.find({
       status: 'accepted',

@@ -12,6 +12,14 @@ import type { BudgetPeriod } from '../models/Budget.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
 import { logger } from '../lib/logger.js';
+import { validate } from '../middleware/validate.js';
+import { idParam } from '../schemas/common.js';
+import {
+  createFriendRequestSchema,
+  friendIdParam,
+  respondFriendRequestSchema,
+  searchFriendsQuery,
+} from '../schemas/friends.js';
 
 const router = Router();
 
@@ -86,11 +94,9 @@ async function statusBetween(meId: string, otherId: string): Promise<Status> {
 
 router.get(
   '/search',
+  validate({ query: searchFriendsQuery }),
   asyncHandler(async (req: Request, res: Response) => {
-    const q = String(req.query.q ?? '').trim();
-    if (!q || q.length < 2) {
-      throw HttpError.badRequest('Query must be at least 2 characters');
-    }
+    const { q } = req.query as { q: string };
     const meId = req.user!._id;
     const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(escaped, 'i');
@@ -120,12 +126,10 @@ router.get(
 
 router.post(
   '/requests',
+  validate({ body: createFriendRequestSchema }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const { addresseeId } = req.body ?? {};
-    if (!addresseeId || typeof addresseeId !== 'string') {
-      throw HttpError.badRequest('addresseeId is required');
-    }
+    const { addresseeId } = req.body as { addresseeId: string };
     if (addresseeId === meId) {
       throw HttpError.badRequest('You cannot friend yourself');
     }
@@ -217,12 +221,10 @@ router.get(
 
 router.patch(
   '/requests/:id',
+  validate({ params: idParam, body: respondFriendRequestSchema }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
-    const { action } = req.body ?? {};
-    if (action !== 'accept' && action !== 'reject') {
-      throw HttpError.badRequest("action must be 'accept' or 'reject'");
-    }
+    const { action } = req.body as { action: 'accept' | 'reject' };
     const f = await Friendship.findById(req.params.id);
     if (!f || f.status !== 'pending') {
       throw HttpError.notFound('Pending request not found');
@@ -240,6 +242,7 @@ router.patch(
 
 router.delete(
   '/requests/:id',
+  validate({ params: idParam }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const f = await Friendship.findById(req.params.id);
@@ -416,6 +419,7 @@ router.post(
 
 router.delete(
   '/:friendId',
+  validate({ params: friendIdParam }),
   asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const friendId = req.params.friendId;

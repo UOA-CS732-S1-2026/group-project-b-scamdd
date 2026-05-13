@@ -6,6 +6,9 @@ import { checkAndAwardAchievements } from '../lib/achievements.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
 import { logger } from '../lib/logger.js';
+import { validate } from '../middleware/validate.js';
+import { createBudgetSchema, updateBudgetSchema } from '../schemas/budgets.js';
+import { idParam } from '../schemas/common.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -95,26 +98,21 @@ router.get(
 
 router.post(
   '/',
+  validate({ body: createBudgetSchema }),
   asyncHandler(async (req: Request, res: Response) => {
-    const { category, monthlyLimit, period, isPublic } = req.body ?? {};
-    if (!category) {
-      throw HttpError.badRequest('category is required');
-    }
-    if (category === 'emergency') {
-      throw HttpError.badRequest('Emergency cannot have a budget');
-    }
-    if (typeof monthlyLimit !== 'number' || monthlyLimit <= 0) {
-      throw HttpError.badRequest('limit must be a positive number');
-    }
-    const validPeriods = ['daily', 'weekly', 'monthly', 'yearly'];
-    const resolvedPeriod = validPeriods.includes(period) ? period : 'monthly';
+    const { category, monthlyLimit, period, isPublic } = req.body as {
+      category: string;
+      monthlyLimit: number;
+      period?: BudgetPeriod;
+      isPublic?: boolean;
+    };
 
     try {
       const budget = await Budget.create({
         userId: req.user!._id,
         category,
         monthlyLimit,
-        period: resolvedPeriod,
+        period: period ?? 'monthly',
         isPublic: Boolean(isPublic),
       });
       res.status(201).json(budget);
@@ -130,19 +128,19 @@ router.post(
 
 router.patch(
   '/:id',
+  validate({ params: idParam, body: updateBudgetSchema }),
   asyncHandler(async (req: Request, res: Response) => {
-    const { category, monthlyLimit, period, isPublic } = req.body ?? {};
+    const { category, monthlyLimit, period, isPublic } = req.body as {
+      category?: string;
+      monthlyLimit?: number;
+      period?: BudgetPeriod;
+      isPublic?: boolean;
+    };
     const updates: Record<string, unknown> = {};
 
     if (category !== undefined) updates.category = category;
-    if (monthlyLimit !== undefined) {
-      if (typeof monthlyLimit !== 'number' || monthlyLimit <= 0) {
-        throw HttpError.badRequest('limit must be a positive number');
-      }
-      updates.monthlyLimit = monthlyLimit;
-    }
-    const validPeriods = ['daily', 'weekly', 'monthly', 'yearly'];
-    if (period !== undefined && validPeriods.includes(period)) updates.period = period;
+    if (monthlyLimit !== undefined) updates.monthlyLimit = monthlyLimit;
+    if (period !== undefined) updates.period = period;
     if (isPublic !== undefined) updates.isPublic = Boolean(isPublic);
 
     try {
@@ -166,6 +164,7 @@ router.patch(
 
 router.delete(
   '/:id',
+  validate({ params: idParam }),
   asyncHandler(async (req: Request, res: Response) => {
     const budget = await Budget.findOneAndDelete({ _id: req.params.id, userId: req.user!._id });
     if (!budget) {

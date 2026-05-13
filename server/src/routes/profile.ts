@@ -6,11 +6,16 @@ import { computeBudgetStreak } from '../lib/streaks.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
 import { logger } from '../lib/logger.js';
+import { validate } from '../middleware/validate.js';
+import {
+  checkUsernameQuery,
+  updateProfileSchema,
+  usernameParam,
+} from '../schemas/profile.js';
 
 const router = Router();
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
-const ALLOWED_CURRENCIES = ['NZD', 'USD', 'AUD', 'EUR', 'GBP'];
 
 function publicProfile(u: {
   _id: unknown;
@@ -59,84 +64,68 @@ router.get(
 router.patch(
   '/me',
   requireAuth,
+  validate({ body: updateProfileSchema }),
   asyncHandler(async (req: Request, res: Response) => {
-    const { username, displayName, bio, currency, phone, profileComplete } = req.body ?? {};
+    const {
+      username,
+      displayName,
+      bio,
+      currency,
+      phone,
+      avatarColor,
+      avatarImage,
+      profileComplete,
+    } = req.body as {
+      username?: string;
+      displayName?: string;
+      bio?: string;
+      currency?: string;
+      phone?: string;
+      avatarColor?: string;
+      avatarImage?: string;
+      profileComplete?: boolean;
+    };
     const updates: Record<string, unknown> = {};
 
     if (username !== undefined) {
-      const u = String(username).toLowerCase().trim();
-      if (!USERNAME_RE.test(u)) {
-        throw HttpError.badRequest('Username must be 3-20 chars, lowercase letters, numbers, or underscore');
-      }
       // Fetch existing user to check if username is already set (immutable once set)
       const existingUser = await User.findById(req.user!._id).select('username').lean();
       if (existingUser?.username) {
         throw HttpError.badRequest('Username cannot be changed once set');
       }
-      const existing = await User.findOne({ username: u, _id: { $ne: req.user!._id } }).lean();
+      const existing = await User.findOne({ username, _id: { $ne: req.user!._id } }).lean();
       if (existing) {
         throw HttpError.conflict('Username is taken');
       }
-      updates.username = u;
+      updates.username = username;
     }
 
     if (displayName !== undefined) {
-      const dn = String(displayName).trim();
-      if (dn.length < 1 || dn.length > 50) {
-        throw HttpError.badRequest('Display name must be 1-50 chars');
-      }
-      updates.displayName = dn;
+      updates.displayName = displayName;
     }
 
     if (bio !== undefined) {
-      const b = String(bio).trim();
-      if (b.length > 200) {
-        throw HttpError.badRequest('Bio must be 200 chars or fewer');
-      }
-      updates.bio = b;
+      updates.bio = bio;
     }
 
     if (currency !== undefined) {
-      const c = String(currency).toUpperCase();
-      if (!ALLOWED_CURRENCIES.includes(c)) {
-        throw HttpError.badRequest(`Currency must be one of ${ALLOWED_CURRENCIES.join(', ')}`);
-      }
-      updates.currency = c;
+      updates.currency = currency;
     }
 
     if (phone !== undefined) {
-      const p = String(phone).trim();
-      if (p.length > 30) {
-        throw HttpError.badRequest('Phone number must be 30 chars or fewer');
-      }
-      updates.phone = p;
+      updates.phone = phone;
     }
 
-    if (req.body.avatarColor !== undefined) {
-      const ac = String(req.body.avatarColor).trim();
-      if (ac.length > 20) {
-        throw HttpError.badRequest('Invalid avatar color');
-      }
-      updates.avatarColor = ac;
+    if (avatarColor !== undefined) {
+      updates.avatarColor = avatarColor;
     }
 
-    if (req.body.avatarImage !== undefined) {
-      const img = String(req.body.avatarImage);
-      if (img !== '' && !img.startsWith('data:image/')) {
-        throw HttpError.badRequest('Invalid image format');
-      }
-      if (img.length > 1_500_000) {
-        throw HttpError.badRequest('Image too large (max ~1 MB)');
-      }
-      updates.avatarImage = img === '' ? null : img;
+    if (avatarImage !== undefined) {
+      updates.avatarImage = avatarImage === '' ? null : avatarImage;
     }
 
     if (profileComplete !== undefined) {
-      updates.profileComplete = Boolean(profileComplete);
-    }
-
-    if (Object.keys(updates).length === 0) {
-      throw HttpError.badRequest('No fields to update');
+      updates.profileComplete = profileComplete;
     }
 
     // Separate avatar fields — save to user_avatar collection so better-auth
@@ -192,8 +181,9 @@ router.patch(
 router.get(
   '/check-username',
   requireAuth,
+  validate({ query: checkUsernameQuery }),
   asyncHandler(async (req: Request, res: Response) => {
-    const raw = String(req.query.u ?? '').toLowerCase().trim();
+    const raw = String((req.query as { u?: string }).u ?? '').toLowerCase().trim();
     if (!USERNAME_RE.test(raw)) {
       res.json({ available: false, reason: 'invalid' });
       return;
@@ -206,11 +196,9 @@ router.get(
 router.get(
   '/by-username/:username',
   requireAuth,
+  validate({ params: usernameParam }),
   asyncHandler(async (req: Request, res: Response) => {
-    const u = String(req.params.username).toLowerCase().trim();
-    if (!USERNAME_RE.test(u)) {
-      throw HttpError.badRequest('Invalid username');
-    }
+    const u = req.params.username;
     const user = await User.findOne({ username: u }).lean();
     if (!user) {
       throw HttpError.notFound('User not found');
