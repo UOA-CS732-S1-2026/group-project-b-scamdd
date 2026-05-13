@@ -14,6 +14,7 @@ import categoryRoutes from './routes/categories.js';
 import achievementRoutes from './routes/achievements.js';
 import cheerRoutes from './routes/cheers.js';
 import wrappedRoutes from './routes/wrapped.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 export const app = express();
 
@@ -88,3 +89,6 @@ app.use('/api/cheers', cheerRoutes);
 app.use('/api/wrapped', wrappedRoutes);
 
 app.get('/favicon.ico', (_req, res) => res.status(204).end());
+
+app.use('/api', notFoundHandler);
+app.use(errorHandler);

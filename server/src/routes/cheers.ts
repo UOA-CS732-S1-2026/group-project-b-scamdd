@@ -4,6 +4,8 @@ import { Achievement } from '../models/Achievement.js';
 import { Friendship } from '../models/Friendship.js';
 import { User } from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
+import { asyncHandler } from '../lib/asyncHandler.js';
+import { HttpError } from '../lib/httpError.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -20,26 +22,23 @@ async function areFriends(meId: string, otherId: string): Promise<boolean> {
   return Boolean(f);
 }
 
-router.post('/', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const { toUserId, achievementKey } = req.body ?? {};
     if (!toUserId || !achievementKey || typeof toUserId !== 'string' || typeof achievementKey !== 'string') {
-      res.status(400).json({ message: 'toUserId and achievementKey are required' });
-      return;
+      throw HttpError.badRequest('toUserId and achievementKey are required');
     }
     if (toUserId === meId) {
-      res.status(400).json({ message: 'Cannot cheer yourself' });
-      return;
+      throw HttpError.badRequest('Cannot cheer yourself');
     }
     if (!(await areFriends(meId, toUserId))) {
-      res.status(403).json({ message: 'You are not friends with that user' });
-      return;
+      throw HttpError.forbidden('You are not friends with that user');
     }
     const owns = await Achievement.exists({ userId: toUserId, key: achievementKey });
     if (!owns) {
-      res.status(404).json({ message: 'Achievement not found' });
-      return;
+      throw HttpError.notFound('Achievement not found');
     }
     await Cheer.updateOne(
       { toUserId, fromUserId: meId, achievementKey },
@@ -47,40 +46,36 @@ router.post('/', async (req: Request, res: Response) => {
       { upsert: true },
     );
     res.status(201).json({ ok: true });
-  } catch {
-    res.status(500).json({ message: 'Failed to cheer' });
-  }
-});
+  }),
+);
 
-router.delete('/', async (req: Request, res: Response) => {
-  try {
+router.delete(
+  '/',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const { toUserId, achievementKey } = req.body ?? {};
     if (!toUserId || !achievementKey) {
-      res.status(400).json({ message: 'toUserId and achievementKey are required' });
-      return;
+      throw HttpError.badRequest('toUserId and achievementKey are required');
     }
     await Cheer.deleteOne({ toUserId, fromUserId: meId, achievementKey });
     res.status(204).send();
-  } catch {
-    res.status(500).json({ message: 'Failed to uncheer' });
-  }
-});
+  }),
+);
 
-router.get('/sent', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/sent',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const sent = await Cheer.find({ fromUserId: meId })
       .select({ toUserId: 1, achievementKey: 1 })
       .lean();
     res.json(sent.map(c => ({ toUserId: c.toUserId, achievementKey: c.achievementKey })));
-  } catch {
-    res.status(500).json({ message: 'Failed to fetch sent cheers' });
-  }
-});
+  }),
+);
 
-router.get('/received', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/received',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const cheers = await Cheer.find({ toUserId: meId })
       .sort({ createdAt: -1 })
@@ -102,29 +97,26 @@ router.get('/received', async (req: Request, res: Response) => {
         };
       }),
     );
-  } catch {
-    res.status(500).json({ message: 'Failed to fetch received cheers' });
-  }
-});
+  }),
+);
 
-router.post('/mark-seen', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/mark-seen',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     await Cheer.updateMany({ toUserId: meId, seenByRecipient: false }, { $set: { seenByRecipient: true } });
     res.status(204).send();
-  } catch {
-    res.status(500).json({ message: 'Failed to mark cheers as seen' });
-  }
-});
+  }),
+);
 
-router.get('/for/:userId/:key', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/for/:userId/:key',
+  asyncHandler(async (req: Request, res: Response) => {
     const meId = req.user!._id;
     const userId = String(req.params.userId);
     const key = String(req.params.key);
     if (userId !== meId && !(await areFriends(meId, userId))) {
-      res.status(403).json({ message: 'Not friends with that user' });
-      return;
+      throw HttpError.forbidden('Not friends with that user');
     }
     const cheers = await Cheer.find({ toUserId: userId, achievementKey: key }).lean();
     const fromIds = cheers.map(c => c.fromUserId);
@@ -140,9 +132,7 @@ router.get('/for/:userId/:key', async (req: Request, res: Response) => {
         };
       }),
     );
-  } catch {
-    res.status(500).json({ message: 'Failed to list cheers' });
-  }
-});
+  }),
+);
 
 export default router;

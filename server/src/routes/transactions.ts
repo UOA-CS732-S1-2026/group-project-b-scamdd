@@ -2,15 +2,24 @@ import { Router, Request, Response } from 'express';
 import { Transaction } from '../models/Transaction.js';
 import { requireAuth } from '../middleware/auth.js';
 import { checkAndAwardAchievements } from '../lib/achievements.js';
+import { asyncHandler } from '../lib/asyncHandler.js';
+import { HttpError } from '../lib/httpError.js';
+import { logger } from '../lib/logger.js';
 
 const router = Router();
 
 router.use(requireAuth);
 
-router.get('/', async (req: Request, res: Response) => {
-  try {
-    const { page, limit } = req.query;
+function fireAchievements(userId: string) {
+  checkAndAwardAchievements(userId).catch((err) => {
+    logger.error({ err, userId }, 'checkAndAwardAchievements failed');
+  });
+}
 
+router.get(
+  '/',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { page, limit } = req.query;
     const query = Transaction.find({ userId: req.user!._id }).sort({ date: -1 });
 
     if (page && limit) {
@@ -23,29 +32,24 @@ router.get('/', async (req: Request, res: Response) => {
       const transactions = await query;
       res.json(transactions);
     }
-  } catch {
-    res.status(500).json({ message: 'Failed to fetch transactions' });
-  }
-});
+  }),
+);
 
-router.post('/', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/',
+  asyncHandler(async (req: Request, res: Response) => {
     const { title, amount, type, category, date, note, mood, essential, paymentMethod } = req.body;
     if (!title || !type || !date) {
-      res.status(400).json({ message: 'title, type, and date are required' });
-      return;
+      throw HttpError.badRequest('title, type, and date are required');
     }
     if (type === 'expense' && !category) {
-      res.status(400).json({ message: 'category is required for expenses' });
-      return;
+      throw HttpError.badRequest('category is required for expenses');
     }
     if (!['income', 'expense'].includes(type)) {
-      res.status(400).json({ message: 'type must be income or expense' });
-      return;
+      throw HttpError.badRequest('type must be income or expense');
     }
     if (typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
-      res.status(400).json({ message: 'amount must be a positive number' });
-      return;
+      throw HttpError.badRequest('amount must be a positive number');
     }
     const transaction = await Transaction.create({
       userId: req.user!._id,
@@ -60,28 +64,25 @@ router.post('/', async (req: Request, res: Response) => {
       paymentMethod,
     });
     res.status(201).json(transaction);
-    checkAndAwardAchievements(req.user!._id).catch(() => { /* ignore */ });
-  } catch {
-    res.status(500).json({ message: 'Failed to create transaction' });
-  }
-});
+    fireAchievements(req.user!._id);
+  }),
+);
 
-router.patch('/:id', async (req: Request, res: Response) => {
-  try {
+router.patch(
+  '/:id',
+  asyncHandler(async (req: Request, res: Response) => {
     const { title, amount, type, category, date, note, mood, essential, paymentMethod } = req.body;
     const updates: Record<string, unknown> = {};
     if (title !== undefined) updates.title = title;
     if (amount !== undefined) {
       if (typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
-        res.status(400).json({ message: 'amount must be a positive number' });
-        return;
+        throw HttpError.badRequest('amount must be a positive number');
       }
       updates.amount = amount;
     }
     if (type !== undefined) {
       if (!['income', 'expense'].includes(type)) {
-        res.status(400).json({ message: 'type must be income or expense' });
-        return;
+        throw HttpError.badRequest('type must be income or expense');
       }
       updates.type = type;
     }
@@ -97,31 +98,22 @@ router.patch('/:id', async (req: Request, res: Response) => {
       updates,
       { new: true, runValidators: true },
     );
-    if (!transaction) {
-      res.status(404).json({ message: 'Transaction not found' });
-      return;
-    }
+    if (!transaction) throw HttpError.notFound('Transaction not found');
     res.json(transaction);
-    checkAndAwardAchievements(req.user!._id).catch(() => { /* ignore */ });
-  } catch {
-    res.status(500).json({ message: 'Failed to update transaction' });
-  }
-});
+    fireAchievements(req.user!._id);
+  }),
+);
 
-router.delete('/:id', async (req: Request, res: Response) => {
-  try {
+router.delete(
+  '/:id',
+  asyncHandler(async (req: Request, res: Response) => {
     const transaction = await Transaction.findOneAndDelete({
       _id: req.params.id,
       userId: req.user!._id,
     });
-    if (!transaction) {
-      res.status(404).json({ message: 'Transaction not found' });
-      return;
-    }
+    if (!transaction) throw HttpError.notFound('Transaction not found');
     res.status(204).send();
-  } catch {
-    res.status(500).json({ message: 'Failed to delete transaction' });
-  }
-});
+  }),
+);
 
 export default router;
