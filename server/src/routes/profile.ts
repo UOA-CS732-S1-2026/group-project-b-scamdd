@@ -6,6 +6,7 @@ import { computeBudgetStreak } from '../lib/streaks.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
 import { logger } from '../lib/logger.js';
+import { cascadeDeleteUser } from '../lib/userCascade.js';
 import { validate } from '../middleware/validate.js';
 import {
   checkUsernameQuery,
@@ -204,6 +205,19 @@ router.get(
       throw HttpError.notFound('User not found');
     }
     res.json(publicProfile(user));
+  }),
+);
+
+router.delete(
+  '/me',
+  requireAuth,
+  asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!._id;
+    const report = await cascadeDeleteUser(userId);
+    logger.info({ userId, report }, 'user account deleted');
+    // Clear Better Auth's session cookie so the client lands on /auth.
+    res.clearCookie('better-auth.session_token', { path: '/' });
+    res.json({ ok: true, report });
   }),
 );
 
