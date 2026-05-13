@@ -12,6 +12,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "seed": "tsx src/seed.ts",
+    "db:index": "tsx src/scripts/ensureIndexes.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

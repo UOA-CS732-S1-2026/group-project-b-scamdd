@@ -4,7 +4,6 @@ import { User } from '../models/User.js';
 import { UserAvatar } from '../models/UserAvatar.js';
 import { Goal } from '../models/Goal.js';
 import { Budget } from '../models/Budget.js';
-import { Transaction } from '../models/Transaction.js';
 import { requireAuth } from '../middleware/auth.js';
 import { computeBudgetStreak } from '../lib/streaks.js';
 import { listAchievements } from '../lib/achievements.js';
@@ -12,6 +11,7 @@ import type { BudgetPeriod } from '../models/Budget.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
 import { logger } from '../lib/logger.js';
+import { spendByCategoryForUser } from '../lib/spend.js';
 import { validate } from '../middleware/validate.js';
 import { idParam } from '../schemas/common.js';
 import {
@@ -25,54 +25,11 @@ const router = Router();
 
 router.use(requireAuth);
 
-function periodRange(period: BudgetPeriod): { start: Date; end: Date } {
-  const now = new Date();
-  switch (period) {
-    case 'daily': {
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      return { start, end };
-    }
-    case 'weekly': {
-      const day = now.getDay() === 0 ? 7 : now.getDay();
-      const monday = new Date(now);
-      monday.setDate(now.getDate() - (day - 1));
-      monday.setHours(0, 0, 0, 0);
-      const nextMonday = new Date(monday);
-      nextMonday.setDate(monday.getDate() + 7);
-      return { start: monday, end: nextMonday };
-    }
-    case 'monthly':
-      return {
-        start: new Date(now.getFullYear(), now.getMonth(), 1),
-        end: new Date(now.getFullYear(), now.getMonth() + 1, 1),
-      };
-    case 'yearly':
-      return {
-        start: new Date(now.getFullYear(), 0, 1),
-        end: new Date(now.getFullYear() + 1, 0, 1),
-      };
-  }
-}
-
 async function spentByCategoryFor(
   userId: string,
   period: BudgetPeriod,
 ): Promise<Record<string, number>> {
-  const { start, end } = periodRange(period);
-  const rows = await Transaction.aggregate<{ _id: string; total: number }>([
-    {
-      $match: {
-        userId,
-        type: 'expense',
-        date: { $gte: start, $lt: end },
-      },
-    },
-    { $group: { _id: '$category', total: { $sum: '$amount' } } },
-  ]);
-  const map: Record<string, number> = {};
-  for (const r of rows) map[r._id] = r.total;
-  return map;
+  return spendByCategoryForUser(userId, period);
 }
 
 type Status = 'none' | 'pending-out' | 'pending-in' | 'accepted';

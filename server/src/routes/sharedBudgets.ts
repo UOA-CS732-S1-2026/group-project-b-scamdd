@@ -1,12 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { SharedBudget } from '../models/SharedBudget.js';
 import type { BudgetPeriod } from '../models/Budget.js';
-import { Transaction } from '../models/Transaction.js';
-import { Friendship } from '../models/Friendship.js';
 import { User } from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/httpError.js';
+import { aggregateSpendByUser } from '../lib/spend.js';
+import { areAllFriends } from '../lib/friendship.js';
 import { validate } from '../middleware/validate.js';
 import {
   createSharedBudgetSchema,
@@ -18,73 +18,12 @@ import { idParam } from '../schemas/common.js';
 const router = Router();
 router.use(requireAuth);
 
-function periodRange(period: BudgetPeriod): { start: Date; end: Date } {
-  const now = new Date();
-  switch (period) {
-    case 'daily': {
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      return { start, end };
-    }
-    case 'weekly': {
-      const day = now.getDay() === 0 ? 7 : now.getDay();
-      const monday = new Date(now);
-      monday.setDate(now.getDate() - (day - 1));
-      monday.setHours(0, 0, 0, 0);
-      const nextMonday = new Date(monday);
-      nextMonday.setDate(monday.getDate() + 7);
-      return { start: monday, end: nextMonday };
-    }
-    case 'monthly':
-      return {
-        start: new Date(now.getFullYear(), now.getMonth(), 1),
-        end: new Date(now.getFullYear(), now.getMonth() + 1, 1),
-      };
-    case 'yearly':
-      return {
-        start: new Date(now.getFullYear(), 0, 1),
-        end: new Date(now.getFullYear() + 1, 0, 1),
-      };
-  }
-}
-
 async function spentByMember(
   memberIds: string[],
   category: string,
   period: BudgetPeriod,
 ): Promise<Record<string, number>> {
-  if (memberIds.length === 0) return {};
-  const { start, end } = periodRange(period);
-  const rows = await Transaction.aggregate<{ _id: string; total: number }>([
-    {
-      $match: {
-        userId: { $in: memberIds },
-        type: 'expense',
-        category,
-        date: { $gte: start, $lt: end },
-      },
-    },
-    { $group: { _id: '$userId', total: { $sum: '$amount' } } },
-  ]);
-  const map: Record<string, number> = {};
-  for (const r of rows) map[r._id] = r.total;
-  return map;
-}
-
-async function areAllFriends(meId: string, otherIds: string[]): Promise<boolean> {
-  if (otherIds.length === 0) return true;
-  const friendships = await Friendship.find({
-    status: 'accepted',
-    $or: otherIds.flatMap((id) => [
-      { requesterId: meId, addresseeId: id },
-      { requesterId: id, addresseeId: meId },
-    ]),
-  }).lean();
-  const friendIds = new Set<string>();
-  for (const f of friendships) {
-    friendIds.add(f.requesterId === meId ? f.addresseeId : f.requesterId);
-  }
-  return otherIds.every((id) => friendIds.has(id));
+  return aggregateSpendByUser({ userIds: memberIds, category, period });
 }
 
 type EnrichedMember = {
