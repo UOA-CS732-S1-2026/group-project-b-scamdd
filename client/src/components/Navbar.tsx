@@ -523,14 +523,13 @@ export default function Navbar({ isDark, onThemeToggle, userName }: NavbarProps)
               key={path}
               onClick={() => navigate(path)}
               aria-label={label}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[10px] font-medium transition-colors cursor-pointer min-w-[3rem] ${
+              className={`flex items-center justify-center w-12 h-12 rounded-xl transition-colors cursor-pointer ${
                 active
                   ? 'text-[var(--c-text)] bg-[var(--c-nav-active)]'
                   : 'text-[var(--c-text-2)] hover:text-[var(--c-text)]'
               }`}
             >
-              <span className="scale-125 origin-center"><Icon /></span>
-              <span>{label}</span>
+              <span className="scale-150 origin-center"><Icon /></span>
             </button>
           );
         })}
